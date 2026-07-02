@@ -1,6 +1,6 @@
-# Gathrd — Week 1: Supabase Setup + Auth + Role System + Audit Trail
+# Gathrd — Weeks 1-2: Auth, Roles, and Member Registry
 
-Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline, Week 1.
+Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
 ## What's in this drop
 
@@ -23,7 +23,50 @@ gathrd/
     └── (vite/tailwind config)
 ```
 
-## Setup steps
+## Week 2 — Member Registry + QR Self-Onboarding
+
+New in this drop:
+```
+supabase/migrations/
+  ├── 0003_member_registry.sql   ← departments, cell_groups, members, self-onboarding RPC
+  └── 0004_member_registry_rls.sql  ← RLS for all of the above
+
+frontend/src/pages/
+  ├── PublicOnboard.jsx   ← the public QR/link self-registration form (no login)
+  ├── Members.jsx         ← admin member list, search/filter, CSV export, invite panel
+  └── MemberForm.jsx      ← admin add/edit member (full field spec incl. medical consent gate)
+```
+
+### Setup steps for Week 2
+
+1. In Supabase SQL Editor, run `0003_member_registry.sql`, then `0004_member_registry_rls.sql`, in order.
+2. Pull the latest code (`git pull` if you're syncing from GitHub, or just make sure these new files are in place).
+3. `npm run dev` from the `frontend` folder.
+4. Log in as your senior_pastor account → click **Go to Members** on the dashboard.
+5. Click **Invite Members** — this shows your church's unique QR code and link.
+6. Test the self-onboarding flow: open the link in an incognito window (simulating a visiting member with no login) and submit the form.
+7. Confirm the new member shows up in your Members list, tagged "self-registered."
+
+### Design decision worth knowing
+
+`members` is a separate table from `profiles`. `profiles` is for the 8 role-holders who actually log in (pastors, admins, leaders). `members` is the full congregation roster — most of them will never have a login account, they're just records in the registry, added either by an admin or via self-onboarding. A member *can* optionally be linked to a login account later (via `profile_id`), but doesn't need one to exist.
+
+### Security note
+
+Self-onboarding does **not** give anonymous visitors direct write access to the `members` table. Instead, the public form calls a Postgres function (`self_onboard_member`) that validates the church's onboarding slug server-side and inserts on the visitor's behalf. This means even if someone inspected the network requests and tried to call the Supabase API directly, they still couldn't write to any table, insert into another church's data, or bypass the slug check — the only door open to the public is that one function, and it does exactly one thing.
+
+### Week 2 deliverable checklist (Section 12)
+
+- [x] Member Registry schema — all required + optional fields from Section 4
+- [x] Departments and Cell Groups as supporting tables
+- [x] QR/link self-onboarding via secure RPC, not direct table access
+- [x] Medical data (blood group, genotype) gated behind church-level toggle + explicit consent checkbox
+- [x] Admin member list with search (name) and filter (status)
+- [x] CSV export
+- [x] RLS: pastors/admins full access, cell_leader scoped to their own cell, member sees only their own record
+- [ ] **You confirm**: share the invite link, submit a test registration, see it appear in your Members list
+
+## Week 1 — Auth + Roles
 
 ### 1. Create your Supabase project
 Go to [supabase.com](https://supabase.com) → New Project. Free tier is fine per Section 8.

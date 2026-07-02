@@ -4,6 +4,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import PublicOnboard from './pages/PublicOnboard';
+import Members from './pages/Members';
+import MemberForm from './pages/MemberForm';
 
 function CheckEmail() {
   return (
@@ -32,11 +35,36 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/join/:slug" element={<PublicOnboard />} />
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader']}>
+                <Members />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members/new"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <MemberForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <MemberForm />
               </ProtectedRoute>
             }
           />

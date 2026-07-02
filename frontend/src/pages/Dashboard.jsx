@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Week 1 placeholder. The real unified pastor dashboard is Week 8
@@ -27,6 +28,12 @@ export default function Dashboard() {
           This is the Week 1 checkpoint — login and role routing work.
           Week 2 replaces this with the real Member Registry.
         </p>
+        <Link
+          to="/members"
+          className="block w-full text-center bg-indigo-600 text-white rounded-md py-2 text-sm font-medium"
+        >
+          Go to Members
+        </Link>
         <button
           onClick={signOut}
           className="w-full border border-gray-300 rounded-md py-2 text-sm font-medium"
