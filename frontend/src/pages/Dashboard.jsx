@@ -25,8 +25,8 @@ export default function Dashboard() {
           Role: <span className="font-medium">{roleLabels[profile?.role] ?? '—'}</span>
         </p>
         <p className="text-gray-400 text-xs">
-          This is the Week 1 checkpoint — login and role routing work.
-          Week 2 replaces this with the real Member Registry.
+          Members, Visitor Log, and Discipleship Tracker are live.
+The full unified dashboard is coming as more modules ship.
         </p>
         <Link
           to="/members"
