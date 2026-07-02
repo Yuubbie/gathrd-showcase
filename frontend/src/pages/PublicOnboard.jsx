@@ -119,6 +119,7 @@ export default function PublicOnboard() {
         className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4"
       >
         <div className="text-center mb-2">
+          <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
           <h1 className="text-lg font-semibold">Join {churchName}</h1>
           <p className="text-gray-500 text-sm mt-1">
             Fill this in to register as a member.

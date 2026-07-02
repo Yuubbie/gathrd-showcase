@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [churchName, setChurchName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +29,7 @@ export default function Signup() {
       email,
       password,
       fullName,
+      churchName,
       role: 'senior_pastor',
     });
     setSubmitting(false);
@@ -45,6 +47,7 @@ export default function Signup() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4"
       >
+        <img src="/logo-mark.png" alt="Gathrd" className="h-14 w-14 mx-auto" />
         <h1 className="text-xl font-semibold text-center">Set up your church</h1>
 
         {error && (
@@ -52,6 +55,16 @@ export default function Signup() {
             {error}
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Church name</label>
+          <input
+            required
+            value={churchName}
+            onChange={(e) => setChurchName(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 text-base"
+          />
+        </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Your full name</label>

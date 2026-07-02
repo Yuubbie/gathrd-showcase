@@ -31,6 +31,7 @@ export default function Login() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4"
       >
+        <img src="/logo-mark.png" alt="Gathrd" className="h-14 w-14 mx-auto" />
         <h1 className="text-xl font-semibold text-center">Log in to Gathrd</h1>
 
         {error && (
