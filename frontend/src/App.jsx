@@ -7,6 +7,9 @@ import Dashboard from './pages/Dashboard';
 import PublicOnboard from './pages/PublicOnboard';
 import Members from './pages/Members';
 import MemberForm from './pages/MemberForm';
+import VisitorCheckIn from './pages/VisitorCheckIn';
+import VisitorLog from './pages/VisitorLog';
+import DiscipleshipTracker from './pages/DiscipleshipTracker';
 
 function CheckEmail() {
   return (
@@ -65,6 +68,30 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <MemberForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/visitors"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <VisitorLog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/visitors/check-in"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <VisitorCheckIn />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/discipleship"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <DiscipleshipTracker />
               </ProtectedRoute>
             }
           />

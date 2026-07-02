@@ -34,6 +34,18 @@ export default function Dashboard() {
         >
           Go to Members
         </Link>
+        <Link
+          to="/visitors"
+          className="block w-full text-center border border-gray-300 rounded-md py-2 text-sm font-medium"
+        >
+          Visitor Log
+        </Link>
+        <Link
+          to="/discipleship"
+          className="block w-full text-center border border-gray-300 rounded-md py-2 text-sm font-medium"
+        >
+          Discipleship Tracker
+        </Link>
         <button
           onClick={signOut}
           className="w-full border border-gray-300 rounded-md py-2 text-sm font-medium"
