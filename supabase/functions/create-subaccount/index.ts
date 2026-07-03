@@ -14,19 +14,34 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return json({ error: "Method not allowed" }, 405);
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), { status: 401 });
+      return json({ error: "Missing authorization" }, 401);
     }
 
-    // Client scoped to the calling user's own JWT — lets us safely
-    // check "who is this person" using their own session.
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -35,11 +50,9 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
     if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
+      return json({ error: "Not authenticated" }, 401);
     }
 
-    // Service-role client for privileged writes, only after we've
-    // confirmed who the caller is above.
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -52,11 +65,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileErr || !profile) {
-      return new Response(JSON.stringify({ error: "Profile not found" }), { status: 403 });
+      return json({ error: "Profile not found" }, 403);
     }
 
     if (!["senior_pastor", "assistant_pastor", "church_admin"].includes(profile.role)) {
-      return new Response(JSON.stringify({ error: "Not authorized to set up giving" }), { status: 403 });
+      return json({ error: "Not authorized to set up giving" }, 403);
     }
 
     const { data: church, error: churchErr } = await supabaseAdmin
@@ -66,17 +79,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (churchErr || !church) {
-      return new Response(JSON.stringify({ error: "Church not found" }), { status: 404 });
+      return json({ error: "Church not found" }, 404);
     }
 
     if (!church.settlement_bank_code || !church.settlement_account_number) {
-      return new Response(
-        JSON.stringify({ error: "Save your bank account details before creating the subaccount." }),
-        { status: 400 }
-      );
+      return json({ error: "Save your bank account details before creating the subaccount." }, 400);
     }
 
-    // Call Paystack — this is the only place the secret key is used
     const paystackRes = await fetch("https://api.paystack.co/subaccount", {
       method: "POST",
       headers: {
@@ -87,17 +96,14 @@ Deno.serve(async (req) => {
         business_name: church.name,
         settlement_bank: church.settlement_bank_code,
         account_number: church.settlement_account_number,
-        percentage_charge: 2, // Gathrd's platform fee — adjust as needed
+        percentage_charge: 2,
       }),
     });
 
     const paystackData = await paystackRes.json();
 
     if (!paystackRes.ok || !paystackData.status) {
-      return new Response(
-        JSON.stringify({ error: paystackData.message || "Paystack rejected the subaccount request." }),
-        { status: 400 }
-      );
+      return json({ error: paystackData.message || "Paystack rejected the subaccount request." }, 400);
     }
 
     const subaccountCode = paystackData.data.subaccount_code;
@@ -111,11 +117,8 @@ Deno.serve(async (req) => {
       })
       .eq("id", church.id);
 
-    return new Response(
-      JSON.stringify({ success: true, subaccount_code: subaccountCode, account_name: accountName }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return json({ success: true, subaccount_code: subaccountCode, account_name: accountName }, 200);
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return json({ error: String(err) }, 500);
   }
 });
