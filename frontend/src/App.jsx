@@ -15,6 +15,8 @@ import GivingLog from './pages/GivingLog';
 import CountingSheet from './pages/CountingSheet';
 import PublicGive from './pages/PublicGive';
 import GiveSuccess from './pages/GiveSuccess';
+import MemberGivingHistory from './pages/MemberGivingHistory';
+import TopGivers from './pages/TopGivers';
 
 function CheckEmail() {
   return (
@@ -123,6 +125,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
                 <CountingSheet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/giving/top-givers"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
+                <TopGivers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members/:id/giving"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
+                <MemberGivingHistory />
               </ProtectedRoute>
             }
           />

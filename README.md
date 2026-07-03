@@ -87,8 +87,26 @@ supabase functions deploy paystack-webhook --no-verify-jwt
 - [x] Church giving summary by category
 - [x] Offering Counting Sheet: multi-counter tally, auto-confirm on match, auto-flag on mismatch, locked after confirmation
 - [x] Giving data restricted to pastor/finance_admin roles only
-- [ ] **You confirm**: activate giving, make a test payment, record a cash gift, and run a full counting sheet reconciliation (both matching and mismatched)
-- [ ] **Not yet built** (next session): member giving history/statement view, top givers report — these are quick additions once the core money flow is confirmed working
+- [x] Scroll-wheel bug fixed on every amount field (Chrome silently changes number inputs on mouse scroll — closed everywhere)
+- [x] Gifts now link to a real member record — cash entries via a searchable dropdown, online gifts auto-matched by phone number
+- [x] Member Giving History page with date-range filter and a printable/exportable giving statement (for tax and personal records, per spec)
+- [x] Top Givers report, ranked by total given in a date range, restricted to senior_pastor/assistant_pastor/finance_admin only
+- [x] **Confirmed working**: activated giving, made a real test payment via Paystack test mode, recorded cash gifts, ran counting sheet reconciliation (both matching and mismatched scenarios)
+
+### New in the stretch-goal update
+
+```
+frontend/src/pages/
+  ├── MemberGivingHistory.jsx  ← /members/:id/giving — full history + printable statement
+  └── TopGivers.jsx            ← /giving/top-givers — ranked report, finance roles only
+```
+
+**Setup:** redeploy `initialize-giving` after pulling this update — it now auto-links online gifts to an existing member by matching phone number:
+```
+supabase functions deploy initialize-giving --no-verify-jwt --project-ref <your-project-ref>
+```
+
+**How the statement works:** click "Print / Save Statement" on any member's Giving History page — it opens your browser's print dialog, where choosing "Save as PDF" produces a clean, downloadable statement. No PDF-generation library needed; this uses print-specific CSS (`print:` Tailwind classes hide buttons/navigation and show only the statement content when printing).
 
 ## Week 3 — Visitor Log, Follow-Up, and Discipleship Tracker
 

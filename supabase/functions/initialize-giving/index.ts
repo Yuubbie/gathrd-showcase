@@ -70,8 +70,26 @@ Deno.serve(async (req) => {
 
     const reference = `gathrd_${crypto.randomUUID()}`;
 
+    // Best-effort link to an existing member record by phone number,
+    // so this gift shows up in their giving history automatically.
+    let matchedMemberId = null;
+    if (phone) {
+      const { data: matchedMember } = await supabaseAdmin
+        .from("members")
+        .select("id")
+        .eq("church_id", church.id)
+        .eq("phone", phone)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (matchedMember) matchedMemberId = matchedMember.id;
+    }
+
+    // Pre-create a pending giving record BEFORE calling Paystack, so
+    // we have a record even if the webhook is delayed or the giver
+    // never completes payment.
     await supabaseAdmin.from("giving_records").insert({
       church_id: church.id,
+      member_id: matchedMemberId,
       category,
       amount: amountNaira,
       payment_method: "card",
@@ -90,7 +108,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         email,
-        amount: Math.round(amountNaira * 100),
+        amount: Math.round(amountNaira * 100), // kobo
         reference,
         subaccount: church.paystack_subaccount_code,
         callback_url: origin ? `${origin}/give/success?reference=${reference}` : undefined,

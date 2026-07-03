@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,7 @@ const STATUS_LABELS = {
 
 export default function Members() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -164,10 +165,10 @@ export default function Members() {
           ) : (
             <div className="divide-y">
               {members.map((m) => (
-                <Link
+                <div
                   key={m.id}
-                  to={`/members/${m.id}/edit`}
-                  className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded"
+                  onClick={() => navigate(`/members/${m.id}/edit`)}
+                  className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded cursor-pointer"
                 >
                   <div>
                     <p className="font-medium text-sm">{m.full_name}</p>
@@ -178,10 +179,21 @@ export default function Members() {
                       )}
                     </p>
                   </div>
-                  <span className="text-xs text-gray-400">
-                    {STATUS_LABELS[m.status] || m.status}
-                  </span>
-                </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">
+                      {STATUS_LABELS[m.status] || m.status}
+                    </span>
+                    {['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role) && (
+                      <Link
+                        to={`/members/${m.id}/giving`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-indigo-600 font-medium"
+                      >
+                        Giving →
+                      </Link>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           )}

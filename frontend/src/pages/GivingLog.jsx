@@ -12,7 +12,7 @@ const CATEGORIES = [
 ];
 
 const emptyForm = {
-  category: 'tithe', amount: '', given_by_name: '', given_by_phone: '',
+  category: 'tithe', amount: '', member_id: '', given_by_name: '', given_by_phone: '',
   tithe_card_number: '', notes: '',
 };
 
@@ -20,11 +20,26 @@ export default function GivingLog() {
   const { profile } = useAuth();
   const [records, setRecords] = useState([]);
   const [totals, setTotals] = useState({});
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    async function loadMembers() {
+      if (!profile?.church_id) return;
+      const { data } = await supabase
+        .from('members')
+        .select('id, full_name, phone')
+        .eq('church_id', profile.church_id)
+        .is('deleted_at', null)
+        .order('full_name');
+      setMembers(data || []);
+    }
+    loadMembers();
+  }, [profile]);
 
   const load = useCallback(async () => {
     if (!profile?.church_id) return;
@@ -62,6 +77,7 @@ export default function GivingLog() {
 
     const { error } = await supabase.from('giving_records').insert({
       church_id: profile.church_id,
+      member_id: form.member_id || null,
       category: form.category,
       amount: Number(form.amount),
       payment_method: 'cash',
@@ -91,6 +107,9 @@ export default function GivingLog() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="text-xl font-semibold">Giving</h1>
           <div className="flex gap-2">
+            <Link to="/giving/top-givers" className="text-sm border border-gray-300 rounded-md px-3 py-1.5 font-medium">
+              Top Givers
+            </Link>
             <Link to="/giving/counting" className="text-sm border border-gray-300 rounded-md px-3 py-1.5 font-medium">
               Counting Sheets
             </Link>
@@ -133,7 +152,28 @@ export default function GivingLog() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Amount (₦)</label>
-              <input type="number" required min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} onWheel={(e) => e.target.blur()} className="w-full border >
+              <input type="number" required min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} onWheel={(e) => e.target.blur()} className="w-full border rounded-md px-3 py-2 text-base" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Link to a member (optional)</label>
+              <select
+                value={form.member_id}
+                onChange={(e) => {
+                  const m = members.find((x) => x.id === e.target.value);
+                  setForm((f) => ({
+                    ...f,
+                    member_id: e.target.value,
+                    given_by_name: m ? m.full_name : f.given_by_name,
+                  }));
+                }}
+                className="w-full border rounded-md px-3 py-2 text-base bg-white"
+              >
+                <option value="">Not linked — anonymous / free text below</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.full_name}{m.phone ? ` (${m.phone})` : ''}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Linking lets this gift show in the member's giving history.</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Giver's name (optional)</label>
