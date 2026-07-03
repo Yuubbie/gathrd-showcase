@@ -152,7 +152,7 @@ export default function CountingSheet() {
                       type="number"
                       placeholder="Your tally (₦)"
                       value={tallyInputs[s.id] || ''}
-                      onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))}
+                      onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))} onWheel={(e) => e.target.blur()}
                       className="flex-1 border rounded-md px-3 py-2 text-sm"
                     />
                     <button onClick={() => submitTally(s.id)} className="text-sm bg-gray-800 text-white rounded-md px-3 py-2 font-medium">
