@@ -10,6 +10,11 @@ import MemberForm from './pages/MemberForm';
 import VisitorCheckIn from './pages/VisitorCheckIn';
 import VisitorLog from './pages/VisitorLog';
 import DiscipleshipTracker from './pages/DiscipleshipTracker';
+import GivingSettings from './pages/GivingSettings';
+import GivingLog from './pages/GivingLog';
+import CountingSheet from './pages/CountingSheet';
+import PublicGive from './pages/PublicGive';
+import GiveSuccess from './pages/GiveSuccess';
 
 function CheckEmail() {
   return (
@@ -92,6 +97,32 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <DiscipleshipTracker />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/give/:slug" element={<PublicGive />} />
+          <Route path="/give/success" element={<GiveSuccess />} />
+          <Route
+            path="/giving"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
+                <GivingLog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/giving/settings"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <GivingSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/giving/counting"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
+                <CountingSheet />
               </ProtectedRoute>
             }
           />

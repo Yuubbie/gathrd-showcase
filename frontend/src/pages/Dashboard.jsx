@@ -26,7 +26,7 @@ export default function Dashboard() {
         </p>
         <p className="text-gray-400 text-xs">
           Members, Visitor Log, and Discipleship Tracker are live.
-The full unified dashboard is coming as more modules ship.
+          The full unified dashboard is coming as more modules ship.
         </p>
         <Link
           to="/members"
@@ -46,6 +46,14 @@ The full unified dashboard is coming as more modules ship.
         >
           Discipleship Tracker
         </Link>
+        {['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role) && (
+          <Link
+            to="/giving"
+            className="block w-full text-center border border-gray-300 rounded-md py-2 text-sm font-medium"
+          >
+            Giving
+          </Link>
+        )}
         <button
           onClick={signOut}
           className="w-full border border-gray-300 rounded-md py-2 text-sm font-medium"

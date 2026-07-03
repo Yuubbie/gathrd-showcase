@@ -1,4 +1,4 @@
-# Gathrd — Weeks 1-3: Auth, Roles, Member Registry, Visitor Log & Discipleship
+# Gathrd — Weeks 1-4: Auth, Members, Visitor Log, Discipleship & Giving
 
 Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
@@ -22,6 +22,73 @@ gathrd/
     ├── .env.example
     └── (vite/tailwind config)
 ```
+
+## Week 4 — Tithe & Giving + Paystack + Offering Counting Sheet
+
+New in this drop:
+```
+supabase/migrations/
+  ├── 0010_giving_schema.sql   ← settlement accounts, giving_records, counting sheets
+  └── 0011_giving_rls.sql      ← RLS restricted to pastor/finance_admin roles
+
+supabase/functions/            ← NEW: Edge Functions (hold the Paystack secret key safely)
+  ├── create-subaccount/       ← creates a church's Paystack subaccount
+  ├── initialize-giving/       ← starts a payment from the public Give page
+  └── paystack-webhook/        ← confirms payment success, verified by signature
+
+frontend/src/pages/
+  ├── GivingSettings.jsx  ← admin: bank account entry, activate online giving, QR/link
+  ├── GivingLog.jsx       ← admin: cash entry, category totals, full record list
+  ├── CountingSheet.jsx   ← admin: multi-counter offering reconciliation
+  ├── PublicGive.jsx      ← public /give/:slug page, no login required
+  └── GiveSuccess.jsx     ← post-payment confirmation page
+```
+
+### Why this week needed something new: Edge Functions
+
+Every previous week's logic lived entirely in SQL functions inside Supabase. Money is different: talking to Paystack requires your **secret key**, and a secret key can never be sent to a browser — anyone could open dev tools and steal it. So Week 4 introduces **Supabase Edge Functions**: small pieces of backend code that run on Supabase's servers, hold your secret key safely, and are the only thing that ever talks to Paystack directly.
+
+### One-time setup: Supabase CLI
+
+You need this tool once to deploy Edge Functions. Full guided steps for this are in the conversation, but in short:
+```
+npm install -g supabase
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase secrets set PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
+supabase functions deploy create-subaccount
+supabase functions deploy initialize-giving --no-verify-jwt
+supabase functions deploy paystack-webhook --no-verify-jwt
+```
+
+### Setup steps for Week 4
+
+1. Run `0010_giving_schema.sql`, then `0011_giving_rls.sql` in Supabase SQL Editor.
+2. Install the Supabase CLI and deploy the three Edge Functions (above).
+3. Register your webhook URL in the Paystack Dashboard: Settings → API Keys & Webhooks → paste your `paystack-webhook` function URL.
+4. Log in as your senior_pastor account → **Giving** → **Settings** → enter your test bank details → **Activate Online Giving**.
+5. Copy your Give link/QR, open it in an incognito window, and make a test payment using Paystack's test card numbers (never real money in test mode).
+6. Confirm the gift shows up in your **Giving** log as "success," and that the amount reflects in the category totals.
+7. Test cash entry: **+ Record Cash Gift**, confirm it appears immediately (no Paystack involved for cash).
+8. Test the Counting Sheet: create a session, submit two different tallies from two accounts — confirm it flags "Discrepancy." Submit two matching tallies on a new session — confirm it locks as "Confirmed."
+
+### Design decisions worth knowing
+
+- **One settlement account per church, not per category** — per your decision, all five giving types (Tithe, Offering, Thanksgiving, Building/Project, Welfare) settle to the same bank account. Categorization is bookkeeping only; Paystack never sees categories, only Gathrd's own records do.
+- **Paystack Subaccounts, not separate Paystack accounts per church** — pastors never sign up for Paystack themselves. They give you their bank details once, and Gathrd creates the subaccount on their behalf via API. Money settles directly to their account; Gathrd's platform fee (currently 2%, adjustable) is deducted automatically by Paystack, not manually by you.
+- **Giving data has its own tighter RLS**, separate from general admin access — only senior_pastor, assistant_pastor, and finance_admin can see it, matching the blueprint's explicit rule that even church_admin shouldn't see financial data by default.
+- **A pending giving record is created before Paystack is even called**, so if someone starts a payment and abandons it, there's still a "pending" trail rather than the attempt vanishing with no record.
+
+### Week 4 deliverable checklist (Section 12)
+
+- [x] Cash payment entry with giving type, tithe card number, date
+- [x] 5 giving types: Tithe, Offering, Thanksgiving, Building/Project, Welfare
+- [x] Online giving via Paystack, auto-creates the giving record
+- [x] Church giving summary by category
+- [x] Offering Counting Sheet: multi-counter tally, auto-confirm on match, auto-flag on mismatch, locked after confirmation
+- [x] Giving data restricted to pastor/finance_admin roles only
+- [ ] **You confirm**: activate giving, make a test payment, record a cash gift, and run a full counting sheet reconciliation (both matching and mismatched)
+- [ ] **Not yet built** (next session): member giving history/statement view, top givers report — these are quick additions once the core money flow is confirmed working
 
 ## Week 3 — Visitor Log, Follow-Up, and Discipleship Tracker
 
