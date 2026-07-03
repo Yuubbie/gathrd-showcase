@@ -133,7 +133,7 @@ export default function GivingLog() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Amount (₦)</label>
-              <input type="number" required min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base" />
+              <input type="number" required min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} onWheel={(e) => e.target.blur()} className="w-full border >
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Giver's name (optional)</label>
