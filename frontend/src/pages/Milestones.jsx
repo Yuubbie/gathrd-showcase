@@ -20,6 +20,9 @@ function isWithinDays(dateStr, days) {
   const today = new Date();
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
+  // Parse using UTC getters — date-only strings like "1995-07-05" are
+  // stored as UTC midnight, so reading the UTC month/day avoids the
+  // date silently shifting backward/forward depending on local timezone.
   const original = new Date(dateStr);
   const month = original.getUTCMonth();
   const day = original.getUTCDate();
@@ -107,22 +110,22 @@ export default function Milestones() {
   const thisMonthAnniversaries = members.filter((m) => isWithinDays(m.wedding_anniversary, 30));
   const thisMonthBornAgain = members.filter((m) => isWithinDays(m.born_again_date, 30));
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/50">Loading…</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
         <h1 className="text-xl font-semibold">Birthdays & Milestones</h1>
 
-        {error && <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</div>}
-        {notice && <div className="text-sm text-blue-700 bg-blue-50 rounded-md p-2">{notice}</div>}
+        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
+        {notice && <div className="text-sm text-signal-deep bg-signal-50 rounded-lg p-3">{notice}</div>}
 
-        <div className="bg-white rounded-xl shadow-sm p-4 space-y-2">
-          <p className="text-sm text-gray-600">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
+          <p className="text-sm text-ink/60">
             Automatically sends birthday and anniversary WhatsApp messages for anyone whose milestone is today.
             Safe to click more than once — nobody gets a duplicate message.
           </p>
-          <button onClick={sendTodaysMilestones} disabled={sending} className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium disabled:opacity-50">
+          <button onClick={sendTodaysMilestones} disabled={sending} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
             {sending ? 'Checking…' : "Check & Send Today's Milestones"}
           </button>
         </div>
@@ -132,28 +135,28 @@ export default function Milestones() {
         <Section title="Wedding anniversaries this month" people={thisMonthAnniversaries} dateField="wedding_anniversary" />
         <Section title="Born-again anniversaries this month" people={thisMonthBornAgain} dateField="born_again_date" />
 
-        <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">Message Templates</h2>
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-ink/80">Message Templates</h2>
           {Object.entries(TEMPLATE_LABELS).map(([type, label]) => (
-            <div key={type} className="border rounded-md p-3">
-              <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+            <div key={type} className="border border-ink/10 rounded-lg p-3">
+              <p className="text-xs font-medium text-ink/50 mb-1">{label}</p>
               {editingTemplate === type ? (
                 <div className="space-y-2">
-                  <textarea rows={2} value={templateDraft} onChange={(e) => setTemplateDraft(e.target.value)} className="w-full border rounded-md px-2 py-1 text-sm" />
+                  <textarea rows={2} value={templateDraft} onChange={(e) => setTemplateDraft(e.target.value)} className="w-full border border-ink/10 rounded-lg px-2.5 py-1.5 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
                   <div className="flex gap-2">
-                    <button onClick={() => saveTemplate(type)} className="text-xs bg-indigo-600 text-white rounded-md px-3 py-1 font-medium">Save</button>
-                    <button onClick={() => setEditingTemplate(null)} className="text-xs text-gray-500">Cancel</button>
+                    <button onClick={() => saveTemplate(type)} className="text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3 py-1.5 font-semibold transition-colors">Save</button>
+                    <button onClick={() => setEditingTemplate(null)} className="text-xs text-ink/50">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-gray-700">{templates[type]}</p>
-                  <button onClick={() => { setEditingTemplate(type); setTemplateDraft(templates[type]); }} className="text-xs text-indigo-600 font-medium shrink-0">Edit</button>
+                  <p className="text-sm text-ink/70">{templates[type]}</p>
+                  <button onClick={() => { setEditingTemplate(type); setTemplateDraft(templates[type]); }} className="text-xs text-signal font-semibold shrink-0">Edit</button>
                 </div>
               )}
             </div>
           ))}
-          <p className="text-xs text-gray-400">Use {'{{name}}'} and {'{{church_name}}'} — they'll be replaced automatically.</p>
+          <p className="text-xs text-ink/40">Use {'{{name}}'} and {'{{church_name}}'} — they'll be replaced automatically.</p>
         </div>
       </div>
     </div>
@@ -162,16 +165,16 @@ export default function Milestones() {
 
 function Section({ title, people, dateField }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4">
-      <h2 className="text-sm font-semibold text-gray-700 mb-2">{title} ({people.length})</h2>
+    <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
+      <h2 className="text-sm font-semibold text-ink/80 mb-2">{title} ({people.length})</h2>
       {people.length === 0 ? (
-        <p className="text-gray-400 text-xs">None coming up.</p>
+        <p className="text-ink/40 text-xs">None coming up.</p>
       ) : (
         <div className="divide-y">
           {people.map((p) => (
             <div key={p.id} className="py-2 flex justify-between text-sm">
               <span>{p.full_name}</span>
-              <span className="text-gray-400">{new Date(p[dateField]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+              <span className="text-ink/40">{new Date(p[dateField]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
             </div>
           ))}
         </div>

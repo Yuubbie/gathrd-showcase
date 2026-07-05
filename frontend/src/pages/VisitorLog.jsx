@@ -19,11 +19,11 @@ const FOLLOW_UP_LABELS = {
 };
 
 const FOLLOW_UP_COLORS = {
-  pending: 'bg-amber-100 text-amber-800',
-  contacted: 'bg-blue-100 text-blue-800',
-  visited: 'bg-indigo-100 text-indigo-800',
-  converted: 'bg-green-100 text-green-800',
-  inactive: 'bg-gray-100 text-gray-600',
+  pending: 'bg-amberflag/10 text-amberflag',
+  contacted: 'bg-signal-50 text-signal-deep',
+  visited: 'bg-signal-50 text-signal-deep',
+  converted: 'bg-sage-50 text-sage',
+  inactive: 'bg-ink/5 text-ink/50',
 };
 
 export default function VisitorLog() {
@@ -90,29 +90,29 @@ export default function VisitorLog() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Visitor Log</h1>
-          <Link to="/visitors/check-in" className="text-sm bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium">
+          <Link to="/visitors/check-in" className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
             + Check In Visitor
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded-md px-3 py-2 text-sm bg-white"
+            className="border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           >
             <option value="">All statuses</option>
             {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
 
           {loading ? (
-            <p className="text-gray-400 text-sm py-6 text-center">Loading…</p>
+            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
           ) : visitors.length === 0 ? (
-            <p className="text-gray-400 text-sm py-6 text-center">No visitors logged yet.</p>
+            <p className="text-ink/40 text-sm py-6 text-center">No visitors logged yet.</p>
           ) : (
             <div className="divide-y">
               {visitors.map((v) => {
@@ -122,7 +122,7 @@ export default function VisitorLog() {
                   <div key={v.id} className="py-3 flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <p className="font-medium text-sm">{v.full_name}</p>
-                      <p className="text-gray-500 text-xs">
+                      <p className="text-ink/50 text-xs">
                         {v.phone || 'No phone'} • {STATUS_LABELS[v.status]} • first visit {v.first_visit_date}
                       </p>
                     </div>
@@ -137,19 +137,19 @@ export default function VisitorLog() {
                         </select>
                       )}
                       {overdue && (
-                        <span className="text-xs text-red-600 font-medium">⚠ Overdue</span>
+                        <span className="text-xs text-rose font-semibold">⚠ Overdue</span>
                       )}
                       {v.status !== 'convert' && (
                         <button
                           onClick={() => markAsConvert(v.id)}
                           disabled={convertingId === v.id}
-                          className="text-xs border border-gray-300 rounded-md px-2 py-1 font-medium disabled:opacity-50"
+                          className="text-xs border border-ink/15 text-ink/70 rounded-lg px-2.5 py-1.5 font-semibold hover:bg-parchment transition-colors disabled:opacity-50"
                         >
                           {convertingId === v.id ? 'Saving…' : 'Mark as Convert'}
                         </button>
                       )}
                       {v.status === 'convert' && (
-                        <Link to="/discipleship" className="text-xs text-indigo-600 font-medium">
+                        <Link to="/discipleship" className="text-xs text-signal font-semibold">
                           View in Discipleship →
                         </Link>
                       )}

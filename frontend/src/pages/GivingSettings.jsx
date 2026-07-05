@@ -122,19 +122,19 @@ export default function GivingSettings() {
 
   const givingUrl = church ? `${window.location.origin}/give/${church.giving_slug}` : '';
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/50">Loading…</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-lg mx-auto space-y-4">
         <h1 className="text-xl font-semibold">Giving Settings</h1>
 
-        {error && <div className="text-sm text-red-600 bg-red-50 rounded-md p-3">{error}</div>}
-        {success && <div className="text-sm text-green-700 bg-green-50 rounded-md p-3">{success}</div>}
+        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
+        {success && <div className="text-sm text-sage bg-sage-50 rounded-lg p-3">{success}</div>}
 
-        <form onSubmit={saveBankDetails} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700">1. Settlement Bank Account</h2>
-          <p className="text-xs text-gray-500 -mt-2">
+        <form onSubmit={saveBankDetails} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-ink/80">1. Settlement Bank Account</h2>
+          <p className="text-xs text-ink/50 -mt-2">
             All online giving (Tithe, Offering, Thanksgiving, Building/Project, Welfare) settles to this one account.
           </p>
 
@@ -144,7 +144,7 @@ export default function GivingSettings() {
               required
               value={form.bank_code}
               onChange={(e) => setForm((f) => ({ ...f, bank_code: e.target.value }))}
-              className="w-full border rounded-md px-3 py-2 text-base bg-white"
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             >
               <option value="">Select your bank…</option>
               {NIGERIAN_BANKS.map(([code, name]) => (
@@ -159,33 +159,33 @@ export default function GivingSettings() {
               required
               value={form.account_number}
               onChange={(e) => setForm((f) => ({ ...f, account_number: e.target.value }))}
-              className="w-full border rounded-md px-3 py-2 text-base"
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
               placeholder="10-digit account number"
               maxLength={10}
             />
           </div>
 
-          <button type="submit" disabled={saving} className="w-full bg-gray-800 text-white rounded-md py-2 font-medium disabled:opacity-50">
+          <button type="submit" disabled={saving} className="w-full bg-ink hover:bg-void text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Save Bank Details'}
           </button>
         </form>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">2. Activate Online Giving</h2>
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-ink/80">2. Activate Online Giving</h2>
 
           {church?.paystack_subaccount_code ? (
-            <div className="text-sm text-green-700 bg-green-50 rounded-md p-3">
+            <div className="text-sm text-sage bg-sage-50 rounded-lg p-3">
               ✓ Online giving is active. Payments settle directly to {church.settlement_account_name} ({church.settlement_bank_name}).
             </div>
           ) : (
             <>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink/50">
                 This connects your bank account to Paystack so gifts settle directly to you — Gathrd never holds your money.
               </p>
               <button
                 onClick={activateGiving}
                 disabled={creating || !church?.settlement_bank_code}
-                className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium disabled:opacity-50"
+                className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
               >
                 {creating ? 'Activating…' : 'Activate Online Giving'}
               </button>
@@ -194,8 +194,8 @@ export default function GivingSettings() {
         </div>
 
         {church?.paystack_subaccount_code && (
-          <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-700">3. Your Give QR Code & Link</h2>
+          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-3">
+            <h2 className="text-sm font-semibold text-ink/80">3. Your Give QR Code & Link</h2>
             <div className="flex items-center gap-4 flex-wrap">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(givingUrl)}`}
@@ -205,8 +205,8 @@ export default function GivingSettings() {
                 height={160}
               />
               <div className="flex-1 min-w-[200px]">
-                <input readOnly value={givingUrl} onClick={(e) => e.target.select()} className="w-full border rounded-md px-3 py-2 text-sm bg-gray-50" />
-                <button onClick={() => navigator.clipboard.writeText(givingUrl)} className="mt-2 text-sm text-indigo-600 font-medium">
+                <input readOnly value={givingUrl} onClick={(e) => e.target.select()} className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment" />
+                <button onClick={() => navigator.clipboard.writeText(givingUrl)} className="mt-2 text-sm text-signal font-semibold hover:text-signal-deep">
                   Copy link
                 </button>
               </div>

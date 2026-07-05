@@ -78,20 +78,20 @@ export default function Members() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Members</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setShowInvite((v) => !v)}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 font-medium"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
             >
               Invite Members
             </button>
             <Link
               to="/members/new"
-              className="text-sm bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium"
+              className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors"
             >
               + Add Member
             </Link>
@@ -99,8 +99,8 @@ export default function Members() {
         </div>
 
         {showInvite && onboardingUrl && (
-          <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
-            <p className="text-sm text-gray-600">
+          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+            <p className="text-sm text-ink/60">
               Share this link or QR code — anyone who opens it can register
               themselves as a member, no login needed.
             </p>
@@ -117,11 +117,11 @@ export default function Members() {
                   readOnly
                   value={onboardingUrl}
                   onClick={(e) => e.target.select()}
-                  className="w-full border rounded-md px-3 py-2 text-sm bg-gray-50"
+                  className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment"
                 />
                 <button
                   onClick={() => navigator.clipboard.writeText(onboardingUrl)}
-                  className="mt-2 text-sm text-indigo-600 font-medium"
+                  className="mt-2 text-sm text-signal font-semibold hover:text-signal-deep"
                 >
                   Copy link
                 </button>
@@ -130,18 +130,18 @@ export default function Members() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
           <div className="flex gap-2 flex-wrap">
             <input
               placeholder="Search by name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 min-w-[160px] border rounded-md px-3 py-2 text-sm"
+              className="flex-1 min-w-[160px] border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-md px-3 py-2 text-sm bg-white"
+              className="border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             >
               <option value="">All statuses</option>
               {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -150,16 +150,16 @@ export default function Members() {
             </select>
             <button
               onClick={exportCsv}
-              className="text-sm border border-gray-300 rounded-md px-3 py-2 font-medium"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
             >
               Export CSV
             </button>
           </div>
 
           {loading ? (
-            <p className="text-gray-400 text-sm py-6 text-center">Loading…</p>
+            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
           ) : members.length === 0 ? (
-            <p className="text-gray-400 text-sm py-6 text-center">
+            <p className="text-ink/40 text-sm py-6 text-center">
               No members yet. Add one, or share the invite link above.
             </p>
           ) : (
@@ -168,26 +168,26 @@ export default function Members() {
                 <div
                   key={m.id}
                   onClick={() => navigate(`/members/${m.id}/edit`)}
-                  className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded cursor-pointer"
+                  className="flex items-center justify-between py-3 hover:bg-parchment -mx-2 px-2 rounded-lg cursor-pointer transition-colors"
                 >
                   <div>
                     <p className="font-medium text-sm">{m.full_name}</p>
-                    <p className="text-gray-500 text-xs">
+                    <p className="text-ink/50 text-xs">
                       {m.phone || m.email || 'No contact info'}
                       {m.source === 'self_onboarded' && (
-                        <span className="ml-2 text-indigo-600">• self-registered</span>
+                        <span className="ml-2 text-signal">• self-registered</span>
                       )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-ink/40">
                       {STATUS_LABELS[m.status] || m.status}
                     </span>
                     {['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role) && (
                       <Link
                         to={`/members/${m.id}/giving`}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-indigo-600 font-medium"
+                        className="text-xs text-signal font-semibold"
                       >
                         Giving →
                       </Link>

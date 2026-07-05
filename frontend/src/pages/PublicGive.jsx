@@ -80,15 +80,15 @@ export default function PublicGive() {
   }
 
   if (loadingChurch) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/50">Loading…</div>;
   }
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="text-center">
-          <p className="text-gray-700 font-medium">This giving link isn't valid.</p>
-          <p className="text-gray-500 text-sm mt-1">Please check with your church for the correct link.</p>
+          <p className="text-ink font-medium">This giving link isn't valid.</p>
+          <p className="text-ink/50 text-sm mt-1">Please check with your church for the correct link.</p>
         </div>
       </div>
     );
@@ -96,26 +96,26 @@ export default function PublicGive() {
 
   if (!church.has_giving_enabled) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="text-center">
-          <p className="text-gray-700 font-medium">{church.church_name} hasn't activated online giving yet.</p>
+          <p className="text-ink font-medium">{church.church_name} hasn't activated online giving yet.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gray-50">
-      <form onSubmit={handleGive} className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
+      <form onSubmit={handleGive} className="w-full max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
         <div className="text-center mb-2">
           <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-lg font-semibold">Give to {church.church_name}</h1>
+          <h1 className="font-display text-lg font-bold text-ink">Give to {church.church_name}</h1>
         </div>
 
-        {error && <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</div>}
+        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
 
         <div>
-          <label className="block text-sm font-medium mb-1">What are you giving toward?</label>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">What are you giving toward?</label>
           <div className="grid grid-cols-2 gap-2">
             {CATEGORIES.map(([value, label]) => (
               <button
@@ -123,7 +123,7 @@ export default function PublicGive() {
                 key={value}
                 onClick={() => setCategory(value)}
                 className={`text-sm rounded-md px-3 py-2 border font-medium ${
-                  category === value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 text-gray-700'
+                  category === value ? 'bg-signal text-white border-signal' : 'border-ink/15 text-ink/70'
                 }`}
               >
                 {label}
@@ -133,14 +133,15 @@ export default function PublicGive() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Amount (₦)</label>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Amount (₦)</label>
           <input
             type="number"
             required
             min="100"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)} onWheel={(e) => e.target.blur()}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            onChange={(e) => setAmount(e.target.value)}
+            onWheel={(e) => e.target.blur()}
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             placeholder="0.00"
           />
           <div className="flex gap-2 mt-2 flex-wrap">
@@ -149,7 +150,7 @@ export default function PublicGive() {
                 type="button"
                 key={a}
                 onClick={() => setAmount(String(a))}
-                className="text-xs border border-gray-300 rounded-full px-3 py-1"
+                className="text-xs border border-ink/15 text-ink/70 rounded-full px-3 py-1 hover:border-signal hover:text-signal transition-colors"
               >
                 ₦{a.toLocaleString()}
               </button>
@@ -158,25 +159,25 @@ export default function PublicGive() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Your name (optional)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded-md px-3 py-2 text-base" />
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Your name (optional)</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Email <span className="text-red-500">*</span></label>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded-md px-3 py-2 text-base" placeholder="For your receipt" />
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Email <span className="text-rose">*</span></label>
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" placeholder="For your receipt" />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Phone (optional)</label>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border rounded-md px-3 py-2 text-base" />
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Phone (optional)</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
         </div>
 
-        <button type="submit" disabled={submitting} className="w-full bg-indigo-600 text-white rounded-md py-3 font-semibold disabled:opacity-50">
+        <button type="submit" disabled={submitting} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3.5 font-semibold transition-colors disabled:opacity-50">
           {submitting ? 'Redirecting to payment…' : `Give ₦${amount ? Number(amount).toLocaleString() : '0'}`}
         </button>
 
-        <p className="text-xs text-gray-400 text-center">Payments processed securely by Paystack.</p>
+        <p className="text-xs text-ink/40 text-center">Payments processed securely by Paystack.</p>
       </form>
     </div>
   );

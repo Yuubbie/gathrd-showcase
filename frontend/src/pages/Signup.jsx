@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Week 1 ships this as senior_pastor signup only (church creator).
-// The other 7 roles get invited in later — full flow lands with
-// Module 21 (Onboarding Flow) in Week 7.
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -25,13 +22,7 @@ export default function Signup() {
     }
 
     setSubmitting(true);
-    const { error } = await signUp({
-      email,
-      password,
-      fullName,
-      churchName,
-      role: 'senior_pastor',
-    });
+    const { error } = await signUp({ email, password, fullName, churchName, role: 'senior_pastor' });
     setSubmitting(false);
 
     if (error) {
@@ -42,80 +33,96 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4"
-      >
-        <img src="/logo-mark.png" alt="Gathrd" className="h-14 w-14 mx-auto" />
-        <h1 className="text-xl font-semibold text-center">Set up your church</h1>
+    <div className="min-h-screen flex bg-parchment">
+      <div className="hidden md:flex md:w-[42%] bg-signal-gradient relative overflow-hidden flex-col justify-between p-10">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-white/5 blur-3xl" />
+        <div className="relative flex items-center gap-2">
+          <img src="/logo-mark.png" alt="Gathrd" className="h-10 w-10" />
+          <span className="font-display font-bold text-white text-xl">Gathrd</span>
+        </div>
+        <div className="relative">
+          <h1 className="font-display text-3xl font-bold text-white leading-tight mb-3">
+            Bring your church's people, giving, and growth into one place.
+          </h1>
+          <p className="text-white/70 text-sm">
+            Set up your church in under two minutes.
+          </p>
+        </div>
+      </div>
 
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">
-            {error}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5">
+          <div className="md:hidden flex items-center gap-2 justify-center mb-6">
+            <img src="/logo-mark.png" alt="Gathrd" className="h-10 w-10" />
           </div>
-        )}
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Church name</label>
-          <input
-            required
-            value={churchName}
-            onChange={(e) => setChurchName(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
-          />
-        </div>
+          <div>
+            <h2 className="font-display text-2xl font-bold text-ink">Set up your church</h2>
+            <p className="text-ink/50 text-sm mt-1">You'll be the Senior Pastor admin for this account.</p>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Your full name</label>
-          <input
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
-          />
-        </div>
+          {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
-            autoComplete="email"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Church name</label>
+            <input
+              required
+              value={churchName}
+              onChange={(e) => setChurchName(e.target.value)}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
-            autoComplete="new-password"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Your full name</label>
+            <input
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium disabled:opacity-50"
-        >
-          {submitting ? 'Creating account…' : 'Create Account'}
-        </button>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+              autoComplete="email"
+            />
+          </div>
 
-        <p className="text-sm text-center text-gray-500">
-          Already have an account?{' '}
-          <Link to="/login" className="text-indigo-600 font-medium">
-            Log in
-          </Link>
-        </p>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Password</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'Creating account…' : 'Create Account'}
+          </button>
+
+          <p className="text-sm text-center text-ink/50">
+            Already have an account?{' '}
+            <Link to="/login" className="text-signal font-semibold hover:text-signal-deep">Log in</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

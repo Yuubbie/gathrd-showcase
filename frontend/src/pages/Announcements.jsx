@@ -116,38 +116,38 @@ export default function Announcements() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Announcements</h1>
-          <button onClick={() => setShowForm((v) => !v)} className="text-sm bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium">
+          <button onClick={() => setShowForm((v) => !v)} className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
             + New Announcement
           </button>
         </div>
 
-        {error && <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</div>}
-        {notice && <div className="text-sm text-blue-700 bg-blue-50 rounded-md p-2">{notice}</div>}
+        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
+        {notice && <div className="text-sm text-signal-deep bg-signal-50 rounded-lg p-3">{notice}</div>}
 
         {showForm && (
-          <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+          <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
-              <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base" />
+              <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Message</label>
-              <textarea required rows={3} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base" />
+              <textarea required rows={3} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Send to</label>
-              <select value={form.target_type} onChange={(e) => setForm((f) => ({ ...f, target_type: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base bg-white">
+              <select value={form.target_type} onChange={(e) => setForm((f) => ({ ...f, target_type: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
                 {Object.entries(TARGET_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             {form.target_type === 'department' && (
               <div>
                 <label className="block text-sm font-medium mb-1">Department</label>
-                <select required value={form.target_department_id} onChange={(e) => setForm((f) => ({ ...f, target_department_id: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base bg-white">
+                <select required value={form.target_department_id} onChange={(e) => setForm((f) => ({ ...f, target_department_id: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
                   <option value="">Select…</option>
                   {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
@@ -156,7 +156,7 @@ export default function Announcements() {
             {form.target_type === 'cell_group' && (
               <div>
                 <label className="block text-sm font-medium mb-1">Cell Group</label>
-                <select required value={form.target_cell_group_id} onChange={(e) => setForm((f) => ({ ...f, target_cell_group_id: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base bg-white">
+                <select required value={form.target_cell_group_id} onChange={(e) => setForm((f) => ({ ...f, target_cell_group_id: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
                   <option value="">Select…</option>
                   {cellGroups.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -164,8 +164,8 @@ export default function Announcements() {
             )}
             <div>
               <label className="block text-sm font-medium mb-1">Schedule for later (optional)</label>
-              <input type="datetime-local" value={form.scheduled_at} onChange={(e) => setForm((f) => ({ ...f, scheduled_at: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base" />
-              <p className="text-xs text-gray-400 mt-1">Leave blank to send immediately after creating.</p>
+              <input type="datetime-local" value={form.scheduled_at} onChange={(e) => setForm((f) => ({ ...f, scheduled_at: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
+              <p className="text-xs text-ink/40 mt-1">Leave blank to send immediately after creating.</p>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.send_via_whatsapp} onChange={(e) => setForm((f) => ({ ...f, send_via_whatsapp: e.target.checked }))} />
@@ -175,17 +175,17 @@ export default function Announcements() {
               <input type="checkbox" checked={form.is_emergency} onChange={(e) => setForm((f) => ({ ...f, is_emergency: e.target.checked }))} />
               Mark as emergency broadcast
             </label>
-            <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium disabled:opacity-50">
+            <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
               {saving ? 'Saving…' : 'Create Announcement'}
             </button>
           </form>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
           {loading ? (
-            <p className="text-gray-400 text-sm py-6 text-center">Loading…</p>
+            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
           ) : announcements.length === 0 ? (
-            <p className="text-gray-400 text-sm py-6 text-center">No announcements yet.</p>
+            <p className="text-ink/40 text-sm py-6 text-center">No announcements yet.</p>
           ) : (
             <div className="divide-y">
               {announcements.map((a) => (
@@ -193,15 +193,15 @@ export default function Announcements() {
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <div>
                       <p className="font-medium text-sm">
-                        {a.is_emergency && <span className="text-red-600 mr-1">🚨</span>}
+                        {a.is_emergency && <span className="text-rose mr-1">🚨</span>}
                         {a.title}
                       </p>
-                      <p className="text-gray-600 text-sm mt-0.5">{a.body}</p>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-ink/60 text-sm mt-0.5">{a.body}</p>
+                      <p className="text-ink/40 text-xs mt-1">
                         To: {TARGET_LABELS[a.target_type]} • {a.sent_at ? `Sent ${new Date(a.sent_at).toLocaleString()}` : `Scheduled ${new Date(a.scheduled_at).toLocaleString()}`}
                       </p>
                       {stats[a.id] && (
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-ink/40 text-xs">
                           {stats[a.id].sent}/{stats[a.id].total} delivered via WhatsApp
                           {stats[a.id].notConfigured > 0 && ' (WhatsApp not connected yet)'}
                         </p>
@@ -211,7 +211,7 @@ export default function Announcements() {
                       <button
                         onClick={() => sendNow(a.id)}
                         disabled={sendingId === a.id}
-                        className="text-xs bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium disabled:opacity-50 shrink-0"
+                        className="text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors disabled:opacity-50 shrink-0"
                       >
                         {sendingId === a.id ? 'Sending…' : 'Send Now'}
                       </button>

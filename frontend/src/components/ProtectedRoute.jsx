@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AppShell from './AppShell';
 
 /**
  * Wrap any page that requires login. Optionally restrict to specific roles.
@@ -13,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { isAuthenticated, profile, loading } = useAuth();
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/40">Loading…</div>;
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -21,5 +22,5 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return children;
+  return <AppShell>{children}</AppShell>;
 }

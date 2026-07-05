@@ -68,31 +68,31 @@ export default function MemberGivingHistory() {
     byCategory[r.category] = (byCategory[r.category] || 0) + Number(r.amount);
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/50">Loading…</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6 print:bg-white print:px-0 print:py-0">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8 print:bg-white print:px-0 print:py-0">
       <div className="max-w-2xl mx-auto space-y-4 print:space-y-2">
         <div className="flex items-center justify-between print:hidden">
-          <Link to="/members" className="text-sm text-indigo-600 font-medium">← Back to Members</Link>
-          <button onClick={() => window.print()} className="text-sm bg-gray-800 text-white rounded-md px-3 py-1.5 font-medium">
+          <Link to="/members" className="text-sm text-signal font-semibold hover:text-signal-deep">← Back to Members</Link>
+          <button onClick={() => window.print()} className="text-sm bg-ink hover:bg-void text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
             Print / Save Statement
           </button>
         </div>
 
         {/* Statement header — shows on screen and print */}
-        <div className="bg-white rounded-xl shadow-sm p-6 print:shadow-none print:rounded-none">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 print:shadow-none print:rounded-none print:border-0">
           <div className="text-center mb-4 print:mb-6">
             <h1 className="text-lg font-semibold">{church?.name}</h1>
-            <p className="text-sm text-gray-500">Giving Statement</p>
+            <p className="text-sm text-ink/50">Giving Statement</p>
           </div>
 
           <div className="flex justify-between text-sm mb-4 print:mb-6">
             <div>
               <p className="font-medium">{member?.full_name}</p>
-              <p className="text-gray-500">{member?.phone || member?.email || ''}</p>
+              <p className="text-ink/50">{member?.phone || member?.email || ''}</p>
             </div>
-            <div className="text-right text-gray-500">
+            <div className="text-right text-ink/50">
               <p>Period: {from} to {to}</p>
             </div>
           </div>
@@ -100,21 +100,21 @@ export default function MemberGivingHistory() {
           <div className="flex gap-2 mb-4 print:hidden">
             <div>
               <label className="block text-xs font-medium mb-1">From</label>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border border-ink/10 rounded-lg px-2.5 py-1.5 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">To</label>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border border-ink/10 rounded-lg px-2.5 py-1.5 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
             </div>
           </div>
 
           {records.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-6">No gifts recorded in this period.</p>
+            <p className="text-ink/40 text-sm text-center py-6">No gifts recorded in this period.</p>
           ) : (
             <>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500 border-b">
+                  <tr className="text-left text-ink/50 border-b border-ink/10">
                     <th className="py-2">Date</th>
                     <th className="py-2">Category</th>
                     <th className="py-2">Method</th>
@@ -135,7 +135,7 @@ export default function MemberGivingHistory() {
 
               <div className="mt-4 pt-4 border-t space-y-1">
                 {Object.entries(byCategory).map(([cat, amt]) => (
-                  <div key={cat} className="flex justify-between text-sm text-gray-600">
+                  <div key={cat} className="flex justify-between text-sm text-ink/60">
                     <span>{CATEGORY_LABELS[cat]}</span>
                     <span>₦{amt.toLocaleString()}</span>
                   </div>

@@ -80,18 +80,18 @@ export default function PublicOnboard() {
 
   if (loadingChurch) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-parchment">
+        <p className="text-ink/50">Loading…</p>
       </div>
     );
   }
 
   if (!churchName) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="text-center">
-          <p className="text-gray-700 font-medium">This link isn't valid.</p>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-ink font-medium">This link isn't valid.</p>
+          <p className="text-ink/50 text-sm mt-1">
             Please check with your church for the correct registration link.
           </p>
         </div>
@@ -101,10 +101,10 @@ export default function PublicOnboard() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-        <div className="max-w-sm bg-white rounded-xl shadow-sm p-6 text-center space-y-2">
-          <h1 className="text-lg font-semibold">You're registered! 🎉</h1>
-          <p className="text-gray-600 text-sm">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
+        <div className="max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 text-center space-y-2">
+          <h1 className="font-display text-lg font-bold text-ink">You're registered! 🎉</h1>
+          <p className="text-ink/60 text-sm">
             Welcome to {churchName}. A member of the team will be in touch.
           </p>
         </div>
@@ -113,21 +113,21 @@ export default function PublicOnboard() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-4"
+        className="w-full max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4"
       >
         <div className="text-center mb-2">
           <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-lg font-semibold">Join {churchName}</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="font-display text-lg font-bold text-ink">Join {churchName}</h1>
+          <p className="text-ink/50 text-sm mt-1">
             Fill this in to register as a member.
           </p>
         </div>
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">
+          <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">
             {error}
           </div>
         )}
@@ -137,7 +137,7 @@ export default function PublicOnboard() {
             required
             value={form.full_name}
             onChange={(e) => update('full_name', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
@@ -146,7 +146,7 @@ export default function PublicOnboard() {
             type="tel"
             value={form.phone}
             onChange={(e) => update('phone', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             placeholder="080..."
           />
         </Field>
@@ -156,7 +156,7 @@ export default function PublicOnboard() {
             type="email"
             value={form.email}
             onChange={(e) => update('email', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
@@ -165,7 +165,7 @@ export default function PublicOnboard() {
             type="date"
             value={form.date_of_birth}
             onChange={(e) => update('date_of_birth', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
@@ -173,7 +173,7 @@ export default function PublicOnboard() {
           <select
             value={form.gender}
             onChange={(e) => update('gender', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base bg-white"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           >
             <option value="">Select…</option>
             <option value="male">Male</option>
@@ -185,7 +185,7 @@ export default function PublicOnboard() {
           <select
             value={form.marital_status}
             onChange={(e) => update('marital_status', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base bg-white"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           >
             <option value="">Select…</option>
             <option value="single">Single</option>
@@ -199,7 +199,7 @@ export default function PublicOnboard() {
           <input
             value={form.residential_address}
             onChange={(e) => update('residential_address', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
@@ -207,7 +207,7 @@ export default function PublicOnboard() {
           <select
             value={form.state_of_origin}
             onChange={(e) => update('state_of_origin', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base bg-white"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           >
             <option value="">Select…</option>
             {NIGERIAN_STATES.map((s) => (
@@ -220,7 +220,7 @@ export default function PublicOnboard() {
           <input
             value={form.lga}
             onChange={(e) => update('lga', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
@@ -228,14 +228,14 @@ export default function PublicOnboard() {
           <input
             value={form.occupation}
             onChange={(e) => update('occupation', e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-base"
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
         </Field>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium disabled:opacity-50"
+          className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
         >
           {submitting ? 'Submitting…' : 'Register'}
         </button>
@@ -247,8 +247,8 @@ export default function PublicOnboard() {
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="block text-sm font-medium text-ink/80 mb-1.5">
+        {label} {required && <span className="text-rose">*</span>}
       </label>
       {children}
     </div>

@@ -5,9 +5,9 @@ import { useAuth } from '../context/AuthContext';
 const SERVICE_NAMES = ['Sunday Morning', 'Sunday Evening', 'Midweek', 'Special Service'];
 
 const STATUS_STYLES = {
-  open: 'bg-amber-100 text-amber-800',
-  confirmed: 'bg-green-100 text-green-800',
-  discrepancy: 'bg-red-100 text-red-800',
+  open: 'bg-amberflag/10 text-amberflag',
+  confirmed: 'bg-sage-50 text-sage',
+  discrepancy: 'bg-rose-50 text-rose',
 };
 
 export default function CountingSheet() {
@@ -87,47 +87,47 @@ export default function CountingSheet() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Offering Counting Sheets</h1>
-          <button onClick={() => setShowNew((v) => !v)} className="text-sm bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium">
+          <button onClick={() => setShowNew((v) => !v)} className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
             + New Session
           </button>
         </div>
 
-        {error && <div className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</div>}
+        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
 
         {showNew && (
-          <form onSubmit={createSession} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+          <form onSubmit={createSession} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">Service</label>
-              <select value={newForm.service_name} onChange={(e) => setNewForm((f) => ({ ...f, service_name: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base bg-white">
+              <select value={newForm.service_name} onChange={(e) => setNewForm((f) => ({ ...f, service_name: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
                 {SERVICE_NAMES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Date</label>
-              <input type="date" value={newForm.service_date} onChange={(e) => setNewForm((f) => ({ ...f, service_date: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-base" />
+              <input type="date" value={newForm.service_date} onChange={(e) => setNewForm((f) => ({ ...f, service_date: e.target.value }))} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
             </div>
-            <button type="submit" className="w-full bg-indigo-600 text-white rounded-md py-2 font-medium">Create Session</button>
+            <button type="submit" className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors">Create Session</button>
           </form>
         )}
 
         {loading ? (
-          <p className="text-gray-400 text-sm py-6 text-center">Loading…</p>
+          <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
         ) : sessions.length === 0 ? (
-          <p className="text-gray-400 text-sm py-6 text-center">No counting sessions yet.</p>
+          <p className="text-ink/40 text-sm py-6 text-center">No counting sessions yet.</p>
         ) : (
           sessions.map((s) => {
             const entries = entriesBySession[s.id] || [];
             const isLocked = s.status === 'confirmed';
             return (
-              <div key={s.id} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+              <div key={s.id} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <p className="font-medium text-sm">{s.service_name} — {s.service_date}</p>
-                    <p className="text-gray-500 text-xs">{entries.length} count{entries.length !== 1 ? 's' : ''} submitted</p>
+                    <p className="text-ink/50 text-xs">{entries.length} count{entries.length !== 1 ? 's' : ''} submitted</p>
                   </div>
                   <span className={`text-xs rounded-full px-2 py-1 font-medium ${STATUS_STYLES[s.status]}`}>
                     {s.status === 'confirmed' ? `Confirmed: ₦${Number(s.confirmed_amount).toLocaleString()}` :
@@ -136,7 +136,7 @@ export default function CountingSheet() {
                 </div>
 
                 {entries.length > 0 && (
-                  <div className="text-xs text-gray-600 space-y-1">
+                  <div className="text-xs text-ink/60 space-y-1">
                     {entries.map((e) => (
                       <div key={e.id} className="flex justify-between">
                         <span>{e.profiles?.full_name || 'Counter'}</span>
@@ -152,10 +152,11 @@ export default function CountingSheet() {
                       type="number"
                       placeholder="Your tally (₦)"
                       value={tallyInputs[s.id] || ''}
-                      onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))} onWheel={(e) => e.target.blur()}
-                      className="flex-1 border rounded-md px-3 py-2 text-sm"
+                      onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))}
+                      onWheel={(e) => e.target.blur()}
+                      className="flex-1 border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
                     />
-                    <button onClick={() => submitTally(s.id)} className="text-sm bg-gray-800 text-white rounded-md px-3 py-2 font-medium">
+                    <button onClick={() => submitTally(s.id)} className="text-sm bg-ink hover:bg-void text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
                       Submit Count
                     </button>
                   </div>

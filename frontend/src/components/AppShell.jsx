@@ -1,0 +1,125 @@
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, UserPlus, Sparkles, Wallet,
+  Megaphone, Cake, Menu, X, LogOut,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+const NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
+  { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
+  { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/discipleship', label: 'Discipleship', icon: Sparkles, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/giving', label: 'Giving', icon: Wallet, roles: ['senior_pastor', 'assistant_pastor', 'finance_admin'] },
+  { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+];
+
+const ROLE_LABELS = {
+  senior_pastor: 'Senior Pastor',
+  assistant_pastor: 'Assistant Pastor',
+  church_admin: 'Church Admin',
+  finance_admin: 'Finance Admin',
+  department_head: 'Department Head',
+  cell_leader: 'Cell Leader',
+  childrens_teacher: "Children's Teacher",
+  member: 'Member',
+};
+
+function NavLinks({ profile, currentPath, onNavigate }) {
+  return (
+    <nav className="flex-1 space-y-1 px-3">
+      {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile?.role)).map((item) => {
+        const active = currentPath === item.to;
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Icon size={18} strokeWidth={2} />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function AppShell({ children }) {
+  const { profile, signOut } = useAuth();
+  const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-parchment md:flex">
+      {/* Desktop sidebar — the permanent gradient spine */}
+      <aside className="hidden md:flex md:w-64 md:flex-col bg-signal-gradient shrink-0">
+        <div className="flex items-center gap-2 px-5 py-6">
+          <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+          <span className="font-display font-bold text-white text-lg">Gathrd</span>
+        </div>
+        <NavLinks profile={profile} currentPath={location.pathname} />
+        <div className="p-3 mt-auto">
+          <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white truncate">{profile?.full_name}</p>
+              <p className="text-xs text-white/60">{ROLE_LABELS[profile?.role]}</p>
+            </div>
+            <button onClick={signOut} className="text-white/60 hover:text-white shrink-0 ml-2" aria-label="Log out">
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between bg-signal-gradient px-4 py-3">
+        <div className="flex items-center gap-2">
+          <img src="/logo-mark.png" alt="Gathrd" className="h-7 w-7" />
+          <span className="font-display font-bold text-white">Gathrd</span>
+        </div>
+        <button onClick={() => setDrawerOpen(true)} className="text-white" aria-label="Open menu">
+          <Menu size={22} />
+        </button>
+      </div>
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-void/50" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-signal-gradient flex flex-col">
+            <div className="flex items-center justify-between px-5 py-6">
+              <div className="flex items-center gap-2">
+                <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+                <span className="font-display font-bold text-white text-lg">Gathrd</span>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} className="text-white/70" aria-label="Close menu">
+                <X size={22} />
+              </button>
+            </div>
+            <NavLinks profile={profile} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
+            <div className="p-3 mt-auto">
+              <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{profile?.full_name}</p>
+                  <p className="text-xs text-white/60">{ROLE_LABELS[profile?.role]}</p>
+                </div>
+                <button onClick={signOut} className="text-white/60 hover:text-white shrink-0 ml-2" aria-label="Log out">
+                  <LogOut size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 min-w-0">{children}</main>
+    </div>
+  );
+}

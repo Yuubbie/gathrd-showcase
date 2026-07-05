@@ -106,15 +106,15 @@ export default function DiscipleshipTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
         <h1 className="text-xl font-semibold">Discipleship Tracker</h1>
 
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
           {loading ? (
-            <p className="text-gray-400 text-sm py-6 text-center">Loading…</p>
+            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
           ) : records.length === 0 ? (
-            <p className="text-gray-400 text-sm py-6 text-center">
+            <p className="text-ink/40 text-sm py-6 text-center">
               No converts yet. Mark a visitor as a Convert from the Visitor Log to start their journey here.
             </p>
           ) : (
@@ -130,12 +130,12 @@ export default function DiscipleshipTracker() {
                     <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                       <div>
                         <p className="font-medium text-sm">{r.visitors?.full_name}</p>
-                        <p className="text-gray-500 text-xs">
+                        <p className="text-ink/50 text-xs">
                           {r.visitors?.phone || 'No phone'} • Salvation: {r.salvation_date}
                         </p>
                       </div>
                       {stalled && !isFinal && (
-                        <span className="text-xs text-red-600 font-medium">
+                        <span className="text-xs text-rose font-semibold">
                           ⚠ Stuck at this stage for {days} days
                         </span>
                       )}
@@ -148,25 +148,25 @@ export default function DiscipleshipTracker() {
                           key={value}
                           title={label}
                           className={`h-2 flex-1 rounded-full ${
-                            i <= stageIndex ? 'bg-indigo-600' : 'bg-gray-200'
+                            i <= stageIndex ? 'bg-signal' : 'bg-ink/10'
                           }`}
                         />
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-ink/60">
                         Current stage: <span className="font-medium">{STAGES[stageIndex][1]}</span>
                       </p>
                       {!isFinal ? (
                         <button
                           onClick={() => advanceStage(r)}
                           disabled={advancingId === r.id}
-                          className="text-xs bg-indigo-600 text-white rounded-md px-3 py-1.5 font-medium disabled:opacity-50"
+                          className="text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors disabled:opacity-50"
                         >
                           {advancingId === r.id ? 'Saving…' : `Advance to ${STAGES[stageIndex + 1][1]} →`}
                         </button>
                       ) : (
-                        <span className="text-xs text-green-700 font-medium">✓ Journey complete</span>
+                        <span className="text-xs text-sage font-semibold">✓ Journey complete</span>
                       )}
                     </div>
                   </div>
