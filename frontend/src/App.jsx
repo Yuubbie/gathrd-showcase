@@ -17,6 +17,8 @@ import PublicGive from './pages/PublicGive';
 import GiveSuccess from './pages/GiveSuccess';
 import MemberGivingHistory from './pages/MemberGivingHistory';
 import TopGivers from './pages/TopGivers';
+import Announcements from './pages/Announcements';
+import Milestones from './pages/Milestones';
 
 function CheckEmail() {
   return (
@@ -141,6 +143,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
                 <MemberGivingHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <Announcements />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/milestones"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <Milestones />
               </ProtectedRoute>
             }
           />

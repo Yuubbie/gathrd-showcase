@@ -54,6 +54,22 @@ export default function Dashboard() {
             Giving
           </Link>
         )}
+        {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+          <>
+            <Link
+              to="/announcements"
+              className="block w-full text-center border border-gray-300 rounded-md py-2 text-sm font-medium"
+            >
+              Announcements
+            </Link>
+            <Link
+              to="/milestones"
+              className="block w-full text-center border border-gray-300 rounded-md py-2 text-sm font-medium"
+            >
+              Birthdays & Milestones
+            </Link>
+          </>
+        )}
         <button
           onClick={signOut}
           className="w-full border border-gray-300 rounded-md py-2 text-sm font-medium"

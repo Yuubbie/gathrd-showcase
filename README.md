@@ -1,4 +1,4 @@
-# Gathrd — Weeks 1-4: Auth, Members, Visitor Log, Discipleship & Giving
+# Gathrd — Weeks 1-5: Auth, Members, Visitor Log, Discipleship, Giving & Announcements
 
 Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
@@ -22,6 +22,67 @@ gathrd/
     ├── .env.example
     └── (vite/tailwind config)
 ```
+
+## Week 5 — Announcements + WhatsApp + Birthday Alerts
+
+New in this drop:
+```
+supabase/migrations/
+  ├── 0012_announcements_milestones.sql     ← announcements, templates, milestone log
+  └── 0013_announcements_milestones_rls.sql ← RLS for all of the above
+
+supabase/functions/
+  ├── send-announcement/  ← resolves target audience, sends via Termii
+  └── send-milestones/    ← checks today's birthdays/anniversaries, sends messages
+
+frontend/src/pages/
+  ├── Announcements.jsx  ← create, target audience, schedule, emergency broadcast, send now
+  └── Milestones.jsx     ← upcoming birthdays/anniversaries dashboard + template editor
+```
+
+### Important scope note: WhatsApp sending needs Termii, which needs setup you do yourself
+
+Every piece of this works today **except actual WhatsApp delivery**, which requires a Termii account and API key — something only you can set up (business details, phone verification, Sender ID approval). Until that's connected:
+- Announcements and milestone messages still get created, logged, and tracked correctly
+- Every recipient is marked `not_configured` instead of `sent` — an honest status, not a silent failure
+- The moment you add your `TERMII_API_KEY`, sending activates immediately — no code changes needed
+
+### Setup steps for Week 5
+
+1. Run `0012_announcements_milestones.sql`, then `0013_announcements_milestones_rls.sql` in Supabase SQL Editor.
+2. Deploy the two new functions:
+```
+supabase functions deploy send-announcement --project-ref <your-project-ref>
+supabase functions deploy send-milestones --project-ref <your-project-ref>
+```
+3. **Once you have your Termii account and API key**, add it as a secret (same pattern as Paystack):
+```
+supabase secrets set TERMII_API_KEY=your-key-here
+supabase secrets set TERMII_SENDER_ID=Gathrd
+```
+Then redeploy both functions so they pick up the new secret.
+4. Test Announcements: create one targeting "Everyone," click **Send Now**, confirm recipients get created (status will show `not_configured` until Termii is connected — that's expected).
+5. Test Milestones: temporarily set a test member's date of birth to today's date, go to **Milestones**, click **"Check & Send Today's Milestones"**, confirm they appear in the log. Click the button again — confirm it says "0 sent, 1 already sent today" (no duplicate).
+6. Try editing a message template and confirm it saves.
+
+### Design decisions worth knowing
+
+- **Scheduling is manual-trigger today, not fully automatic.** True "fires at 2pm even if nobody's looking at the app" scheduling needs a server-side timer (Supabase supports this via pg_cron), which we deliberately held off on this week to avoid untested infrastructure risk. Today: "Send Now" and emergency broadcasts work immediately; anything scheduled for later needs the pastor to open Announcements and click Send once that time arrives. Automating this fully is a clean, low-risk upgrade for later — the underlying send logic doesn't change at all, just what triggers it.
+- **The milestone-sending function is idempotent** — safe to click "Check & Send" as many times as you want in a day. A database-level unique constraint (`member_id`, `milestone_type`, `sent_on`) makes duplicate sends structurally impossible, not just discouraged by application logic.
+- **Every WhatsApp send attempt is logged honestly** — `sent`, `failed`, `not_configured`, or `no_phone` — so read-receipt counts always reflect reality, never an inflated "delivered" count.
+- **WhatsApp costs money per message once connected** (Meta's fee, not Termii's) — this is a real ongoing cost to factor into your pricing, not a one-time setup fee. Worth deciding deliberately whether it's absorbed into subscription pricing or metered per church.
+
+### Week 5 deliverable checklist (Section 12)
+
+- [x] Announcements: title, body, target audience (all/department/cell group), schedule for later, emergency flag
+- [x] Delivery tracking per recipient, with honest "not configured yet" status until Termii is connected
+- [x] Birthday/anniversary detection pulled automatically from existing Member Registry fields — no new data entry
+- [x] This week / this month milestone dashboard views
+- [x] Editable message templates with `{{name}}` / `{{church_name}}` placeholders
+- [x] Idempotent sending — safe to trigger repeatedly without duplicate messages
+- [ ] **You confirm**: create and send a test announcement, test a milestone message with a fake today's-birthday, edit a template
+- [ ] **Pending your action**: create a Termii account, get Sender ID approved, add the API key — then WhatsApp sending goes fully live
+- [ ] **Future upgrade** (not urgent): move scheduled announcements and daily milestone checks onto full automatic timing via pg_cron, once the manual version has proven reliable
 
 ## Week 4 — Tithe & Giving + Paystack + Offering Counting Sheet
 
