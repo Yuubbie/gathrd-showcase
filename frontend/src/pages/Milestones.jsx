@@ -16,11 +16,20 @@ const DEFAULT_TEMPLATES = {
 
 function isWithinDays(dateStr, days) {
   if (!dateStr) return false;
+
   const today = new Date();
-  const target = new Date(dateStr);
-  target.setFullYear(today.getFullYear());
-  if (target < today) target.setFullYear(today.getFullYear() + 1);
-  const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const original = new Date(dateStr);
+  const month = original.getUTCMonth();
+  const day = original.getUTCDate();
+
+  let occurrence = new Date(todayMidnight.getFullYear(), month, day);
+  if (occurrence < todayMidnight) {
+    occurrence = new Date(todayMidnight.getFullYear() + 1, month, day);
+  }
+
+  const diffDays = Math.round((occurrence - todayMidnight) / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= days;
 }
 
