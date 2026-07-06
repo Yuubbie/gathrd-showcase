@@ -52,7 +52,7 @@ function NavLinks({ profile, currentPath, onNavigate }) {
 }
 
 export default function AppShell({ children }) {
-  const { profile, signOut } = useAuth();
+  const { profile, church, signOut } = useAuth();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -60,9 +60,16 @@ export default function AppShell({ children }) {
     <div className="min-h-screen bg-parchment md:flex">
       {/* Desktop sidebar — the permanent gradient spine */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-signal-gradient shrink-0">
-        <div className="flex items-center gap-2 px-5 py-6">
-          <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
-          <span className="font-display font-bold text-white text-lg">Gathrd</span>
+        <div className="px-5 py-6">
+          <div className="flex items-center gap-2">
+            <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+            <span className="font-display font-bold text-white text-lg">Gathrd</span>
+          </div>
+          {church?.name && (
+            <p className="text-white/50 text-xs mt-1.5 truncate" title={church.name}>
+              {church.name}
+            </p>
+          )}
         </div>
         <NavLinks profile={profile} currentPath={location.pathname} />
         <div className="p-3 mt-auto">
@@ -94,10 +101,17 @@ export default function AppShell({ children }) {
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-void/50" onClick={() => setDrawerOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-signal-gradient flex flex-col">
-            <div className="flex items-center justify-between px-5 py-6">
-              <div className="flex items-center gap-2">
-                <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
-                <span className="font-display font-bold text-white text-lg">Gathrd</span>
+            <div className="flex items-start justify-between px-5 py-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+                  <span className="font-display font-bold text-white text-lg">Gathrd</span>
+                </div>
+                {church?.name && (
+                  <p className="text-white/50 text-xs mt-1.5 truncate max-w-[160px]" title={church.name}>
+                    {church.name}
+                  </p>
+                )}
               </div>
               <button onClick={() => setDrawerOpen(false)} className="text-white/70" aria-label="Close menu">
                 <X size={22} />

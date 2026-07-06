@@ -1,4 +1,4 @@
-# Gathrd — Weeks 1-5: Auth, Members, Visitor Log, Discipleship, Giving & Announcements
+# Gathrd — Weeks 1-5 + Design Pass: Full Product Build
 
 Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
@@ -22,6 +22,49 @@ gathrd/
     ├── .env.example
     └── (vite/tailwind config)
 ```
+
+## Design Pass — Real Brand Identity, Not Templated Defaults
+
+This wasn't a feature week — it's a full visual overhaul across every screen built so far, prompted by a fair concern: the app was function-first up to this point, using generic Tailwind defaults (`indigo-600`, `gray-50`) with zero connection to your actual logo. Since the live link is already public, this closes that gap properly.
+
+### What changed
+
+```
+frontend/tailwind.config.js        ← real brand color tokens + fonts, pulled from your logo
+frontend/src/index.css             ← Sora/Inter typography, focus-visible accessibility styles
+frontend/src/components/
+  ├── AppShell.jsx                 ← NEW: persistent gradient sidebar/nav — the app's spine
+  └── ui/
+      ├── Button.jsx, Card.jsx, Badge.jsx   ← NEW: shared design primitives
+frontend/src/components/ProtectedRoute.jsx  ← now wraps every logged-in page in AppShell automatically
+```
+
+Every existing page (Login, Signup, Dashboard, Members, Visitors, Discipleship, Giving, Announcements, Milestones, and the public Join/Give pages) was restyled to use the new brand system — colors, spacing, typography, and border-radius are now consistent everywhere instead of copy-pasted per page.
+
+### The design system, explained
+
+- **Colors, pulled directly from your logo**: Signal (`#6D3FF0`, your brand violet), Signal Deep (`#3D1F8C`), Ink (`#15111F`, a warmer near-black than flat gray), Parchment (`#FAF8FC`, a barely-there violet-tinted background instead of generic gray-50), Sage (money/success states), Amber Flag and Rose (warning/danger).
+- **Typography**: Sora for headings (distinctive, not a default template font), Inter for body text and data-dense tables (the standard for legibility at small sizes — chosen deliberately since your users are often on small Android screens over mobile data, where load speed and readability matter more than novelty).
+- **The signature move**: your logo's gradient is now the **permanent spine of the app** — a persistent sidebar present on every screen (collapses to a slide-out drawer on mobile), instead of each page being a disconnected standalone screen. This is what actually fixes the "doesn't feel like one product" problem, more than any color change alone would.
+- **One new dependency**: `lucide-react`, a lightweight icon library, used for the sidebar navigation icons.
+
+### A structural bug caught and fixed during this pass
+
+The Dashboard's stat cards originally tried to build Tailwind class names dynamically at runtime (e.g. `` `bg-${color}-50` ``) — this is a classic Tailwind trap: since Tailwind scans source code at build time for literal class names, dynamically-constructed ones get silently dropped in production even though they "work" in a live dev preview. Fixed with a static lookup table instead. Worth knowing about for any future work — always write full class names literally, never build them from variables.
+
+### Setup steps
+
+1. Extract into your `gathrd` folder as usual.
+2. **New dependency to install**: `cd frontend && npm install` (this pulls in `lucide-react` for the nav icons — already reflected in `package.json` and `package-lock.json`).
+3. `npm run dev`, log in, and you should immediately see the new gradient sidebar and the restyled Dashboard.
+4. Click through Members, Giving, Visitors, etc. — confirm the sidebar persists across every page and highlights whichever page you're on.
+5. Test the mobile drawer: shrink your browser window (or open dev tools' device toolbar), confirm the sidebar collapses into a hamburger menu that slides open correctly.
+6. Log out, check Login and Signup — confirm the split-panel gradient treatment shows on desktop, and collapses sensibly on mobile.
+7. Open your Join link and Give link in incognito — confirm they now carry your logo and brand colors too.
+
+### What's intentionally not covered in this pass
+
+Deeper polish (custom illustrations, animated transitions, empty-state artwork) was deliberately left out — the goal here was closing the "doesn't look like a real product" gap efficiently and consistently, not maximalist decoration. The disciplined, restrained look is itself part of the design decision: for an app handling church finances and member data, calm competence reads as more trustworthy than flashy — the same instinct that makes banking apps look the way they do.
 
 ## Week 5 — Announcements + WhatsApp + Birthday Alerts
 

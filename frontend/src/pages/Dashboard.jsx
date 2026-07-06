@@ -13,7 +13,7 @@ const ROLE_LABELS = {
 };
 
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, church } = useAuth();
   const [stats, setStats] = useState({ members: 0, visitors: 0, givingThisMonth: 0, converts: 0 });
   const [loading, setLoading] = useState(true);
   const canSeeFinance = ['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role);
@@ -60,6 +60,9 @@ export default function Dashboard() {
         <h1 className="font-display text-2xl md:text-3xl font-bold text-ink mt-0.5">
           {profile?.full_name?.split(' ')[0]} 👋
         </h1>
+        {church?.name && (
+          <p className="text-ink/40 text-sm mt-1">{church.name}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

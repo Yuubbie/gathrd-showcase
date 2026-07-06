@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null); // { id, role, church_id, full_name, ... }
+  const [church, setChurch] = useState(null); // { id, name, ... }
   const [loading, setLoading] = useState(true);
 
   async function loadProfile(userId) {
@@ -18,8 +19,21 @@ export function AuthProvider({ children }) {
     if (error) {
       console.error('Failed to load profile:', error.message);
       setProfile(null);
+      setChurch(null);
+      return;
+    }
+
+    setProfile(data);
+
+    if (data?.church_id) {
+      const { data: churchData } = await supabase
+        .from('churches')
+        .select('id, name')
+        .eq('id', data.church_id)
+        .single();
+      setChurch(churchData || null);
     } else {
-      setProfile(data);
+      setChurch(null);
     }
   }
 
@@ -39,6 +53,7 @@ export function AuthProvider({ children }) {
           await loadProfile(session.user.id);
         } else {
           setProfile(null);
+          setChurch(null);
         }
       }
     );
@@ -46,12 +61,12 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signUp({ email, password, fullName, role }) {
+  async function signUp({ email, password, fullName, churchName, role }) {
     return supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, role }, // picked up by handle_new_user() trigger
+        data: { full_name: fullName, church_name: churchName, role }, // picked up by handle_new_user() trigger
       },
     });
   }
@@ -67,6 +82,7 @@ export function AuthProvider({ children }) {
   const value = {
     session,
     profile,          // includes .role — one of the 8 church_role values
+    church,           // { id, name } — the logged-in user's church
     loading,
     signUp,
     signIn,
