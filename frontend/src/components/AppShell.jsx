@@ -39,7 +39,7 @@ function NavLinks({ profile, currentPath, onNavigate }) {
             to={item.to}
             onClick={onNavigate}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
+              active ? 'bg-white/10 text-gold-light border-l-2 border-gold -ml-px pl-[11px]' : 'text-white/60 hover:text-white hover:bg-white/10 border-l-2 border-transparent'
             }`}
           >
             <Icon size={18} strokeWidth={2} />

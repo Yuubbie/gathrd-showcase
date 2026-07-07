@@ -4,15 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#15111F',
-        void: '#0F0B1A',
+        ink: '#10151F',
+        void: '#070A10',
         signal: {
-          DEFAULT: '#6D3FF0',
-          deep: '#3D1F8C',
-          50: '#F2EDFD',
-          100: '#E4D9FB',
+          DEFAULT: '#A9791E',
+          deep: '#7C5914',
+          50: '#F7EFDC',
+          100: '#EEDFB8',
         },
-        parchment: '#FAF8FC',
+        parchment: '#FAF8F2',
         sage: {
           DEFAULT: '#1C8A5E',
           50: '#E8F5EF',
@@ -24,11 +24,11 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Sora', 'sans-serif'],
+        display: ['Fraunces', 'serif'],
         sans: ['Inter', 'sans-serif'],
       },
       backgroundImage: {
-        'signal-gradient': 'linear-gradient(160deg, #6D3FF0 0%, #3D1F8C 60%, #0F0B1A 100%)',
+        'signal-gradient': 'linear-gradient(160deg, #16233A 0%, #0E1826 55%, #070A10 100%)',
       },
     },
   },
