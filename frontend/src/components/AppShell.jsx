@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet,
-  Megaphone, Cake, Menu, X, LogOut,
+  Megaphone, Cake, UsersRound, ListChecks, Menu, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,8 @@ const NAV_ITEMS = [
   { to: '/giving', label: 'Giving', icon: Wallet, roles: ['senior_pastor', 'assistant_pastor', 'finance_admin'] },
   { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
+  { to: '/follow-up', label: 'Follow-Up', icon: ListChecks, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
 ];
 
 const ROLE_LABELS = {

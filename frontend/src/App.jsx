@@ -19,6 +19,9 @@ import MemberGivingHistory from './pages/MemberGivingHistory';
 import TopGivers from './pages/TopGivers';
 import Announcements from './pages/Announcements';
 import Milestones from './pages/Milestones';
+import CellGroups from './pages/CellGroups';
+import CellGroupDetail from './pages/CellGroupDetail';
+import FollowUpDashboard from './pages/FollowUpDashboard';
 
 function CheckEmail() {
   return (
@@ -159,6 +162,30 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <Milestones />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cell-groups"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader']}>
+                <CellGroups />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cell-groups/:id"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader']}>
+                <CellGroupDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/follow-up"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <FollowUpDashboard />
               </ProtectedRoute>
             }
           />
