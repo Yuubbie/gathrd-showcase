@@ -85,7 +85,7 @@ export default function CellGroups() {
       if (!res.ok) {
         setError(data.error || 'Could not send reminders.');
       } else {
-        setNotice(`Checked cell groups meeting today: ${data.sent} reminder(s) sent, ${data.skipped_already_reported} already reported.`);
+        setNotice(`${data.checked} cell group(s) meet today. ${data.sent} reminder(s) sent, ${data.skipped_already_reported} already reported, ${data.checked - data.sent - data.skipped_already_reported} skipped (no leader phone on file).`);
       }
     } catch {
       setError('Could not reach the server.');

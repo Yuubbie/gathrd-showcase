@@ -1,4 +1,4 @@
-# Gathrd — Weeks 1-5 + Design Pass: Full Product Build
+# Gathrd — Weeks 1-6 + Design Pass: Full Product Build
 
 Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
@@ -22,6 +22,59 @@ gathrd/
     ├── .env.example
     └── (vite/tailwind config)
 ```
+
+## Week 6 — Cell Groups + Weekly Reports + Follow-Up Dashboard
+
+New in this drop:
+```
+supabase/migrations/
+  ├── 0014_cell_groups.sql      ← zone/meeting fields, weekly reports, per-member attendance, absentee detection
+  └── 0015_cell_groups_rls.sql  ← RLS: cell leaders see only their own group
+
+supabase/functions/
+  └── send-cell-reminders/      ← WhatsApp reminder to leaders meeting today, pending Termii same as Week 5
+
+frontend/src/pages/
+  ├── CellGroups.jsx        ← admin: create groups, assign leaders, roster counts
+  ├── CellGroupDetail.jsx   ← roster, absentee flags, weekly report submission
+  └── FollowUpDashboard.jsx ← consolidated flags: overdue visitors, stalled discipleship, cell absentees
+```
+
+### Scope note: the Follow-Up Dashboard is honestly partial, and says so on-screen
+
+The blueprint's full spec includes flags from Sunday attendance (3+ consecutive absences) and Welfare/Prayer requests — neither of those modules exists yet. Rather than fake it or silently leave it out, the dashboard itself tells the pastor exactly what's included and what's still missing. When Attendance and Pastoral Care modules get built, their flags slot into this same dashboard without restructuring anything.
+
+### Setup steps
+
+1. Run `0014_cell_groups.sql`, then `0015_cell_groups_rls.sql` in Supabase SQL Editor.
+2. Deploy the new function:
+```
+supabase functions deploy send-cell-reminders --project-ref <your-project-ref>
+```
+3. Create a cell group, assign a `cell_leader`-role staff member to it (they need to already have a login — invite them the same way you'd set up any staff account, then assign their role to `cell_leader` via Supabase's table editor for now, since the invite-with-role flow is still Week 7 territory).
+4. Assign a few members to that cell group from **Members → edit → Cell group**.
+5. Open the cell group, click **Submit This Week's Report**, check attendance for each member, submit.
+6. Confirm it shows in "Recent Reports," and that submitting again same day is blocked ("Report already submitted for today").
+7. To test absentee detection: submit 3 reports in a row (you can backdate by testing across a few days, or manually insert test report rows with different `meeting_date` values) marking the same member absent each time — confirm they show up under "absent 3+ recent meetings."
+8. Check **Follow-Up Dashboard** — confirm it shows overdue visitor tasks, stalled discipleship records, and cell absentees together, sorted by priority.
+
+### Design decisions worth knowing
+
+- **Attendance is per-member, not just a headcount** — this is what makes real absentee tracking possible. A weekly report isn't just "12 people came," it's a checklist against the actual roster, so the system knows *which* 12, not just how many.
+- **The reminder function is idempotent by design** — it checks whether a report already exists for today before sending anything, so running it twice doesn't spam a leader who already reported.
+- **A `unique (cell_group_id, meeting_date)` constraint** on reports makes double-submission structurally impossible at the database level, not just discouraged by the UI — same defensive pattern used for milestone messages in Week 5.
+
+### Week 6 deliverable checklist (Section 12)
+
+- [x] Cell groups with name, zone, meeting day/time, location
+- [x] Cell leader assignment (existing staff account, role-restricted)
+- [x] Weekly report: per-member attendance, new faces, prayer points, testimonies
+- [x] One report per cell group per day, enforced at the database level
+- [x] Absentee detection: 3+ consecutive missed meetings, computed from real attendance history
+- [x] WhatsApp reminder to leaders meeting today (pending Termii connection, same as Week 5)
+- [x] Follow-Up Dashboard consolidating visitor, discipleship, and cell group flags with priority levels
+- [ ] **You confirm**: create a cell group, assign members, submit a report, check the Follow-Up Dashboard picks everything up correctly
+- [ ] **Not yet built**: Sunday attendance tracking (Module 2C) and Welfare/Prayer request flags — noted honestly on the dashboard itself, will slot in later without restructuring
 
 ## Design Pass — Real Brand Identity, Not Templated Defaults
 
