@@ -101,6 +101,24 @@ export default function GivingLog() {
 
   const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
 
+  function exportCsv() {
+    const headers = ['Date', 'Category', 'Amount', 'Payment Method', 'Source', 'Status', 'Given By'];
+    const rows = records.map((r) => [
+      r.given_at, CATEGORIES.find(([v]) => v === r.category)?.[1] || r.category,
+      r.amount, r.payment_method, r.source, r.status, r.given_by_name || '',
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gathrd-giving.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
@@ -116,6 +134,9 @@ export default function GivingLog() {
             <Link to="/giving/settings" className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
               Settings
             </Link>
+            <button onClick={exportCsv} className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
+              Export CSV
+            </button>
             <button onClick={() => setShowForm((v) => !v)} className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
               + Record Cash Gift
             </button>

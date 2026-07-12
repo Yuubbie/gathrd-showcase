@@ -193,7 +193,28 @@ export default function CellGroupDetail() {
         )}
 
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
-          <p className="text-sm font-semibold text-ink/80 mb-2">Recent Reports</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-ink/80">Recent Reports</p>
+            {reports.length > 0 && (
+              <button
+                onClick={() => {
+                  const headers = ['Date', 'Attendance', 'New Faces', 'Prayer Points', 'Testimonies'];
+                  const rows = reports.map((r) => [r.meeting_date, r.attendance_count, r.new_faces_count, r.prayer_points || '', r.testimonies || '']);
+                  const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${cellGroup.name}-reports.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="text-xs border border-ink/15 text-ink/70 rounded-lg px-3 py-1.5 font-semibold hover:bg-parchment transition-colors"
+              >
+                Export CSV
+              </button>
+            )}
+          </div>
           {reports.length === 0 ? (
             <p className="text-ink/40 text-sm">No reports submitted yet.</p>
           ) : (

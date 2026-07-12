@@ -22,6 +22,8 @@ import Milestones from './pages/Milestones';
 import CellGroups from './pages/CellGroups';
 import CellGroupDetail from './pages/CellGroupDetail';
 import FollowUpDashboard from './pages/FollowUpDashboard';
+import Settings from './pages/Settings';
+import Billing from './pages/Billing';
 
 function CheckEmail() {
   return (
@@ -186,6 +188,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <FollowUpDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/billing"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor']}>
+                <Billing />
               </ProtectedRoute>
             }
           />

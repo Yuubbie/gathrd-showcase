@@ -4,6 +4,7 @@ import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
+import OnboardingChecklist from '../components/OnboardingChecklist';
 
 const ROLE_LABELS = {
   senior_pastor: 'Senior Pastor', assistant_pastor: 'Assistant Pastor',
@@ -64,6 +65,8 @@ export default function Dashboard() {
           <p className="text-ink/40 text-sm mt-1">{church.name}</p>
         )}
       </div>
+
+      <OnboardingChecklist />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard icon={Users} label="Active Members" value={loading ? '—' : stats.members} to="/members" color="signal" />

@@ -1,4 +1,4 @@
-# Gathrd — Weeks 1-6 + Design Pass: Full Product Build
+# Gathrd — Weeks 1-7 + Design Pass: Full Product Build
 
 Built from `Gathrd_Product_Blueprint_v4.docx`, Section 12 Build Timeline.
 
@@ -22,6 +22,53 @@ gathrd/
     ├── .env.example
     └── (vite/tailwind config)
 ```
+
+## Week 7 — Onboarding Checklist + Billing Structure + Data Export
+
+New in this drop:
+```
+supabase/migrations/
+  ├── 0017_onboarding_billing.sql   ← logo/brand fields, onboarding_dismissed, subscription_status
+  └── 0018_fix_church_update_rls.sql ← fixes a real bug: only senior_pastor could update church settings
+
+frontend/src/
+  ├── components/OnboardingChecklist.jsx  ← Dashboard widget, real completion detection
+  └── pages/
+      ├── Settings.jsx    ← church logo URL, brand color
+      └── Billing.jsx     ← plan display, manual plan selection
+```
+
+Plus: CSV export added to Giving records and Cell Group reports (Members already had it since Week 2).
+
+### A real bug caught while building this week
+
+The RLS policy controlling who can update a church's row only allowed `senior_pastor` — but the Giving Settings page (built in Week 4) has always been accessible in the UI to `assistant_pastor` and `church_admin` too. That means if either of those roles tried to save bank details, the save would have silently failed. `0018_fix_church_update_rls.sql` fixes this to match who the UI actually lets in.
+
+### Scope notes — what's honestly not built, and why
+
+- **`churchname.gathrd.ng` subdomains**: needs you to own the `gathrd.ng` domain and configure wildcard DNS on Vercel — real infrastructure, not app code. Not attempted here.
+- **3-minute walkthrough video**: content production, not something buildable in this session. The checklist item for it exists as a manual "mark done to skip" toggle rather than pretending a video exists.
+- **Full automated monthly billing** (Paystack charging churches, grace periods, auto-suspension): a genuinely separate Paystack integration (Plans & Subscriptions API) from the giving/tithe Subaccounts work in Week 4. Since there are no paying churches yet, there's no urgent need to fully automate collections — the schema (`subscription_status`, `current_period_end`, `grace_period_started_at`) is in place so this can be switched on later without a schema change, but nothing charges anyone automatically yet.
+- **Supabase automated daily backups**: this is a Supabase account plan setting (upgrade to Pro), not code — nothing to build, just a decision for you to make later.
+
+### Setup steps
+
+1. Run `0017_onboarding_billing.sql`, then `0018_fix_church_update_rls.sql` in Supabase SQL Editor.
+2. `npm run dev`, log in — you should see the onboarding checklist appear on the Dashboard automatically if any step is incomplete (it self-hides once every step, including the manual video toggle, is done).
+3. Click through the checklist links — Settings, Cell Groups, Add Member, Giving Settings — confirm each one correctly flips to "done" once you complete it.
+4. Visit **Church Settings** (small link near your name at the bottom of the sidebar) — paste any test image URL as a logo, pick a brand color, save, confirm it persists on reload.
+5. Visit **Billing & Plan** — confirm your current plan shows, try switching plans, confirm the notice is clear that this isn't automated billing yet.
+6. Test CSV export on **Giving** and on a **Cell Group's** report list — confirm a real CSV downloads with the right data.
+
+### Week 7 deliverable checklist (Section 12)
+
+- [x] Onboarding checklist with real, automatically-detected completion (not manually tracked)
+- [x] Church logo/brand color settings
+- [x] Billing structure in place (plan tracking, subscription status), honestly not yet automated
+- [x] CSV export extended to Giving and Cell Group reports
+- [x] Real RLS bug found and fixed (church_admin/assistant_pastor couldn't actually save settings before this)
+- [ ] **You confirm**: checklist detects real progress correctly, settings save and persist, CSV exports contain real data
+- [ ] **Deliberately not built**: subdomains (needs domain/DNS decision), walkthrough video (content, not code), automated billing (no paying churches yet to justify it), Supabase backups (a plan upgrade, not code)
 
 ## Week 6 — Cell Groups + Weekly Reports + Follow-Up Dashboard
 

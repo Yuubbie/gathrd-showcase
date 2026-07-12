@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet,
-  Megaphone, Cake, UsersRound, ListChecks, Menu, X, LogOut,
+  Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -74,7 +74,12 @@ export default function AppShell({ children }) {
           )}
         </div>
         <NavLinks profile={profile} currentPath={location.pathname} />
-        <div className="p-3 mt-auto">
+        <div className="p-3 mt-auto space-y-2">
+          {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+            <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+              <SettingsIcon size={14} /> Church Settings
+            </Link>
+          )}
           <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{profile?.full_name}</p>
@@ -120,7 +125,12 @@ export default function AppShell({ children }) {
               </button>
             </div>
             <NavLinks profile={profile} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
-            <div className="p-3 mt-auto">
+            <div className="p-3 mt-auto space-y-2">
+              {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+                <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                  <SettingsIcon size={14} /> Church Settings
+                </Link>
+              )}
               <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white truncate">{profile?.full_name}</p>
