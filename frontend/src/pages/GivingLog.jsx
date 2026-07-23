@@ -124,7 +124,11 @@ export default function GivingLog() {
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="text-xl font-semibold">Giving</h1>
-          <div className="flex gap-2">
+          {/* FIX: added flex-wrap — this row had 5 buttons with no wrap
+              allowed, which at a ~344px mobile width forced horizontal
+              scroll on the whole page instead of the buttons just
+              stacking onto a second line. */}
+          <div className="flex flex-wrap gap-2">
             <Link to="/giving/top-givers" className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
               Top Givers
             </Link>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext(null);
@@ -8,29 +8,71 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null); // { id, role, church_id, full_name, ... }
   const [church, setChurch] = useState(null); // { id, name, ... }
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null); // FIX: surfaced instead of silent null state
 
-  async function loadProfile(userId) {
+  // FIX: guards against overlapping loadProfile() calls. Without this, rapidly
+  // switching sessions (or a token silently failing to refresh mid-request)
+  // can let an OLDER call's response land after a NEWER session is already
+  // active — at which point Supabase attaches the CURRENT session's token to
+  // that stale in-flight request, RLS correctly rejects it (id no longer
+  // matches auth.uid()), and the resulting 406 gets misread as "this profile
+  // failed to load" when really it's just a leftover request answering under
+  // the wrong identity.
+  const requestIdRef = useRef(0);
+
+  async function loadProfile(userId, retrying = false) {
+    const thisRequestId = ++requestIdRef.current;
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
+    // A newer call has since started — this response is stale, drop it.
+    if (requestIdRef.current !== thisRequestId) return;
+
     if (error) {
+      // FIX: a single 406/"no rows" here often means the access token was
+      // mid-refresh when this request fired (see 0002_rls_policies.sql —
+      // both read policies depend on auth.uid() resolving correctly). Rather
+      // than immediately treating that as "no profile," confirm whether the
+      // session actually died. If it's still alive, retry once after a short
+      // delay instead of silently blanking the app.
+      if (!retrying) {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (requestIdRef.current !== thisRequestId) return;
+        if (currentSession?.user?.id === userId) {
+          setTimeout(() => loadProfile(userId, true), 800);
+          return;
+        }
+      }
+
       console.error('Failed to load profile:', error.message);
       setProfile(null);
       setChurch(null);
+      // FIX: previously nothing told the UI this was a real failure versus
+      // "user genuinely has no profile yet." Now ProtectedRoute (or any page)
+      // can check authError to show "session expired, please log in again"
+      // instead of a dashboard that's just permanently blank with no
+      // explanation.
+      setAuthError('Failed to load your account. Please try logging in again.');
       return;
     }
 
+    setAuthError(null);
     setProfile(data);
 
     if (data?.church_id) {
-      const { data: churchData } = await supabase
+      const { data: churchData, error: churchError } = await supabase
         .from('churches')
         .select('id, name')
         .eq('id', data.church_id)
         .single();
+      if (requestIdRef.current !== thisRequestId) return;
+      if (churchError) {
+        console.error('Failed to load church:', churchError.message);
+      }
       setChurch(churchData || null);
     } else {
       setChurch(null);
@@ -47,13 +89,19 @@ export function AuthProvider({ children }) {
 
     // Listen for login/logout/token refresh
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setSession(session);
         if (session?.user) {
           await loadProfile(session.user.id);
         } else {
+          // FIX: bump the request id even on sign-out, so any profile fetch
+          // still in flight from the previous session is discarded instead
+          // of landing afterward and repopulating profile/church for a user
+          // who just logged out.
+          requestIdRef.current++;
           setProfile(null);
           setChurch(null);
+          setAuthError(null);
         }
       }
     );
@@ -84,6 +132,7 @@ export function AuthProvider({ children }) {
     profile,          // includes .role — one of the 8 church_role values
     church,           // { id, name } — the logged-in user's church
     loading,
+    authError,        // FIX: new — null when fine, a message when the session/profile genuinely failed
     signUp,
     signIn,
     signOut,

@@ -6,9 +6,12 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- FIX: Google Fonts <link> tags removed — fonts are now self-hosted
+         via @fontsource (see index.css). This removes a full DNS + TLS +
+         download round-trip to fonts.googleapis.com/fonts.gstatic.com on
+         every visit, which measured ~2.5s combined under throttled Slow 4G
+         testing. Same font files, same weights, just served from Vercel
+         alongside everything else instead of a third-party CDN. -->
     <title>Gathrd — Church Operating System</title>
   </head>
   <body>

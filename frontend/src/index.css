@@ -1,3 +1,18 @@
+/* FIX: self-hosted fonts, replacing the Google Fonts <link> tags removed
+   from index.html. Vite resolves these @import statements from
+   node_modules at BUILD time — this bundles the font files directly into
+   the compiled output, it does NOT trigger a browser-side @import fetch
+   (which would just move the same problem somewhere else). Same exact
+   weights as before, so no visual change — only the network cost drops.
+   Requires: npm install @fontsource/inter @fontsource/fraunces */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/fraunces/500.css';
+@import '@fontsource/fraunces/600.css';
+@import '@fontsource/fraunces/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

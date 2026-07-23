@@ -77,18 +77,31 @@ export default function Members() {
     URL.revokeObjectURL(url);
   }
 
+  // FIX: a cell_leader's member list is RLS-scoped to their own cell
+  // (cell_leader_read_own_cell_members in 0004_member_registry_rls.sql) —
+  // an empty result for them means "no one in YOUR cell yet," not "the
+  // church has zero members." The old copy didn't distinguish these, which
+  // reads as broken/alarming to a leader whose church has plenty of members
+  // they simply can't see from this screen.
+  const isCellScopedView = profile?.role === 'cell_leader';
+  const emptyStateMessage = isCellScopedView
+    ? 'No members in your cell group yet.'
+    : 'No members yet. Add one, or share the invite link above.';
+
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Members</h1>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowInvite((v) => !v)}
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
-            >
-              Invite Members
-            </button>
+            {!isCellScopedView && (
+              <button
+                onClick={() => setShowInvite((v) => !v)}
+                className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
+              >
+                Invite Members
+              </button>
+            )}
             <Link
               to="/members/new"
               className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors"
@@ -160,7 +173,7 @@ export default function Members() {
             <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
           ) : members.length === 0 ? (
             <p className="text-ink/40 text-sm py-6 text-center">
-              No members yet. Add one, or share the invite link above.
+              {emptyStateMessage}
             </p>
           ) : (
             <div className="divide-y">
