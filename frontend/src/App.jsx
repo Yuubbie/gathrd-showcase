@@ -24,6 +24,8 @@ import CellGroupDetail from './pages/CellGroupDetail';
 import FollowUpDashboard from './pages/FollowUpDashboard';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
+import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
+import ServiceAttendance from './pages/ServiceAttendance';
 
 function CheckEmail() {
   return (
@@ -53,11 +55,25 @@ export default function App() {
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/join/:slug" element={<PublicOnboard />} />
+          {/* FIX: new public route for the Sunday attendance QR — no login,
+              same pattern as /join/:slug and /give/:slug above. */}
+          <Route path="/checkin/:slug" element={<PublicAttendanceCheckin />} />
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          {/* FIX: new protected route for the admin-facing attendance roster
+              and manual check-in — same role set as Visitor Log, matching
+              AppShell's nav gating for the new "Attendance" link. */}
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <ServiceAttendance />
               </ProtectedRoute>
             }
           />

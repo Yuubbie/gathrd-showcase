@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserPlus, Sparkles, Wallet,
+  LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
+  // FIX: new nav item for the Sunday Attendance module (Module 2C).
+  // Same role set as Visitor Log — the roles who'd realistically be
+  // running check-in at the door or reviewing who came.
+  { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/discipleship', label: 'Discipleship', icon: Sparkles, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
