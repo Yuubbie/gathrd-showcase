@@ -64,8 +64,14 @@ export default function AppShell({ children }) {
 
   return (
     <div className="min-h-screen bg-parchment md:flex">
-      {/* Desktop sidebar — the permanent gradient spine */}
-      <aside className="hidden md:flex md:w-64 md:flex-col bg-signal-gradient shrink-0">
+      {/* Desktop sidebar — the permanent gradient spine.
+          FIX: added h-screen + overflow-y-auto. Without this, the sidebar
+          had no height cap and no scroll fallback — when content grew
+          taller than the browser window (exactly what happened when the
+          Invite Staff link was added), everything past the bottom of the
+          screen became genuinely unreachable, including sign-out. Now it
+          scrolls internally instead of silently cutting content off. */}
+      <aside className="hidden md:flex md:w-64 md:flex-col h-screen overflow-y-auto bg-signal-gradient shrink-0">
         <div className="px-5 py-6">
           <div className="flex items-center gap-2">
             <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
@@ -80,9 +86,16 @@ export default function AppShell({ children }) {
         <NavLinks profile={profile} currentPath={location.pathname} />
         <div className="p-3 mt-auto space-y-2">
           {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
-            <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-              <SettingsIcon size={14} /> Church Settings
-            </Link>
+            <>
+              <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                <SettingsIcon size={14} /> Church Settings
+              </Link>
+              {/* FIX: Invite Staff link — same role gate as Church Settings,
+                  matches invite-staff Edge Function's own permission check. */}
+              <Link to="/team/invite" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                <UserPlus size={14} /> Invite Staff
+              </Link>
+            </>
           )}
           <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
             <div className="min-w-0">
@@ -111,7 +124,7 @@ export default function AppShell({ children }) {
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-void/50" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-signal-gradient flex flex-col">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-signal-gradient flex flex-col overflow-y-auto">
             <div className="flex items-start justify-between px-5 py-6">
               <div>
                 <div className="flex items-center gap-2">
@@ -131,9 +144,14 @@ export default function AppShell({ children }) {
             <NavLinks profile={profile} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
             <div className="p-3 mt-auto space-y-2">
               {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
-                <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                  <SettingsIcon size={14} /> Church Settings
-                </Link>
+                <>
+                  <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                    <SettingsIcon size={14} /> Church Settings
+                  </Link>
+                  <Link to="/team/invite" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                    <UserPlus size={14} /> Invite Staff
+                  </Link>
+                </>
               )}
               <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5">
                 <div className="min-w-0">

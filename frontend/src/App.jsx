@@ -26,6 +26,8 @@ import Settings from './pages/Settings';
 import Billing from './pages/Billing';
 import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
+import InviteStaff from './pages/InviteStaff';
+import SetPassword from './pages/SetPassword';
 
 function CheckEmail() {
   return (
@@ -58,6 +60,11 @@ export default function App() {
           {/* FIX: new public route for the Sunday attendance QR — no login,
               same pattern as /join/:slug and /give/:slug above. */}
           <Route path="/checkin/:slug" element={<PublicAttendanceCheckin />} />
+          {/* FIX: new public route — lands here from an invite email link.
+              Kept outside ProtectedRoute/AppShell deliberately, since it
+              shouldn't depend on AuthContext's normal profile-load timing
+              to render the password form. */}
+          <Route path="/set-password" element={<SetPassword />} />
           <Route
             path="/dashboard"
             element={
@@ -212,6 +219,16 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          {/* FIX: new protected route for inviting staff — same role set
+              the invite-staff Edge Function itself checks server-side. */}
+          <Route
+            path="/team/invite"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <InviteStaff />
               </ProtectedRoute>
             }
           />
