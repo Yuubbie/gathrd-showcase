@@ -95,10 +95,7 @@ serve(async (req) => {
 
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name, role },
-      // FIX: was '/login' — that page has no way to handle someone who's
-      // never set a password yet, which is exactly the state every invited
-      // user is in. Sends them to a dedicated page built for that instead.
-      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/set-password`,
+      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/login`,
     });
 
     if (inviteError) {
