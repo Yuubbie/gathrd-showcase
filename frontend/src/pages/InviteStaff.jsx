@@ -42,7 +42,14 @@ export default function InviteStaff() {
       if (!res.ok) {
         setMessage({ type: 'error', text: result.error || 'Something went wrong.' });
       } else {
-        setMessage({ type: 'success', text: `Invite sent to ${email}. They'll get an email to set up their login.` });
+        // FIX: prefer the server's own message when it sends one — this is
+        // what distinguishes "fresh invite sent" from "they already had an
+        // account, sent a new access link instead," which are genuinely
+        // different outcomes and shouldn't look identical to the pastor.
+        setMessage({
+          type: 'success',
+          text: result.message || `Invite sent to ${email}. They'll get an email to set up their login.`,
+        });
         setEmail('');
         setFullName('');
         setRole('church_admin');

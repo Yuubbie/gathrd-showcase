@@ -95,10 +95,46 @@ serve(async (req) => {
 
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name, role },
-      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/login`,
+      // FIX: was '/login' — that page has no way to handle someone who's
+      // never set a password yet, which is exactly the state every invited
+      // user is in. Sends them to a dedicated page built for that instead.
+      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/set-password`,
     });
 
     if (inviteError) {
+      // FIX: this fires whenever the email already has an account —
+      // either their original invite expired, or someone's re-inviting by
+      // mistake. Rather than dead-end with an unhelpful error every time,
+      // automatically send a fresh access link instead, using the same
+      // redirect the invite flow uses, so they land on the real
+      // set-password page rather than Supabase's default (which drops
+      // people on the plain login page with nothing to do there).
+      const alreadyExists = inviteError.message?.toLowerCase().includes('already') ||
+        inviteError.code === 'email_exists';
+
+      if (alreadyExists) {
+        const { error: resendError } = await adminClient.auth.resetPasswordForEmail(email, {
+          redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/set-password`,
+        });
+
+        if (resendError) {
+          return new Response(
+            JSON.stringify({ error: `This person already has an account, and resending access failed: ${resendError.message}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            resent: true,
+            invited_email: email,
+            message: 'This person already has an account — a fresh access link was sent instead.',
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: inviteError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
