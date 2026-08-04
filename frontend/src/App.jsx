@@ -28,6 +28,7 @@ import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
 import InviteStaff from './pages/InviteStaff';
 import SetPassword from './pages/SetPassword';
+import ClaimAccount from './pages/ClaimAccount';
 
 function CheckEmail() {
   return (
@@ -65,6 +66,10 @@ export default function App() {
               shouldn't depend on AuthContext's normal profile-load timing
               to render the password form. */}
           <Route path="/set-password" element={<SetPassword />} />
+          {/* FIX: new public route — lets an already-registered member
+              (via QR or manual add) claim a login for their existing
+              roster entry, linking the two via profile_id. */}
+          <Route path="/claim/:slug" element={<ClaimAccount />} />
           <Route
             path="/dashboard"
             element={

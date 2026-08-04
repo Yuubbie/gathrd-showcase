@@ -58,6 +58,12 @@ export default function Members() {
   const onboardingUrl = onboardingSlug
     ? `${window.location.origin}/join/${onboardingSlug}`
     : '';
+  // FIX: claim-account uses the same church slug — a member who already
+  // registered (via this same QR or a manual add) uses this second link
+  // to set up a login and see their own giving/attendance on Dashboard.
+  const claimUrl = onboardingSlug
+    ? `${window.location.origin}/claim/${onboardingSlug}`
+    : '';
 
   function exportCsv() {
     const headers = ['Full Name', 'Phone', 'Email', 'Status', 'Date Joined', 'Source'];
@@ -139,6 +145,29 @@ export default function Members() {
                   Copy link
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showInvite && claimUrl && (
+          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
+            <p className="text-sm text-ink/60">
+              Already-registered members use this link to set up a login and
+              see their own giving and attendance history.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                readOnly
+                value={claimUrl}
+                onClick={(e) => e.target.select()}
+                className="flex-1 min-w-[200px] border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment"
+              />
+              <button
+                onClick={() => navigator.clipboard.writeText(claimUrl)}
+                className="text-sm text-signal font-semibold hover:text-signal-deep"
+              >
+                Copy link
+              </button>
             </div>
           </div>
         )}

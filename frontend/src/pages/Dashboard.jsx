@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound } from 'lucide-react';
+import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -53,6 +53,13 @@ export default function Dashboard() {
   const { profile, church } = useAuth();
   const [stats, setStats] = useState({ members: 0, visitors: 0, givingThisMonth: 0, converts: 0 });
   const [cellStats, setCellStats] = useState(null); // scoped stat for cell_leader role
+  // FIX: personal stats for a plain member — their own giving total and
+  // attendance count, pulled via the member_read_own_giving and
+  // member_read_own_attendance RLS policies. Only populates for members
+  // whose members row has been linked to their login via profile_id (see
+  // claim-account Edge Function) — otherwise these correctly stay at 0,
+  // since there's genuinely nothing to link yet.
+  const [myStats, setMyStats] = useState({ totalGiving: null, servicesAttended: null });
   const [flags, setFlags] = useState([]);
   const [birthdaysThisWeek, setBirthdaysThisWeek] = useState([]);
   const [cellMeetingsThisWeek, setCellMeetingsThisWeek] = useState([]);
@@ -63,6 +70,7 @@ export default function Dashboard() {
   const canSeeFinance = ['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role);
   const canSeeChurchStats = CHURCH_WIDE_ROLES.includes(profile?.role);
   const isCellLeader = profile?.role === 'cell_leader';
+  const isMember = profile?.role === 'member';
 
   // FIX (High): race-condition / unmount guard. If profile changes mid-flight
   // (role switch, fast re-render, navigating away), a slower stale response
@@ -90,6 +98,7 @@ export default function Dashboard() {
           overdueTasksRes, discipleshipStallRes,
           membersListRes, cellGroupsRes,
           recentVisitorsRes, recentGivingRes, recentAnnouncementsRes,
+          myGivingRes, myAttendanceCountRes,
         ] = await Promise.all([
           // FIX (Critical): church-wide counts now gated to the roles that
           // can actually see church-wide data. Ungated before, which meant
@@ -132,6 +141,18 @@ export default function Dashboard() {
             ? supabase.from('giving_records').select('id, amount, category, given_at, status').eq('church_id', profile.church_id).eq('status', 'success').is('deleted_at', null).order('given_at', { ascending: false }).limit(3)
             : Promise.resolve({ data: [] }),
           supabase.from('announcements').select('id, title, sent_at').eq('church_id', profile.church_id).not('sent_at', 'is', null).order('sent_at', { ascending: false }).limit(3),
+          // FIX: personal giving/attendance for a plain member. RLS
+          // (member_read_own_giving / member_read_own_attendance) already
+          // scopes these to only the caller's own records via their
+          // members.profile_id link — no client-side member_id filter
+          // needed or even possible, since a member has no access to look
+          // up their own members.id directly.
+          isMember
+            ? supabase.from('giving_records').select('amount').eq('status', 'success').is('deleted_at', null)
+            : Promise.resolve({ data: [] }),
+          isMember
+            ? supabase.from('attendance_records').select('id', { count: 'exact', head: true }).is('deleted_at', null)
+            : Promise.resolve({ count: null }),
         ]);
 
         // Bail out silently if a newer load has since started, or we've unmounted.
@@ -144,6 +165,7 @@ export default function Dashboard() {
           giving: givingRes, overdueTasks: overdueTasksRes, discipleshipStall: discipleshipStallRes,
           membersList: membersListRes, cellGroups: cellGroupsRes,
           recentVisitors: recentVisitorsRes, recentGiving: recentGivingRes, recentAnnouncements: recentAnnouncementsRes,
+          myGiving: myGivingRes, myAttendanceCount: myAttendanceCountRes,
         };
         const failed = Object.entries(results).filter(([, r]) => r?.error);
         if (failed.length > 0) {
@@ -157,6 +179,13 @@ export default function Dashboard() {
           converts: discipleshipCountRes.count ?? null,
           givingThisMonth: (givingRes.data || []).reduce((sum, g) => sum + Number(g.amount), 0),
         });
+
+        if (isMember) {
+          setMyStats({
+            totalGiving: (myGivingRes.data || []).reduce((sum, g) => sum + Number(g.amount), 0),
+            servicesAttended: myAttendanceCountRes.count ?? 0,
+          });
+        }
 
         // Scoped stat for cell_leader: their own cell's member count, which
         // RLS (cell_leader_read_own_cell_members) actually grants them.
@@ -236,7 +265,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [profile, canSeeFinance, canSeeChurchStats, isCellLeader]);
+  }, [profile, canSeeFinance, canSeeChurchStats, isCellLeader, isMember]);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -245,10 +274,10 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
-  // Nothing church-wide to show this role, and they don't lead a cell either
-  // — rather than an empty stat row, say so plainly instead of implying
-  // there's just no data.
-  const noStatsAvailable = !canSeeChurchStats && !canSeeFinance && !cellStats;
+  // Nothing church-wide to show this role, and they don't lead a cell or
+  // have personal member stats either — rather than an empty stat row,
+  // say so plainly instead of implying there's just no data.
+  const noStatsAvailable = !canSeeChurchStats && !canSeeFinance && !cellStats && !isMember;
 
   return (
     <div className="px-5 py-8 md:px-10 md:py-10 max-w-5xl mx-auto">
@@ -282,6 +311,24 @@ export default function Dashboard() {
           )}
           {isCellLeader && cellStats && (
             <StatCard icon={UsersRound} label="My Cell Group" value={loading ? '—' : cellStats.count} to="/cell-groups" color="signal" />
+          )}
+          {isMember && (
+            <>
+              <StatCard
+                icon={Wallet}
+                label="My Giving (All Time)"
+                value={loading ? '—' : `₦${(myStats.totalGiving ?? 0).toLocaleString()}`}
+                to="/dashboard"
+                color="signal"
+              />
+              <StatCard
+                icon={ClipboardCheck}
+                label="Services Attended"
+                value={loading ? '—' : myStats.servicesAttended ?? 0}
+                to="/dashboard"
+                color="sage"
+              />
+            </>
           )}
           {canSeeFinance && (
             <StatCard
@@ -374,16 +421,22 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <Card className="p-6 md:p-8 bg-signal-gradient border-0">
-        <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Getting things done</p>
-        <h2 className="font-display text-xl font-bold text-white mb-4">What would you like to do?</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <QuickAction to="/members/new" label="Add a new member" />
-          <QuickAction to="/visitors/check-in" label="Check in a visitor" />
-          <QuickAction to="/announcements" label="Send an announcement" />
-          {canSeeFinance && <QuickAction to="/giving" label="Record a gift" />}
-        </div>
-      </Card>
+      {/* FIX: none of these actions apply to a plain member (add member,
+          check in visitor, send announcement, record gift are all
+          staff-only routes) — showing them just leads to a bounce off
+          ProtectedRoute. Hidden entirely for that role instead. */}
+      {!isMember && (
+        <Card className="p-6 md:p-8 bg-signal-gradient border-0">
+          <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Getting things done</p>
+          <h2 className="font-display text-xl font-bold text-white mb-4">What would you like to do?</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <QuickAction to="/members/new" label="Add a new member" />
+            <QuickAction to="/visitors/check-in" label="Check in a visitor" />
+            <QuickAction to="/announcements" label="Send an announcement" />
+            {canSeeFinance && <QuickAction to="/giving" label="Record a gift" />}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
