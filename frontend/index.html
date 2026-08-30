@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -12,6 +12,15 @@
          every visit, which measured ~2.5s combined under throttled Slow 4G
          testing. Same font files, same weights, just served from Vercel
          alongside everything else instead of a third-party CDN. -->
+
+    <!-- PWA: installability -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#A9791E" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Gathrd" />
+
     <title>Gathrd — Church Operating System</title>
   </head>
   <body>

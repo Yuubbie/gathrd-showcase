@@ -1,16 +1,14 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
-  // FIX: new nav item for the Sunday Attendance module (Module 2C).
-  // Same role set as Visitor Log — the roles who'd realistically be
-  // running check-in at the door or reviewing who came.
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
@@ -64,18 +62,14 @@ export default function AppShell({ children }) {
 
   return (
     <div className="min-h-screen bg-parchment md:flex">
-      {/* Desktop sidebar — the permanent gradient spine.
-          FIX: added h-screen + overflow-y-auto. Without this, the sidebar
-          had no height cap and no scroll fallback — when content grew
-          taller than the browser window (exactly what happened when the
-          Invite Staff link was added), everything past the bottom of the
-          screen became genuinely unreachable, including sign-out. Now it
-          scrolls internally instead of silently cutting content off. */}
       <aside className="hidden md:flex md:w-64 md:flex-col h-screen overflow-y-auto bg-signal-gradient shrink-0">
         <div className="px-5 py-6">
-          <div className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
-            <span className="font-display font-bold text-white text-lg">Gathrd</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+              <span className="font-display font-bold text-white text-lg">Gathrd</span>
+            </div>
+            <NotificationBell />
           </div>
           {church?.name && (
             <p className="text-white/50 text-xs mt-1.5 truncate" title={church.name}>
@@ -90,8 +84,6 @@ export default function AppShell({ children }) {
               <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
                 <SettingsIcon size={14} /> Church Settings
               </Link>
-              {/* FIX: Invite Staff link — same role gate as Church Settings,
-                  matches invite-staff Edge Function's own permission check. */}
               <Link to="/team/invite" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
                 <UserPlus size={14} /> Invite Staff
               </Link>
@@ -109,18 +101,19 @@ export default function AppShell({ children }) {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between bg-signal-gradient px-4 py-3">
         <div className="flex items-center gap-2">
           <img src="/logo-mark.png" alt="Gathrd" className="h-7 w-7" />
           <span className="font-display font-bold text-white">Gathrd</span>
         </div>
-        <button onClick={() => setDrawerOpen(true)} className="text-white" aria-label="Open menu">
-          <Menu size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button onClick={() => setDrawerOpen(true)} className="text-white" aria-label="Open menu">
+            <Menu size={22} />
+          </button>
+        </div>
       </div>
 
-      {/* Mobile drawer */}
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-void/50" onClick={() => setDrawerOpen(false)} />
