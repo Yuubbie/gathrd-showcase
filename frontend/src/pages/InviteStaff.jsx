@@ -1,7 +1,92 @@
+﻿// ============================================================
+// GATHRD — invite-staff Edge Function
+// Lets a pastor/admin invite other staff to their own church.
+// Any of the 3 inviter-eligible roles can invite any staff role,
+// EXCEPT senior_pastor — granting Senior Pastor privilege is
+// restricted to an existing Senior Pastor only, so a Church Admin
+// or Assistant Pastor can't invite their way up to the top role.
+// Deliberately does NOT modify handle_new_user() — that trigger
+// already correctly sets full_name and role from signup metadata
+// (see 0001_init_core_schema.sql), it just never sets church_id
+// for anyone, self-signup or invited. This function creates the
+// user, lets the existing trigger do its normal job, then sets
+// church_id afterward with the one privilege level that can
+// safely do it.
+// ============================================================
+
+import { serve } from 'https://deno.land/std@0.203.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const { email, full_name, role } = await req.json();
+
+    if (!email || !full_name || !role) {
+      return new Response(
+        JSON.stringify({ error: 'email, full_name, and role are all required.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Client scoped to the CALLER's own JWT — respects RLS. Used only to
+    // confirm who's asking and that they're actually allowed to invite,
+    // never for the privileged parts below.
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
+
+    const { data: { user }, error: authError } = await callerClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Not authenticated.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: callerProfile, error: profileError } = await callerClient
+      .from('profiles')
+      .select('role, church_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !callerProfile) {
+      return new Response(
+        JSON.stringify({ error: 'Could not verify your account.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const allowedInviterRoles = ['senior_pastor', 'assistant_pastor', 'church_admin'];
+    if (!allowedInviterRoles.includes(callerProfile.role)) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have permission to invite staff.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // A church can now have more than one Senior Pastor — but only an
+    // existing Senior Pastor can grant that privilege to someone else.
+    // An Assistant Pastor or Church Admin inviting a new Senior Pastor
+    // would effectively be inviting their own
+
+
+@'
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const ROLE_OPTIONS = [
+  ['senior_pastor', 'Senior Pastor'],
   ['assistant_pastor', 'Assistant Pastor'],
   ['church_admin', 'Church Admin'],
   ['finance_admin', 'Finance Admin'],
