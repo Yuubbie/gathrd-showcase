@@ -61,10 +61,39 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  // Recompute panel position on resize/orientation change while open,
+  // so rotating a phone or resizing a window doesn't leave it stranded.
+  useEffect(() => {
+    if (!open) return;
+    function reposition() {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const panelWidth = 320; // matches w-80
+      const margin = 12;
+      let left = rect.left;
+      if (left + panelWidth + margin > window.innerWidth) {
+        left = window.innerWidth - panelWidth - margin;
+      }
+      if (left < margin) left = margin;
+      setPanelPos({ top: rect.bottom + 8, left });
+    }
+    reposition();
+    window.addEventListener('resize', reposition);
+    return () => window.removeEventListener('resize', reposition);
+  }, [open]);
+
   function toggleOpen() {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 8, left: rect.left });
+      const panelWidth = 320; // matches w-80
+      const margin = 12;
+      let left = rect.left;
+      // Clamp so the panel never runs off the right edge on narrow/mobile screens
+      if (left + panelWidth + margin > window.innerWidth) {
+        left = window.innerWidth - panelWidth - margin;
+      }
+      if (left < margin) left = margin;
+      setPanelPos({ top: rect.bottom + 8, left });
     }
     setOpen((v) => !v);
   }
@@ -106,7 +135,7 @@ export default function NotificationBell() {
             ref={panelRef}
             role="menu"
             style={{ position: 'fixed', top: panelPos.top, left: panelPos.left, zIndex: 9999 }}
-            className="w-80 max-h-96 overflow-y-auto bg-parchment border border-void/10 rounded-xl shadow-xl"
+            className="w-80 max-w-[calc(100vw-24px)] max-h-96 overflow-y-auto bg-parchment border border-void/10 rounded-xl shadow-xl"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-void/10">
               <span className="font-display font-semibold text-void text-base">Notifications</span>
