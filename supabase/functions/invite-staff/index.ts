@@ -1,13 +1,17 @@
-// ============================================================
+﻿// ============================================================
 // GATHRD — invite-staff Edge Function
-// Lets a pastor/admin invite other staff (any role except
-// senior_pastor) to their own church. Deliberately does NOT
-// modify handle_new_user() — that trigger already correctly sets
-// full_name and role from signup metadata (see 0001_init_core_schema.sql),
-// it just never sets church_id for anyone, self-signup or invited.
-// This function creates the user, lets the existing trigger do its
-// normal job, then sets church_id afterward with the one privilege
-// level that can safely do it.
+// Lets a pastor/admin invite other staff to their own church.
+// Any of the 3 inviter-eligible roles can invite any staff role,
+// EXCEPT senior_pastor — granting Senior Pastor privilege is
+// restricted to an existing Senior Pastor only, so a Church Admin
+// or Assistant Pastor can't invite their way up to the top role.
+// Deliberately does NOT modify handle_new_user() — that trigger
+// already correctly sets full_name and role from signup metadata
+// (see 0001_init_core_schema.sql), it just never sets church_id
+// for anyone, self-signup or invited. This function creates the
+// user, lets the existing trigger do its normal job, then sets
+// church_id afterward with the one privilege level that can
+// safely do it.
 // ============================================================
 
 import { serve } from 'https://deno.land/std@0.203.0/http/server.ts';
@@ -33,16 +37,6 @@ serve(async (req) => {
       );
     }
 
-    if (role === 'senior_pastor') {
-      return new Response(
-        JSON.stringify({ error: 'Cannot invite another Senior Pastor through this form.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Client scoped to the CALLER's own JWT — respects RLS. Used only to
-    // confirm who's asking and that they're actually allowed to invite,
-    // never for the privileged parts below.
     const callerClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -78,6 +72,13 @@ serve(async (req) => {
       );
     }
 
+    if (role === 'senior_pastor' && callerProfile.role !== 'senior_pastor') {
+      return new Response(
+        JSON.stringify({ error: 'Only a Senior Pastor can invite another Senior Pastor.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!callerProfile.church_id) {
       return new Response(
         JSON.stringify({ error: 'Your account is not linked to a church yet.' }),
@@ -85,9 +86,6 @@ serve(async (req) => {
       );
     }
 
-    // Admin client — service role, bypasses RLS. Only used from here on,
-    // for the two operations that genuinely require elevated privilege:
-    // creating the auth user, and setting church_id afterward.
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -95,26 +93,16 @@ serve(async (req) => {
 
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name, role },
-      // FIX: was '/login' — that page has no way to handle someone who's
-      // never set a password yet, which is exactly the state every invited
-      // user is in. Sends them to a dedicated page built for that instead.
-      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/set-password`,
+      redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
     });
 
     if (inviteError) {
-      // FIX: this fires whenever the email already has an account —
-      // either their original invite expired, or someone's re-inviting by
-      // mistake. Rather than dead-end with an unhelpful error every time,
-      // automatically send a fresh access link instead, using the same
-      // redirect the invite flow uses, so they land on the real
-      // set-password page rather than Supabase's default (which drops
-      // people on the plain login page with nothing to do there).
       const alreadyExists = inviteError.message?.toLowerCase().includes('already') ||
         inviteError.code === 'email_exists';
 
       if (alreadyExists) {
         const { error: resendError } = await adminClient.auth.resetPasswordForEmail(email, {
-          redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd-xi.vercel.app'}/set-password`,
+          redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
         });
 
         if (resendError) {
@@ -143,11 +131,6 @@ serve(async (req) => {
 
     const newUserId = inviteData.user.id;
 
-    // handle_new_user() has already fired by this point and created a
-    // profiles row with the right full_name/role but no church_id — this
-    // is the one field this function exists to set, deliberately kept
-    // separate from the shared trigger every signup (invited or not)
-    // runs through.
     const { error: updateError } = await adminClient
       .from('profiles')
       .update({ church_id: callerProfile.church_id })
