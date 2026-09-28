@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/follow-up', label: 'Follow-Up', icon: ListChecks, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/billing', label: 'Billing', icon: CreditCard, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
 ];
 
 const ROLE_LABELS = {
@@ -59,14 +61,19 @@ export default function AppShell({ children }) {
   const { profile, church, signOut } = useAuth();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const brandColor = church?.brand_color || '#1B3A5C';
 
   return (
     <div className="min-h-screen bg-parchment md:flex">
-      <aside className="hidden md:flex md:w-64 md:flex-col h-screen overflow-y-auto bg-signal-gradient shrink-0">
+      <aside className="hidden md:flex md:w-64 md:flex-col h-screen overflow-y-auto shrink-0" style={{ background: `linear-gradient(180deg, ${brandColor} 0%, ${brandColor}dd 100%)` }}>
         <div className="px-5 py-6">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+              {church?.logo_url ? (
+                <img src={church.logo_url} alt={church.name || 'Church'} className="h-9 w-9 object-contain rounded-lg bg-white/10 p-1" />
+              ) : (
+                <img src="/logo-mark.png" alt="Gathrd" className="h-9 w-9" />
+              )}
               <span className="font-display font-bold text-white text-lg">Gathrd</span>
             </div>
             <NotificationBell />
@@ -101,9 +108,13 @@ export default function AppShell({ children }) {
         </div>
       </aside>
 
-      <div className="md:hidden flex items-center justify-between bg-signal-gradient px-4 py-3">
+      <div className="md:hidden flex items-center justify-between px-4 py-3" style={{ background: brandColor }}>
         <div className="flex items-center gap-2">
-          <img src="/logo-mark.png" alt="Gathrd" className="h-7 w-7" />
+          {church?.logo_url ? (
+            <img src={church.logo_url} alt={church.name || 'Church'} className="h-7 w-7 object-contain rounded-lg bg-white/10 p-0.5" />
+          ) : (
+            <img src="/logo-mark.png" alt="Gathrd" className="h-7 w-7" />
+          )}
           <span className="font-display font-bold text-white">Gathrd</span>
         </div>
         <div className="flex items-center gap-1">
@@ -117,7 +128,7 @@ export default function AppShell({ children }) {
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-void/50" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-signal-gradient flex flex-col overflow-y-auto">
+          <div className="absolute left-0 top-0 bottom-0 w-72 flex flex-col overflow-y-auto" style={{ background: `linear-gradient(180deg, ${brandColor} 0%, ${brandColor}dd 100%)` }}>
             <div className="flex items-start justify-between px-5 py-6">
               <div>
                 <div className="flex items-center gap-2">

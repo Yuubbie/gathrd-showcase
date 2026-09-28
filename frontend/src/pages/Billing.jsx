@@ -44,27 +44,66 @@ export default function Billing() {
     setError('');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('create-subscription', {
-        body: { planId },
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/initialize-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ planId }),
       });
 
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Request failed with status ${res.status}`);
 
-      setNotice(`Successfully subscribed to ${PLANS.find(p => p.id === planId)?.name}! Your subscription is now active.`);
-      // Reload church data
-      const { data: updated } = await supabase
-        .from('churches')
-        .select('plan, subscription_status, current_period_end, trial_started_at, trial_ends_at, paystack_plan_code, paystack_subscription_code')
-        .eq('id', profile.church_id)
-        .single();
-      setChurch(updated);
+      // Open Paystack Inline Checkout
+      const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+      const handler = window.PaystackPop;
+      if (handler) {
+        handler.setup({
+          key: paystackKey,
+          email: session.user.email,
+          amount: data.amount,
+          currency: 'NGN',
+          ref: data.reference,
+          callback: () => {
+            window.location.href = '/billing?subscription=success';
+          },
+          onClose: () => {
+            setSubscribing(false);
+          },
+        });
+        handler.openIframe();
+      } else {
+        // Fallback: redirect to Paystack
+        window.location.href = data.authorization_url;
+      }
     } catch (err) {
-      setError(err.message || 'Failed to create subscription. Please try again.');
+      setError(err.message || 'Failed to initialize payment. Please try again.');
+      setSubscribing(false);
     }
-
-    setSubscribing(false);
   }
+
+  // Check for success message in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscription') === 'success') {
+      setNotice('Successfully subscribed! Your subscription is now active.');
+      // Clean up URL
+      window.history.replaceState({}, '', '/billing');
+      // Reload church data
+      if (profile?.church_id) {
+        supabase
+          .from('churches')
+          .select('plan, subscription_status, current_period_end, trial_started_at, trial_ends_at, paystack_plan_code, paystack_subscription_code')
+          .eq('id', profile.church_id)
+          .single()
+          .then(({ data }) => setChurch(data));
+      }
+    }
+  }, [profile]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/40">Loading…</div>;
 

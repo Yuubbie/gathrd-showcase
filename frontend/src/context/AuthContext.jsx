@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
     if (data?.church_id) {
       const { data: churchData, error: churchError } = await supabase
         .from('churches')
-        .select('id, name')
+        .select('id, name, brand_color, logo_url')
         .eq('id', data.church_id)
         .single();
       if (requestIdRef.current !== thisRequestId) return;
@@ -127,10 +127,17 @@ export function AuthProvider({ children }) {
     return supabase.auth.signOut();
   }
 
+  // Apply brand color as CSS variable
+  useEffect(() => {
+    if (church?.brand_color) {
+      document.documentElement.style.setProperty('--brand-color', church.brand_color);
+    }
+  }, [church?.brand_color]);
+
   const value = {
     session,
     profile,          // includes .role — one of the 8 church_role values
-    church,           // { id, name } — the logged-in user's church
+    church,           // { id, name, brand_color, logo_url } — the logged-in user's church
     loading,
     authError,        // FIX: new — null when fine, a message when the session/profile genuinely failed
     signUp,

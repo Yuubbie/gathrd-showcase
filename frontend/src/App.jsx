@@ -24,6 +24,8 @@ import CellGroupDetail from './pages/CellGroupDetail';
 import FollowUpDashboard from './pages/FollowUpDashboard';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
+import Landing from './pages/Landing';
+import Demo from './pages/Demo';
 import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
 import InviteStaff from './pages/InviteStaff';
@@ -53,6 +55,8 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/demo" element={<Demo />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/check-email" element={<CheckEmail />} />

@@ -124,7 +124,7 @@ export default function Settings() {
               />
               <span className="text-sm text-ink/50">{form.brand_color}</span>
             </div>
-            <p className="text-xs text-ink/40 mt-1">Stored for future use — not yet applied throughout the app.</p>
+            <p className="text-xs text-ink/40 mt-1">Applied throughout the app — buttons, links, and accents use your brand color.</p>
           </div>
 
           <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
