@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import BackButton from '../components/BackButton';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 export default function Settings() {
   const { profile } = useAuth();
@@ -11,6 +13,7 @@ export default function Settings() {
   const [addingDept, setAddingDept] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -41,6 +44,46 @@ export default function Settings() {
     load();
   }, [profile]);
 
+  async function handleLogoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    setSuccess('');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${profile.church_id}/logo-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('church-logos')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      setUploading(false);
+      setError('Upload failed. Please try again.');
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('church-logos')
+      .getPublicUrl(fileName);
+
+    setForm((f) => ({ ...f, logo_url: publicUrl }));
+    setUploading(false);
+    setSuccess('Logo uploaded! Click "Save Branding" to apply.');
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setError('');
@@ -57,7 +100,7 @@ export default function Settings() {
       setError(error.message);
       return;
     }
-    setSuccess('Saved.');
+    setSuccess('Saved successfully!');
   }
 
   async function addDepartment(e) {
@@ -90,6 +133,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-lg mx-auto space-y-4">
+        <BackButton />
         <h1 className="font-display text-2xl font-bold text-ink">Church Settings</h1>
 
         {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
@@ -97,24 +141,48 @@ export default function Settings() {
 
         <form onSubmit={handleSave} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-4">
           <h2 className="text-sm font-semibold text-ink/80">Branding</h2>
+
+          {/* Logo Upload */}
           <div>
-            <label className="block text-sm font-medium text-ink/80 mb-1.5">Church logo URL</label>
-            <input
-              value={form.logo_url}
-              onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))}
-              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
-              placeholder="https://…"
-            />
-            <p className="text-xs text-ink/40 mt-1">
-              Use a direct image link. Google Drive "share" links won't work — try imgur.com: upload your image, right-click it, "Copy image address," paste that link here.
-            </p>
-            {form.logo_url && (
-              <img src={form.logo_url} alt="Church logo preview" className="mt-2 h-16 w-16 object-contain rounded-lg border border-ink/10" onError={(e) => { e.target.style.display = 'none'; }} />
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Church Logo</label>
+
+            {form.logo_url ? (
+              <div className="flex items-center gap-3 mb-3">
+                <img src={form.logo_url} alt="Church logo" className="h-16 w-16 object-contain rounded-lg border border-ink/10" />
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, logo_url: '' }))}
+                  className="text-xs text-rose hover:text-rose/80 flex items-center gap-1"
+                >
+                  <X size={14} /> Remove
+                </button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-ink/10 rounded-lg p-6 text-center mb-3">
+                <ImageIcon size={32} className="mx-auto text-ink/20 mb-2" />
+                <p className="text-sm text-ink/50">No logo uploaded</p>
+              </div>
             )}
+
+            <label className={`flex items-center justify-center gap-2 w-full border border-ink/10 rounded-lg px-4 py-3 text-sm font-medium cursor-pointer transition-colors ${uploading ? 'bg-ink/5 text-ink/40' : 'bg-parchment text-ink/70 hover:bg-ink/5'}`}>
+              <Upload size={18} />
+              {uploading ? 'Uploading…' : form.logo_url ? 'Change Logo' : 'Upload Logo'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
+            <p className="text-xs text-ink/40 mt-1">
+              Upload an image from your device. PNG, JPG up to 5MB.
+            </p>
           </div>
 
+          {/* Brand Color */}
           <div>
-            <label className="block text-sm font-medium text-ink/80 mb-1.5">Brand color</label>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Brand Color</label>
             <div className="flex items-center gap-3">
               <input
                 type="color"
@@ -124,14 +192,15 @@ export default function Settings() {
               />
               <span className="text-sm text-ink/50">{form.brand_color}</span>
             </div>
-            <p className="text-xs text-ink/40 mt-1">Applied throughout the app — buttons, links, and accents use your brand color.</p>
+            <p className="text-xs text-ink/40 mt-1">Applied throughout the app — sidebar, buttons, and accents use your brand color.</p>
           </div>
 
-          <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
+          <button type="submit" disabled={saving || uploading} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
             {saving ? 'Saving…' : 'Save Branding'}
           </button>
         </form>
 
+        {/* Departments */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
           <h2 className="text-sm font-semibold text-ink/80">Departments</h2>
           <form onSubmit={addDepartment} className="flex gap-2">
@@ -160,6 +229,7 @@ export default function Settings() {
           )}
         </div>
 
+        {/* More settings */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
           <p className="text-sm font-semibold text-ink/80">More settings</p>
           <Link to="/giving/settings" className="block text-sm text-signal font-semibold hover:text-signal-deep">Giving & Bank Account →</Link>
@@ -169,4 +239,3 @@ export default function Settings() {
     </div>
   );
 }
-

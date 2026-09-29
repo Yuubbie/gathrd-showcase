@@ -26,6 +26,10 @@ import Settings from './pages/Settings';
 import Billing from './pages/Billing';
 import Landing from './pages/Landing';
 import Demo from './pages/Demo';
+import SelfCheckIn from './pages/SelfCheckIn';
+import Branches from './pages/Branches';
+import BranchSignup from './pages/BranchSignup';
+import DistrictDashboard from './pages/DistrictDashboard';
 import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
 import InviteStaff from './pages/InviteStaff';
@@ -57,6 +61,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/demo" element={<Demo />} />
+          <Route path="/self-check-in" element={<SelfCheckIn />} />
+          <Route path="/branches" element={<Branches />} />
+          <Route path="/branch-signup/:token" element={<BranchSignup />} />
+          <Route path="/district-dashboard" element={<DistrictDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/check-email" element={<CheckEmail />} />

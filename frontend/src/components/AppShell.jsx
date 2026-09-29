@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
-  CreditCard,
+  CreditCard, Building2, BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -19,6 +19,8 @@ const NAV_ITEMS = [
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/follow-up', label: 'Follow-Up', icon: ListChecks, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/branches', label: 'My Branches', icon: Building2, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/district-dashboard', label: 'District Dashboard', icon: BarChart3, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/billing', label: 'Billing', icon: CreditCard, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
 ];
 

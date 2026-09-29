@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
   Bell, Settings, Smartphone, Shield, Clock, Church, UserCog,
   ClipboardList, CreditCard, LogIn, Palette, UserPlus2,
+  Building2, TrendingUp, Plus, TrendingDown,
 } from 'lucide-react';
 
 const DEMO_SCENES = [
@@ -77,6 +79,46 @@ const DEMO_SCENES = [
       { label: 'Cell Leader', value: 'Cell group', icon: UsersRound },
       { label: "Children's Teacher", value: 'Children', icon: Sparkles },
       { label: 'Member', value: 'Personal only', icon: Users },
+    ],
+  },
+  {
+    id: 'multi-branch',
+    title: 'Multi-Branch: District & Zone Management',
+    narration: 'Upgrade to District or Zone plan to manage multiple branches. District Pastors oversee branches; Zone Pastors oversee districts. All with custom terminology support.',
+    icon: Building2,
+    color: 'bg-signal',
+    content: [
+      { label: 'Custom Terminology', value: 'District, Region, Area, Circuit, State', icon: Settings },
+      { label: 'District Plan', value: '₦20k/mo — monitor unlimited branches', icon: Building2 },
+      { label: 'Zone Plan', value: '₦50k/mo — monitor unlimited districts', icon: Building2 },
+      { label: 'Branch Invites', value: 'District/Zone can invite branches', icon: UserPlus2 },
+      { label: 'Cross-Branch Reports', value: 'Giving, attendance, members', icon: TrendingUp },
+    ],
+  },
+  {
+    id: 'branches',
+    title: 'Manage Branches',
+    narration: 'District/Zone pastors can add branches, view real-time stats for each branch — members, giving, attendance — all in one dashboard.',
+    icon: Building2,
+    color: 'bg-gold',
+    content: [
+      { label: 'Add Branch', value: 'One click', icon: Plus },
+      { label: 'Branch Stats', value: 'Members, giving, attendance', icon: TrendingUp },
+      { label: 'Branch Login', value: 'Independent dashboards', icon: LogIn },
+      { label: 'Invite Branch Pastor', value: 'Email invite', icon: UserPlus2 },
+    ],
+  },
+  {
+    id: 'district-dashboard',
+    title: 'District/Zone Monitoring Dashboard',
+    narration: 'See consolidated metrics across all branches or districts — giving trends, attendance patterns, member growth. Drill down into any branch.',
+    icon: TrendingUp,
+    color: 'bg-sage',
+    content: [
+      { label: 'Consolidated Giving', value: 'All branches', icon: Wallet },
+      { label: 'Attendance Trends', value: 'Weekly/monthly', icon: ClipboardCheck },
+      { label: 'Member Growth', value: 'Per branch', icon: Users },
+      { label: 'Top Branches', value: 'Leaderboard', icon: TrendingUp },
     ],
   },
   {
@@ -173,7 +215,7 @@ const DEMO_SCENES = [
   {
     id: 'billing',
     title: 'Subscription & Billing',
-    narration: 'After the 60-day trial, the pastor picks a plan. Basic, Advanced, or Premium. Automatic billing via Paystack — cancel anytime.',
+    narration: 'After the 60-day trial, pick a plan: Regular (₦10k), Multi-Leader (₦15k), District (₦20k), Zone (₦50k). Automatic billing via Paystack — cancel anytime.',
     icon: Wallet,
     color: 'bg-signal',
     content: [
@@ -215,8 +257,8 @@ export default function Demo() {
 
   return (
     <div className="min-h-screen bg-void flex flex-col items-center justify-center px-4 py-10">
-      {/* Header */}
       <div className="text-center mb-8">
+        <BackButton to="/" label="Back to Home" />
         <h1 className="font-display text-3xl font-bold text-white">See Gathrd in Action</h1>
         <p className="text-white/50 mt-2">Follow the journey from signup to a fully managed church</p>
       </div>

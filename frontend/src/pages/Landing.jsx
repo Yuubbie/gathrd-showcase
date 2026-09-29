@@ -21,9 +21,10 @@ const FEATURES = [
 ];
 
 const PLANS = [
-  { id: 'basic', name: 'Basic', price: '₦10,000/month', desc: 'Essentials for small churches getting started', features: ['Up to 50 members', '1 admin', 'Giving & tithes', 'Email support'] },
-  { id: 'advanced', name: 'Advanced', price: '₦20,000/month', desc: 'For growing churches with multiple departments', features: ['Up to 200 members', '3 admins', 'All Basic features', 'Cell groups', 'Priority support'] },
-  { id: 'premium', name: 'Premium', price: '₦50,000/month', desc: 'Full power for established churches and networks', features: ['Unlimited members', 'Unlimited admins', 'All Advanced features', 'Multi-branch', 'Dedicated support'] },
+  { id: 'regular', name: 'Regular', price: '₦10,000/month', desc: 'For small churches getting started', features: ['Up to 200 members', '1 Senior Pastor', 'All core features', 'Giving & tithes', 'Email support'] },
+  { id: 'multi-leader', name: 'Multi-Leader', price: '₦15,000/month', desc: 'For churches with multiple leaders', features: ['Up to 5,000 members', '1 Senior Pastor + 2 Pastors', 'All Regular features', 'Priority support'] },
+  { id: 'district', name: 'District', price: '₦20,000/month', desc: 'For districts monitoring multiple branches', features: ['Up to 5,000 members', '1 Senior Pastor + 2 Pastors', 'Monitor unlimited branches', 'Branch management', 'Priority support'] },
+  { id: 'zone', name: 'Zone', price: '₦50,000/month', desc: 'For zones monitoring multiple districts', features: ['Up to 10,000 members', '1 Senior Pastor + 2 Pastors', 'Monitor unlimited districts', 'District management', 'Dedicated support'] },
 ];
 
 export default function Landing() {
@@ -36,7 +37,8 @@ export default function Landing() {
             <img src="/logo-mark.png" alt="Gathrd" className="h-8 w-8" />
             <span className="font-display font-bold text-white text-xl">Gathrd</span>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-3">
             <Link to="/demo" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
               Watch Demo
             </Link>
@@ -45,6 +47,18 @@ export default function Landing() {
             </Link>
             <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
               Start Free Trial
+            </Link>
+          </div>
+          {/* Mobile nav */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link to="/demo" className="text-white/80 hover:text-white text-xs font-medium px-2 py-1.5">
+              Demo
+            </Link>
+            <Link to="/login" className="text-white/80 hover:text-white text-xs font-medium px-2 py-1.5">
+              Sign In
+            </Link>
+            <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+              Free Trial
             </Link>
           </div>
         </div>

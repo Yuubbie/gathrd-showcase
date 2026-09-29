@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
     if (data?.church_id) {
       const { data: churchData, error: churchError } = await supabase
         .from('churches')
-        .select('id, name, brand_color, logo_url')
+        .select('id, name, brand_color, logo_url, hierarchy_level, terminology, max_members, plan, subscription_status')
         .eq('id', data.church_id)
         .single();
       if (requestIdRef.current !== thisRequestId) return;

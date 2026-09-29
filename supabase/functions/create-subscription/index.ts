@@ -1,8 +1,6 @@
 // supabase/functions/create-subscription/index.ts
 //
 // Creates a Paystack subscription for a church.
-// Called when a user selects a plan after trial (or immediately).
-//
 // Deploy with: supabase functions deploy create-subscription
 // Requires secret: PAYSTACK_SECRET_KEY
 
@@ -22,29 +20,34 @@ function json(body: unknown, status = 200) {
 }
 
 const PLAN_PRICING: Record<string, number> = {
-  basic: 10000,
-  advanced: 20000,
-  premium: 50000,
+  regular: 10000,
+  'multi-leader': 15000,
+  district: 20000,
+  zone: 50000,
+};
+
+const PLAN_HIERARCHY: Record<string, { level: string; defaultTerminology: string; maxMembers: number }> = {
+  regular:       { level: 'branch',  defaultTerminology: 'District', maxMembers: 200 },
+  'multi-leader': { level: 'branch',  defaultTerminology: 'District', maxMembers: 5000 },
+  district:      { level: 'district', defaultTerminology: 'District', maxMembers: 5000 },
+  zone:          { level: 'zone',     defaultTerminology: 'District', maxMembers: 10000 },
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return json({ error: "Missing authorization" }, 401);
-    }
+    if (!authHeader) return json({ error: "Missing authorization" }, 401);
 
     const { planId } = await req.json();
     if (!planId || !PLAN_PRICING[planId]) {
-      return json({ error: "Invalid plan. Must be: basic, advanced, or premium" }, 400);
+      return json({ error: `Invalid plan: ${planId}. Must be regular, multi-leader, district, or zone` }, 400);
     }
 
     const supabaseUser = createClient(
@@ -52,51 +55,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-
     const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
-    if (userErr || !user) {
-      return json({ error: "Not authenticated" }, 401);
-    }
+    if (userErr || !user) return json({ error: `Auth failed: ${userErr?.message}` }, 401);
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    // Get church and profile info
     const { data: profile, error: profileErr } = await supabaseAdmin
-      .from("profiles")
-      .select("church_id, role, full_name, phone")
-      .eq("id", user.id)
-      .single();
-
-    if (profileErr || !profile) {
-      return json({ error: "Profile not found" }, 403);
-    }
-
-    // Only pastors/admins can subscribe
+      .from("profiles").select("church_id, role, full_name, phone").eq("id", user.id).single();
+    if (profileErr || !profile) return json({ error: `Profile error: ${profileErr?.message}` }, 403);
     if (!["senior_pastor", "assistant_pastor", "church_admin"].includes(profile.role)) {
-      return json({ error: "Only pastors or church admins can manage billing" }, 403);
+      return json({ error: `Role not allowed: ${profile.role}` }, 403);
     }
 
-    // Check if there's an existing Paystack plan code for this tier
     const { data: existingPlan } = await supabaseAdmin
-      .from("paystack_plans")
-      .select("plan_code")
-      .eq("plan_id", planId)
-      .single();
+      .from("paystack_plans").select("plan_code").eq("plan_id", planId).single();
+    if (!existingPlan) return json({ error: `No plan found for ${planId}` }, 400);
 
-    if (!existingPlan) {
-      return json({ error: "Paystack plan not configured. Please contact support." }, 400);
-    }
-
-    // Create or get customer on Paystack
     const customerRes = await fetch("https://api.paystack.co/customer", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         email: user.email,
         first_name: profile.full_name?.split(" ")[0] || "",
@@ -104,65 +83,60 @@ Deno.serve(async (req) => {
         phone: profile.phone || "",
       }),
     });
-
     const customerData = await customerRes.json();
+    let customerCode: string;
     if (!customerRes.ok || !customerData.status) {
-      return json({ error: customerData.message || "Failed to create customer" }, 400);
+      if (customerData.message?.includes("already exists")) {
+        const listRes = await fetch(`https://api.paystack.co/customer?email=${encodeURIComponent(user.email)}`, {
+          headers: { Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}` },
+        });
+        const listData = await listRes.json();
+        if (listData.status && listData.data?.length > 0) {
+          customerCode = listData.data[0].customer_code;
+        } else {
+          return json({ error: `Customer lookup failed: ${JSON.stringify(listData)}` }, 400);
+        }
+      } else {
+        return json({ error: `Customer creation failed: ${customerData.message || JSON.stringify(customerData)}` }, 400);
+      }
+    } else {
+      customerCode = customerData.data.customer_code;
     }
 
-    const customerCode = customerData.data.customer_code;
-
-    // Create subscription
     const subRes = await fetch("https://api.paystack.co/subscription", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customer: customerCode,
-        plan: existingPlan.plan_code,
-      }),
+      headers: { Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ customer: customerCode, plan: existingPlan.plan_code }),
     });
-
     const subData = await subRes.json();
     if (!subRes.ok || !subData.status) {
-      return json({ error: subData.message || "Failed to create subscription" }, 400);
+      return json({ error: `Subscription failed: ${subData.message || JSON.stringify(subData)}` }, 400);
     }
 
-    // Update church record
-    await supabaseAdmin
-      .from("churches")
-      .update({
-        plan: planId,
-        paystack_plan_code: existingPlan.plan_code,
-        paystack_subscription_code: subData.data.subscription_code,
-        paystack_email_token: subData.data.email_token,
-        subscription_status: "active",
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .eq("id", profile.church_id);
+    // Get plan hierarchy info
+    const planInfo = PLAN_HIERARCHY[planId];
 
-    // Log billing event
-    await supabaseAdmin
-      .from("billing_events")
-      .insert({
-        church_id: profile.church_id,
-        event_type: "subscription_created",
-        description: `Subscription created for ${planId} plan`,
-        metadata: {
-          plan: planId,
-          subscription_code: subData.data.subscription_code,
-          customer_code: customerCode,
-        },
-      });
+    await supabaseAdmin.from("churches").update({
+      plan: planId,
+      paystack_plan_code: existingPlan.plan_code,
+      paystack_subscription_code: subData.data.subscription_code,
+      paystack_email_token: subData.data.email_token,
+      subscription_status: "active",
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      hierarchy_level: planInfo.level,
+      terminology: planInfo.defaultTerminology,
+      max_members: planInfo.maxMembers,
+    }).eq("id", profile.church_id);
 
-    return json({
-      success: true,
-      subscription_code: subData.data.subscription_code,
-      status: subData.data.status,
+    await supabaseAdmin.from("billing_events").insert({
+      church_id: profile.church_id,
+      event_type: "subscription_created",
+      description: `Subscription created for ${planId}`,
+      metadata: { plan: planId, subscription_code: subData.data.subscription_code, customer_code: customerCode },
     });
+
+    return json({ success: true, subscription_code: subData.data.subscription_code, status: subData.data.status });
   } catch (err) {
-    return json({ error: String(err) }, 500);
+    return json({ error: `Unexpected: ${String(err)}` }, 500);
   }
 });

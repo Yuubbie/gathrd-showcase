@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import BackButton from '../components/BackButton';
 
 const PLANS = [
-  { id: 'basic', name: 'Basic', price: '₦10,000/month', desc: 'Essentials for small churches getting started' },
-  { id: 'advanced', name: 'Advanced', price: '₦20,000/month', desc: 'For growing churches with multiple departments' },
-  { id: 'premium', name: 'Premium', price: '₦50,000/month', desc: 'Full power for established churches and networks' },
+  { id: 'regular', name: 'Regular', price: '₦10,000/month', desc: 'Up to 200 members, 1 Senior Pastor' },
+  { id: 'multi-leader', name: 'Multi-Leader', price: '₦15,000/month', desc: 'Up to 5,000 members, 1 Senior Pastor + 2 Pastors' },
+  { id: 'district', name: 'District', price: '₦20,000/month', desc: 'Up to 5,000 members, monitor unlimited branches' },
+  { id: 'zone', name: 'Zone', price: '₦50,000/month', desc: 'Up to 10,000 members, monitor unlimited districts' },
 ];
 
 const STATUS_LABELS = {
@@ -118,6 +120,7 @@ export default function Billing() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
+        <BackButton />
         <h1 className="font-display text-2xl font-bold text-ink">Billing & Plan</h1>
 
         {/* Trial Banner */}
@@ -174,7 +177,7 @@ export default function Billing() {
         </div>
 
         {/* Plans */}
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {PLANS.map((p) => {
             const isCurrentPlan = church?.plan === p.id && (isActive || isGrace);
             return (

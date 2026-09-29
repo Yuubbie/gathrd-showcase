@@ -20,9 +20,10 @@ function json(body: unknown, status = 200) {
 }
 
 const PLAN_PRICING: Record<string, { amount: number; name: string; interval: string }> = {
-  basic:    { amount: 10000 * 100, name: "Basic",    interval: "monthly" },  // ₦10,000 (kobo)
-  advanced: { amount: 20000 * 100, name: "Advanced", interval: "monthly" },  // ₦20,000 (kobo)
-  premium:  { amount: 50000 * 100, name: "Premium",  interval: "monthly" },  // ₦50,000 (kobo)
+  regular:       { amount: 10000 * 100, name: "Regular",       interval: "monthly" },  // ₦10,000 (kobo)
+  'multi-leader': { amount: 15000 * 100, name: "Multi-Leader",  interval: "monthly" },  // ₦15,000 (kobo)
+  district:      { amount: 20000 * 100, name: "District",      interval: "monthly" },  // ₦20,000 (kobo)
+  zone:          { amount: 50000 * 100, name: "Zone",          interval: "monthly" },  // ₦50,000 (kobo)
 };
 
 Deno.serve(async (req) => {
