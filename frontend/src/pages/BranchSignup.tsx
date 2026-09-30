@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { Eye, EyeOff, Mail, Lock, User, Church, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Users, UserPlus, Wallet, Church, ArrowRight, AlertCircle } from 'lucide-react';
+
+type Step = 'verify' | 'signup' | 'onboard';
 
 export default function BranchSignup() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  
+
   const [invitation, setInvitation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<'verify' | 'signup' | 'onboard' | 'complete'>('verify');
-  
+  const [step, setStep] = useState<Step>('verify');
+  const [loadError, setLoadError] = useState('');
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -23,7 +26,6 @@ export default function BranchSignup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (token) {
@@ -31,37 +33,38 @@ export default function BranchSignup() {
     } else {
       navigate('/login');
     }
-  }, [token, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function verifyToken() {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('branch_invitations')
         .select('*')
         .eq('token', token)
         .single();
 
-      if (error || !tokenData) {
+      if (fetchError || !data) {
         throw new Error('Invalid or expired invitation token');
       }
 
-      if (invitation.status !== 'pending') {
-        throw new Error(invitation.status === 'accepted' 
-          ? 'This invitation has already been accepted' 
-          : 'This invitation has expired or been revoked');
+      if (data.status !== 'pending') {
+        throw new Error(
+          data.status === 'accepted'
+            ? 'This invitation has already been accepted'
+            : 'This invitation has expired or been revoked'
+        );
       }
 
-      if (new Date(invitation.expires_at) < new Date()) {
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
         throw new Error('This invitation has expired');
       }
 
-      setInvitation(tokenData);
+      setInvitation(data);
+      setFormData((prev) => ({ ...prev, email: data.email || '' }));
       setStep('signup');
-      
-      // Pre-fill email from invitation
-      setFormData(prev => ({ ...prev, email: invitation.email }));
     } catch (err: any) {
-      setError(err.message);
+      setLoadError(err.message || 'Invalid invitation');
       setTimeout(() => navigate('/login'), 3000);
     } finally {
       setLoading(false);
@@ -74,6 +77,7 @@ export default function BranchSignup() {
     setSubmitting(true);
 
     try {
+      if (!invitation) throw new Error('Invitation not loaded. Please reload the page.');
       if (formData.password !== formData.confirmPassword) {
         throw new Error('Passwords do not match');
       }
@@ -81,102 +85,105 @@ export default function BranchSignup() {
         throw new Error('Password must be at least 8 characters');
       }
 
-      // Create auth user
-      const signUpResult = await supabase.auth.signUp({
+      const branchName =
+        formData.churchName.trim() || `Branch - ${formData.email.split('@')[0]}`;
+
+      // 1. Create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             full_name: formData.fullName,
-            church_name: formData.churchName,
+            church_name: branchName,
             role: 'senior_pastor',
           },
         },
       });
 
-      const { data: authData, error: authError } = signUpResult;
-
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create user');
+      if (!authData.session) {
+        throw new Error(
+          'Your account was created, but email confirmation is required. Please confirm your email, then log in.'
+        );
+      }
 
-      // Update invitation status
-      await supabase
-        .from('branch_invitations')
-        .update({ 
-          status: 'accepted', 
-          accepted_at: new Date().toISOString(),
-          accepted_by: (await supabase.auth.getUser()).data.user?.id 
-        })
-        .eq('token', token);
+      const userId = authData.user.id;
 
-      // Create branch profile
+      // 2. If the database already created a church for this user, reuse it
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('church_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const branchFields = {
+        name: branchName,
+        parent_church_id: invitation.parent_church_id,
+        hierarchy_level: 'branch',
+        plan: 'regular',
+        subscription_status: 'trialing',
+        terminology: 'District',
+        max_members: 200,
+      };
+
+      let branchId: string | null = existingProfile?.church_id ?? null;
+
+      if (branchId) {
+        const { error: updateChurchError } = await supabase
+          .from('churches')
+          .update(branchFields)
+          .eq('id', branchId);
+        if (updateChurchError) throw updateChurchError;
+      } else {
+        const { data: newBranch, error: branchError } = await supabase
+          .from('churches')
+          .insert(branchFields)
+          .select()
+          .single();
+        if (branchError) throw branchError;
+        branchId = newBranch.id;
+      }
+
+      // 3. Point the profile at the branch
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: formData.fullName,
           phone: formData.phone,
           role: 'senior_pastor',
-          church_id: branchId, // This will be set after branch creation
+          church_id: branchId,
         })
-        .eq('id', authData.user.id);
+        .eq('id', userId);
 
       if (profileError) throw profileError;
 
-      // Create branch church record
-      const branchName = formData.churchName || `Branch - ${formData.email.split('@')[0]}`;
-      const { data: newBranch, error: branchError } = await supabase
-        .from('churches')
-        .insert({
-          name: formData.churchName || `Branch - ${formData.email.split('@')[0]}`,
-          parent_church_id: invitation.parent_church_id,
-          hierarchy_level: 'branch',
-          plan: 'regular',
-          subscription_status: 'trialing',
-          terminology: 'District',
-          max_members: 200,
-        })
-        .select()
-        .single();
-
-      if (branchError) throw branchError;
-
-      // Update profile with branch church_id
-      await supabase
-        .from('profiles')
-        .update({ church_id: branch.id })
-        .eq('id', authData.user.id);
-
-      // Update invitation status
-      await supabase
+      // 4. Mark the invitation as used
+      const { error: inviteError } = await supabase
         .from('branch_invitations')
-        .update({ 
-          status: 'accepted', 
+        .update({
+          status: 'accepted',
           accepted_at: new Date().toISOString(),
-          accepted_by: (await supabase.auth.getUser()).data.user?.id 
+          accepted_by: userId,
         })
         .eq('token', token);
 
+      if (inviteError) {
+        console.error('Could not mark invitation as accepted:', inviteError);
+      }
+
       setStep('onboard');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleOnboard(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-
-    try {
-      // TODO: Handle onboarding steps (add staff, members, giving setup, etc.)
-      setStep('complete');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
+  // Full reload so the app picks up the new branch and profile
+  function goTo(path: string) {
+    window.location.assign(path);
   }
 
   if (loading) {
@@ -187,13 +194,13 @@ export default function BranchSignup() {
     );
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
         <div className="max-w-md w-full bg-white rounded-2xl border border-ink/5 p-8 text-center">
           <AlertCircle size={48} className="mx-auto text-rose mb-4" />
           <h2 className="font-display text-xl font-bold text-ink mb-2">Invalid Invitation</h2>
-          <p className="text-ink/60 mb-6">{error}</p>
+          <p className="text-ink/60 mb-6">{loadError}</p>
           <button
             onClick={() => navigate('/login')}
             className="text-signal hover:text-signal-deep font-semibold"
@@ -205,7 +212,8 @@ export default function BranchSignup() {
     );
   }
 
-  const inputStyle = "w-full border border-ink/10 rounded-lg px-4 py-3 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors";
+  const inputStyle =
+    'w-full border border-ink/10 rounded-lg px-4 py-3 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors';
 
   if (step === 'signup') {
     return (
@@ -345,7 +353,9 @@ export default function BranchSignup() {
             </button>
 
             <p className="text-sm text-center text-ink/50">
-              By continuing, you agree to our <a href="#" className="text-signal hover:text-signal-deep">Terms of Service</a> and <a href="#" className="text-signal hover:text-signal-deep">Privacy Policy</a>
+              By continuing, you agree to our{' '}
+              <a href="#" className="text-signal hover:text-signal-deep">Terms of Service</a> and{' '}
+              <a href="#" className="text-signal hover:text-signal-deep">Privacy Policy</a>
             </p>
           </form>
         </div>
@@ -368,34 +378,34 @@ export default function BranchSignup() {
               title="Add Staff & Leaders"
               description="Invite assistant pastors, admins, and department heads"
               actionText="Add Staff"
-              onClick={() => navigate('/branches')} // Will navigate to branch staff page
+              onClick={() => goTo('/branches')}
             />
             <OnboardingCard
               icon={UserPlus}
               title="Add Members"
               description="Import or add congregation members to your branch"
               actionText="Add Members"
-              onClick={() => navigate('/members')}
+              onClick={() => goTo('/members')}
             />
             <OnboardingCard
               icon={Wallet}
               title="Set Up Giving"
               description="Configure tithes, offerings, and payment methods"
               actionText="Set Up Giving"
-              onClick={() => navigate('/giving/settings')}
+              onClick={() => goTo('/giving/settings')}
             />
             <OnboardingCard
               icon={Church}
               title="Customize Your Branch"
               description="Upload logo, set brand colors, and customize settings"
               actionText="Customize"
-              onClick={() => navigate('/settings')}
+              onClick={() => goTo('/settings')}
             />
           </div>
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => goTo('/dashboard')}
               className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors"
             >
               Go to Dashboard
@@ -409,8 +419,14 @@ export default function BranchSignup() {
   return null;
 }
 
-function OnboardingCard({ icon: Icon, title, description, actionText, onClick }: {
-  icon: React.ComponentType<{ size?: number }>;
+function OnboardingCard({
+  icon: Icon,
+  title,
+  description,
+  actionText,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
   actionText: string;
@@ -419,7 +435,7 @@ function OnboardingCard({ icon: Icon, title, description, actionText, onClick }:
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-2xl border border-ink/5 p-6 hover:border-signal/30 hover:bg-signal/5 transition-all text-left"
+      className="w-full bg-white rounded-2xl border border-ink/5 p-6 hover:border-signal/30 hover:bg-signal/5 transition-all text-left"
     >
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-xl bg-signal/10 flex items-center justify-center shrink-0">
@@ -436,4 +452,3 @@ function OnboardingCard({ icon: Icon, title, description, actionText, onClick }:
     </button>
   );
 }
-
