@@ -82,13 +82,10 @@ export default function Branches() {
 
   async function sendInvitationEmail() {
     try {
-      console.log('sendInvitationEmail called');
-      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-      console.log('RESEND_API_KEY present:', !!import.meta.env.VITE_RESEND_API_KEY);
-      if (!resendApiKey) {
-        console.warn('VITE_RESEND_API_KEY not set');
-        return false;
-      }
+      console.log('Sending invitation email via Supabase Edge Function...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
       const inviterName = profile?.full_name || 'Pastor';
       const parentChurchName = church?.name || 'Your Church';
@@ -146,29 +143,29 @@ export default function Branches() {
         </html>
       `;
 
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Gathrd <onboarding@resend.dev>',
-          to: [inviteEmail],
-          subject: `You're invited to join ${church?.name} on Gathrd`,
-          html: emailHtml,
-        }),
-      });
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!authSession) throw new Error('Not authenticated');
 
-      console.log('Resend response status:', response.status);
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Resend API error:', response.status, error);
-        return false;
-      }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authSession.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            to: inviteEmail,
+            subject: `You're invited to join ${church?.name} on Gathrd`,
+            html: emailHtml,
+          }),
+        }
+      );
 
-      console.log('Email sent successfully!');
-      return true;
+      const data = await response.json();
+      console.log('Email send result:', data);
+      return response.ok && data.success;
     } catch (err) {
       console.error('Email send failed:', err);
       return false;

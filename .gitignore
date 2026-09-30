@@ -1,2 +1,4 @@
 supabase/.temp/
 frontend/supabase/
+.vercel
+.env*
