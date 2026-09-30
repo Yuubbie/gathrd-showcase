@@ -147,13 +147,11 @@ export default function Branches() {
       if (!authSession) throw new Error('Not authenticated');
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
+        '/api/send-email',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authSession.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
           body: JSON.stringify({
             to: inviteEmail,

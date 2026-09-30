@@ -7,6 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Credentials": "true",
 };
 
 function json(body: unknown, status = 200) {
@@ -17,8 +18,17 @@ function json(body: unknown, status = 200) {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { 
+      headers: {
+        ...corsHeaders,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Credentials": "true",
+      }
+    });
   }
 
   if (req.method !== "POST") {
@@ -68,4 +78,5 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Credentials": "true",
 };
