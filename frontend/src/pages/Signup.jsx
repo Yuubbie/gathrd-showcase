@@ -4,6 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -17,11 +26,16 @@ export default function Signup() {
 
   async function sendWelcomeEmail({ to, fullName, churchName }) {
     try {
-      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-      if (!resendApiKey) {
-        console.warn('VITE_RESEND_API_KEY not set');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('Welcome email skipped: no active session after signup (email confirmation may be required).');
         return false;
       }
+
+      const safeName = escapeHtml(fullName);
+      const safeChurch = escapeHtml(churchName);
+      const year = new Date().getFullYear();
+      const loginUrl = `${window.location.origin}/login`;
 
       const emailHtml = `
         <!DOCTYPE html>
@@ -35,36 +49,36 @@ export default function Signup() {
             <h1 style="color: #fbbf24; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Gathrd!</h1>
             <p style="color: #d1d5db; margin-top: 8px; font-size: 16px;">Your church management journey starts now</p>
           </div>
-          
+
           <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Hello ${fullName},</p>
+            <p style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Hello ${safeName},</p>
             <p style="color: #4b5563; margin-bottom: 24px;">
-              Welcome to Gathrd! Your church <strong>${churchName}</strong> is now set up and ready to go.
+              Welcome to Gathrd! Your church <strong>${safeChurch}</strong> is now set up and ready to go.
             </p>
-            
+
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${window.location.origin}/login" style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fbbf24; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fbbf24; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
                 Log In to Your Dashboard
               </a>
             </div>
-            
+
             <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 24px 0;">
               <p style="margin: 0; color: #92400e; font-size: 14px;">
                 <strong>Next steps:</strong><br>
-                • Log in to your dashboard<br>
-                • Invite your team members<br>
-                • Add your congregation members<br>
-                • Set up giving and tithes
+                &bull; Log in to your dashboard<br>
+                &bull; Invite your team members<br>
+                &bull; Add your congregation members<br>
+                &bull; Set up giving and tithes
               </p>
             </div>
-            
+
             <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
-              If you have any questions, reply to this email — we're here to help!
+              If you have any questions, reply to this email &mdash; we're here to help!
             </p>
-            
+
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
             <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              © 2024 Gathrd. All rights reserved.<br>
+              &copy; ${year} Gathrd. All rights reserved.<br>
               Church Management Platform for Nigerian Churches
             </p>
           </div>
@@ -72,29 +86,27 @@ export default function Signup() {
         </html>
       `;
 
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      if (!authSession) throw new Error('Not authenticated');
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          to,
+          subject: `Welcome to Gathrd, ${fullName}!`,
+          html: emailHtml,
+        }),
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authSession.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            to,
-            subject: `Welcome to Gathrd, ${fullName}!`,
-            html: emailHtml,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log('Welcome email send result:', data);
-      return response.ok && data.success;
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.warn('send-email returned a non-JSON response');
+      }
+      console.log('Welcome email send result:', response.status, data);
+      return response.ok && !(data && data.error);
     } catch (err) {
       console.error('Welcome email send failed:', err);
       return false;
@@ -119,7 +131,7 @@ export default function Signup() {
       return;
     }
 
-    // Send welcome email via Resend
+    // Send welcome email via the Vercel API route (never blocks signup if it fails)
     await sendWelcomeEmail({ to: email, fullName, churchName });
 
     navigate('/check-email');
