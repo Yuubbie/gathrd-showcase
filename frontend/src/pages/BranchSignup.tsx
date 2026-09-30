@@ -88,7 +88,7 @@ export default function BranchSignup() {
       const branchName =
         formData.churchName.trim() || `Branch - ${formData.email.split('@')[0]}`;
 
-      // 1. Create the auth user
+      // 1. Create the login (or sign in if an earlier attempt already created it)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -101,77 +101,44 @@ export default function BranchSignup() {
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
-      if (!authData.session) {
+      let hasSession = Boolean(authData?.session);
+
+      if (authError) {
+        if (/already registered/i.test(authError.message)) {
+          const { data: signInData, error: signInError } =
+            await supabase.auth.signInWithPassword({
+              email: formData.email,
+              password: formData.password,
+            });
+          if (signInError || !signInData.session) {
+            throw new Error(
+              'An account with this email already exists. Enter the same password you chose earlier, or log in instead.'
+            );
+          }
+          hasSession = true;
+        } else {
+          throw authError;
+        }
+      } else if (!authData.user) {
+        throw new Error('Failed to create user');
+      }
+
+      if (!hasSession) {
         throw new Error(
           'Your account was created, but email confirmation is required. Please confirm your email, then log in.'
         );
       }
 
-      const userId = authData.user.id;
+      // 2. One safe database call creates the branch, links the profile
+      //    and marks the invitation as accepted.
+      const { error: rpcError } = await supabase.rpc('complete_branch_signup', {
+        p_token: token,
+        p_church_name: branchName,
+        p_full_name: formData.fullName,
+        p_phone: formData.phone,
+      });
 
-      // 2. If the database already created a church for this user, reuse it
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('church_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const branchFields = {
-        name: branchName,
-        parent_church_id: invitation.parent_church_id,
-        hierarchy_level: 'branch',
-        plan: 'regular',
-        subscription_status: 'trialing',
-        terminology: 'District',
-        max_members: 200,
-      };
-
-      let branchId: string | null = existingProfile?.church_id ?? null;
-
-      if (branchId) {
-        const { error: updateChurchError } = await supabase
-          .from('churches')
-          .update(branchFields)
-          .eq('id', branchId);
-        if (updateChurchError) throw updateChurchError;
-      } else {
-        const { data: newBranch, error: branchError } = await supabase
-          .from('churches')
-          .insert(branchFields)
-          .select()
-          .single();
-        if (branchError) throw branchError;
-        branchId = newBranch.id;
-      }
-
-      // 3. Point the profile at the branch
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.fullName,
-          phone: formData.phone,
-          role: 'senior_pastor',
-          church_id: branchId,
-        })
-        .eq('id', userId);
-
-      if (profileError) throw profileError;
-
-      // 4. Mark the invitation as used
-      const { error: inviteError } = await supabase
-        .from('branch_invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-          accepted_by: userId,
-        })
-        .eq('token', token);
-
-      if (inviteError) {
-        console.error('Could not mark invitation as accepted:', inviteError);
-      }
+      if (rpcError) throw new Error(rpcError.message);
 
       setStep('onboard');
     } catch (err: any) {
