@@ -9,6 +9,15 @@ import {
 } from 'lucide-react';
 import { createBranchInvitation, getBranchInvitations, revokeInvitation } from '../lib/branchInviteFlow';
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export default function Branches() {
   const { profile, church } = useAuth();
   const [branches, setBranches] = useState([]);
@@ -58,17 +67,17 @@ export default function Branches() {
       if (!result.success) throw new Error(result.error);
 
       const signupUrl = `${window.location.origin}/branch-signup/${result.invitation.token}`;
-      
+
       console.log('Sending invitation email...', { signupUrl });
-      const emailSent = await sendInvitationEmail();
+      const emailSent = await sendInvitationEmail(inviteEmail.trim(), signupUrl);
       console.log('Email sent result:', emailSent);
-      
+
       setInviting(false);
       if (emailSent) {
         setInviteSuccess('Invitation sent! Email sent to branch pastor.');
       } else {
         setInviteSuccess(
-          `Invitation created! Copy this link and share it with the branch pastor:\n\n${window.location.origin}/branch-signup/${result.invitation.token}\n\n(Email integration coming soon - for now, copy this link and share via email/WhatsApp)`
+          `Invitation created, but the email could not be sent. Copy this link and share it with the branch pastor:\n\n${signupUrl}`
         );
       }
       setInviteEmail('');
@@ -80,18 +89,16 @@ export default function Branches() {
     }
   }
 
-  async function sendInvitationEmail() {
+  async function sendInvitationEmail(toEmail, signupUrl) {
     try {
-      console.log('Sending invitation email via Supabase Edge Function...');
-      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const inviterName = profile?.full_name || 'Pastor';
-      const parentChurchName = church?.name || 'Your Church';
-      const hierarchyLevel = church?.hierarchy_level || 'District';
-      const signupUrl = `${window.location.origin}/branch-signup/${result.invitation.token}`;
+      const inviterName = escapeHtml(profile?.full_name || 'Pastor');
+      const parentChurchName = escapeHtml(church?.name || 'Your Church');
+      const hierarchyLevel = escapeHtml(church?.hierarchy_level || 'District');
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+      const year = new Date().getFullYear();
 
       const emailHtml = `
         <!DOCTYPE html>
@@ -103,39 +110,39 @@ export default function Branches() {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
             <h1 style="color: #fbbf24; margin: 0; font-size: 28px; font-weight: 700;">You're Invited</h1>
-            <p style="color: #d1d5db; margin-top: 8px; font-size: 16px;">To join ${church?.name} on Gathrd</p>
+            <p style="color: #d1d5db; margin-top: 8px; font-size: 16px;">To join ${parentChurchName} on Gathrd</p>
           </div>
-          
+
           <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Hello,</p>
             <p style="color: #4b5563; margin-bottom: 24px;">
-              <strong>${profile?.full_name || 'Pastor'}</strong> has invited you to set up a <strong>${church?.hierarchy_level || 'District'}</strong> branch 
-              under <strong>${church?.name || 'Your Church'}</strong> on Gathrd.
+              <strong>${inviterName}</strong> has invited you to set up a <strong>${hierarchyLevel}</strong> branch
+              under <strong>${parentChurchName}</strong> on Gathrd.
             </p>
-            
+
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${signupUrl}" 
-                 style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); 
-                        color: #fbbf24; padding: 16px 32px; text-decoration: none; 
+              <a href="${signupUrl}"
+                 style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+                        color: #fbbf24; padding: 16px 32px; text-decoration: none;
                         border-radius: 8px; font-weight: 600; font-size: 16px;">
                 Set Up Your Branch
               </a>
             </div>
-            
+
             <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 24px 0;">
               <p style="margin: 0; color: #92400e; font-size: 14px;">
-                <strong>⏰ This invitation expires on ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</strong><br>
+                <strong>This invitation expires on ${expiresAt}.</strong><br>
                 Please complete your setup before then.
               </p>
             </div>
-            
+
             <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
               If you didn't expect this invitation, you can safely ignore this email.
             </p>
-            
+
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
             <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              © 2024 Gathrd. All rights reserved.<br>
+              &copy; ${year} Gathrd. All rights reserved.<br>
               Church Management Platform for Nigerian Churches
             </p>
           </div>
@@ -143,27 +150,27 @@ export default function Branches() {
         </html>
       `;
 
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      if (!authSession) throw new Error('Not authenticated');
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          to: toEmail,
+          subject: `You're invited to join ${church?.name || 'a church'} on Gathrd`,
+          html: emailHtml,
+        }),
+      });
 
-      const response = await fetch(
-        '/api/send-email',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: inviteEmail,
-            subject: `You're invited to join ${church?.name} on Gathrd`,
-            html: emailHtml,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log('Email send result:', data);
-      return response.ok && data.success;
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.warn('send-email returned a non-JSON response');
+      }
+      console.log('Email send result:', response.status, data);
+      return response.ok && !(data && data.error);
     } catch (err) {
       console.error('Email send failed:', err);
       return false;
@@ -249,6 +256,13 @@ export default function Branches() {
           </div>
         )}
 
+        {/* Success / fallback message stays visible after the form closes */}
+        {!showInvite && inviteSuccess && (
+          <div className="bg-white rounded-2xl border border-ink/5 shadow p-4">
+            <p className="text-sm text-sage whitespace-pre-line break-words">{inviteSuccess}</p>
+          </div>
+        )}
+
         {/* Branch List */}
         {loading ? (
           <div className="text-center text-ink/40 py-10">Loading branches…</div>
@@ -260,7 +274,12 @@ export default function Branches() {
         ) : (
           <div className="space-y-3">
             {branches.map((branch) => (
-              <BranchCard key={branch.id} branch={branch} terminology={terminology} />
+              <BranchCard
+                key={branch.id}
+                branch={branch}
+                terminology={terminology}
+                onRevoked={loadBranches}
+              />
             ))}
           </div>
         )}
@@ -269,7 +288,7 @@ export default function Branches() {
   );
 }
 
-function BranchCard({ branch, terminology }) {
+function BranchCard({ branch, terminology, onRevoked }) {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -287,6 +306,15 @@ function BranchCard({ branch, terminology }) {
       loadStats();
     }
   }, [branch]);
+
+  async function handleRevoke() {
+    try {
+      await revokeInvitation(branch.id);
+    } catch (err) {
+      console.error('Failed to revoke invitation:', err);
+    }
+    if (onRevoked) onRevoked();
+  }
 
   const planLabel = {
     regular: 'Regular',
@@ -335,7 +363,7 @@ function BranchCard({ branch, terminology }) {
       </div>
       {branch.status === 'pending' && (
         <button
-          onClick={() => revokeInvitation(branch.id)}
+          onClick={handleRevoke}
           className="text-xs text-rose hover:text-rose/80 font-medium"
         >
           Revoke
