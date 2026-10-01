@@ -138,6 +138,26 @@ export default function DistrictDashboard() {
     );
   }
 
+  if (church?.hierarchy_level === 'branch') {
+    return (
+      <div className="min-h-screen bg-parchment flex items-center justify-center px-4 py-10">
+        <div className="max-w-lg mx-auto text-center">
+          <Building2 size={48} className="mx-auto text-ink/20 mb-4" />
+          <h1 className="font-display text-2xl font-bold text-ink">District/Zone Dashboard</h1>
+          <p className="text-ink/50 mt-2">
+            This dashboard is for districts and zones that oversee branches. Your church is a branch, so there is nothing to set up here.
+          </p>
+          <Link
+            to="/dashboard"
+            className="inline-block mt-4 bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!isChildView) {
     return (
       <div className="min-h-screen bg-parchment flex items-center justify-center px-4 py-10">
