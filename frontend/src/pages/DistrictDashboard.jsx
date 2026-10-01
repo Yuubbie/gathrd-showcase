@@ -64,6 +64,7 @@ export default function DistrictDashboard() {
   const terminology = church?.terminology || 'District';
   const isChildView = isDistrict || isZone;
   const childLabel = isZone ? 'Districts' : 'Branches';
+  const childSingular = isZone ? 'District' : 'Branch';
 
   useEffect(() => {
     loadData();
@@ -322,7 +323,7 @@ export default function DistrictDashboard() {
         {/* Giving by branch + attention list */}
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border p-6">
-            <h3 className="font-semibold text-ink mb-4">Giving by {childLabel.slice(0, -1)}</h3>
+            <h3 className="font-semibold text-ink mb-4">Giving by {childSingular}</h3>
             {rows.length === 0 ? (
               <p className="text-sm text-ink/40">Nothing to show yet.</p>
             ) : (
@@ -354,7 +355,7 @@ export default function DistrictDashboard() {
             </h3>
             {quietRows.length === 0 ? (
               <p className="text-sm text-ink/50">
-                Every {childLabel.slice(0, -1).toLowerCase()} has recorded attendance or giving in this period.
+                Every {childSingular.toLowerCase()} has recorded attendance or giving in this period.
               </p>
             ) : (
               <div className="space-y-3">
@@ -395,7 +396,7 @@ export default function DistrictDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left text-xs text-ink/50">
-                  <th className="p-3 font-semibold">{childLabel.slice(0, -1)}</th>
+                  <th className="p-3 font-semibold">{childSingular}</th>
                   <th className="p-3 font-semibold">Plan</th>
                   <th className="p-3 font-semibold">Members</th>
                   <th className="p-3 font-semibold">Giving ({RANGE_LABELS[timeRange]})</th>
@@ -473,7 +474,7 @@ export default function DistrictDashboard() {
                 to="/branches"
                 className="inline-flex items-center gap-2 mt-4 mx-auto bg-signal hover:bg-signal-deep text-white font-semibold px-4 py-2 rounded-lg transition-colors"
               >
-                <Plus size={16} /> Add {childLabel.slice(0, -1)}
+                <Plus size={16} /> Add {childSingular}
               </Link>
             </div>
           )}
