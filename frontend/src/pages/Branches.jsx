@@ -188,6 +188,24 @@ export default function Branches() {
     return { members: memberCount || 0, giving: totalGiving };
   }
 
+  // A branch church is overseen by a district or zone; it has no branches of its own.
+  if (church?.hierarchy_level === 'branch') {
+    return (
+      <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
+        <div className="max-w-lg mx-auto text-center">
+          <Building2 size={48} className="mx-auto text-ink/20 mb-4" />
+          <h1 className="font-display text-2xl font-bold text-ink">Branch Management</h1>
+          <p className="text-ink/50 mt-2">
+            Your church is a branch, so there are no branches to manage here. Your district looks after oversight, and your billing is covered.
+          </p>
+          <Link to="/dashboard" className="inline-block mt-4 bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!canManageBranches) {
     return (
       <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">

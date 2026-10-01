@@ -19,8 +19,8 @@ const NAV_ITEMS = [
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/follow-up', label: 'Follow-Up', icon: ListChecks, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/branches', label: 'My Branches', icon: Building2, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/district-dashboard', label: 'District Dashboard', icon: BarChart3, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/branches', label: 'My Branches', icon: Building2, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'], hideForBranch: true },
+  { to: '/district-dashboard', label: 'District Dashboard', icon: BarChart3, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'], hideForBranch: true },
   { to: '/billing', label: 'Billing', icon: CreditCard, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
 ];
 
@@ -35,10 +35,10 @@ const ROLE_LABELS = {
   member: 'Member',
 };
 
-function NavLinks({ profile, currentPath, onNavigate }) {
+function NavLinks({ profile, currentPath, onNavigate, hierarchyLevel }) {
   return (
     <nav className="flex-1 space-y-1 px-3">
-      {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile?.role)).map((item) => {
+      {NAV_ITEMS.filter((item) => (!item.roles || item.roles.includes(profile?.role)) && !(item.hideForBranch && hierarchyLevel === 'branch')).map((item) => {
         const active = currentPath === item.to;
         const Icon = item.icon;
         return (
@@ -86,7 +86,7 @@ export default function AppShell({ children }) {
             </p>
           )}
         </div>
-        <NavLinks profile={profile} currentPath={location.pathname} />
+        <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} />
         <div className="p-3 mt-auto space-y-2">
           {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
             <>
@@ -147,7 +147,7 @@ export default function AppShell({ children }) {
                 <X size={22} />
               </button>
             </div>
-            <NavLinks profile={profile} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
+            <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
             <div className="p-3 mt-auto space-y-2">
               {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
                 <>
