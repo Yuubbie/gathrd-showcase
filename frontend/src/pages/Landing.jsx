@@ -4,6 +4,8 @@ import {
   Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
   Bell, Settings, Smartphone, Shield, Clock,
 } from 'lucide-react';
+import PlanComparison from '../components/PlanComparison';
+import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 
 const FEATURES = [
   { icon: Users, title: 'Member Management', desc: '8 role types, departments, cell groups, and self-service member claiming.' },
@@ -18,13 +20,6 @@ const FEATURES = [
   { icon: Settings, title: 'Church Branding', desc: 'Custom logo and brand colors throughout the app.' },
   { icon: Smartphone, title: 'Installable PWA', desc: 'Works on any device, even offline.' },
   { icon: Shield, title: 'Role-Based Access', desc: '8 role types with granular permissions.' },
-];
-
-const PLANS = [
-  { id: 'regular', name: 'Regular', price: '₦10,000/month', desc: 'For small churches getting started', features: ['Up to 200 members', '1 Senior Pastor', 'All core features', 'Giving & tithes', 'Email support'] },
-  { id: 'multi-leader', name: 'Multi-Leader', price: '₦15,000/month', desc: 'For churches with multiple leaders', features: ['Up to 5,000 members', '1 Senior Pastor + 2 Pastors', 'All Regular features', 'Priority support'] },
-  { id: 'district', name: 'District', price: '₦20,000/month', desc: 'For districts monitoring multiple branches', features: ['Up to 5,000 members', '1 Senior Pastor + 2 Pastors', 'Monitor unlimited branches', 'Branch management', 'Priority support'] },
-  { id: 'zone', name: 'Zone', price: '₦50,000/month', desc: 'For zones monitoring multiple districts', features: ['Up to 10,000 members', '1 Senior Pastor + 2 Pastors', 'Monitor unlimited districts', 'District management', 'Dedicated support'] },
 ];
 
 export default function Landing() {
@@ -76,7 +71,7 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center transition-colors">
-                Start 60-Day Free Trial
+                Start {TRIAL_DAYS}-Day Free Trial
               </Link>
               <Link to="/demo" className="flex items-center justify-center gap-2 text-ink/70 hover:text-ink font-medium px-6 py-3 rounded-lg border border-ink/10 hover:border-ink/20 transition-colors">
                 <Play size={18} /> Watch Demo
@@ -162,17 +157,23 @@ export default function Landing() {
       <section className="px-4 py-16 md:px-10 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl font-bold text-ink text-center">Simple, Transparent Pricing</h2>
-          <p className="text-ink/50 text-center mt-2">Start free for 60 days. No credit card required.</p>
-          <div className="grid sm:grid-cols-3 gap-6 mt-10">
+          <p className="text-ink/50 text-center mt-2">Start free for {TRIAL_DAYS} days. No credit card required.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
             {PLANS.map((p) => (
-              <div key={p.id} className={`bg-parchment rounded-2xl border p-6 flex flex-col ${p.id === 'advanced' ? 'border-signal ring-1 ring-signal/20' : 'border-ink/5'}`}>
-                <p className="font-display font-bold text-ink text-lg">{p.name}</p>
-                <p className="text-signal font-semibold text-xl mt-1">{p.price}</p>
-                <p className="text-ink/50 text-sm mt-1 mb-4">{p.desc}</p>
+              <div key={p.id} className={`bg-parchment rounded-2xl border p-6 flex flex-col ${p.popular ? 'border-signal ring-1 ring-signal/20' : 'border-ink/5'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-display font-bold text-ink text-lg">{p.name}</p>
+                  {p.popular && (
+                    <span className="text-xs font-semibold bg-signal/10 text-signal-deep rounded-full px-2 py-0.5">Most popular</span>
+                  )}
+                </div>
+                <p className="text-signal font-semibold text-xl mt-1">{formatNaira(p.price)}<span className="text-sm font-normal text-ink/50">/month</span></p>
+                <p className="text-ink/50 text-sm mt-1">{p.desc}</p>
+                <p className="text-ink/70 text-sm font-medium mt-3 mb-3">{p.audience}</p>
                 <ul className="space-y-2 flex-1">
                   {p.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-ink/70">
-                      <Check size={16} className="text-sage shrink-0" /> {f}
+                    <li key={f} className="flex items-start gap-2 text-sm text-ink/70">
+                      <Check size={16} className="text-sage shrink-0 mt-0.5" /> {f}
                     </li>
                   ))}
                 </ul>
@@ -182,6 +183,12 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          <p className="text-ink/50 text-sm text-center mt-6 max-w-2xl mx-auto">
+            District and Zone plans cover every branch under them on one invoice. Branches never pay separately.
+          </p>
+
+          <h3 className="font-display text-xl font-bold text-ink text-center mt-14 mb-4">Compare plans</h3>
+          <PlanComparison />
         </div>
       </section>
 

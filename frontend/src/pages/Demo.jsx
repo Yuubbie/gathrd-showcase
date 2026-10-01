@@ -8,18 +8,19 @@ import {
   ClipboardList, CreditCard, LogIn, Palette, UserPlus2,
   Building2, TrendingUp, Plus, TrendingDown,
 } from 'lucide-react';
+import { TRIAL_DAYS, PLANS, formatNaira } from '../lib/plans';
 
 const DEMO_SCENES = [
   {
     id: 'signup',
     title: 'Pastor Signs Up',
-    narration: 'A pastor signs up with their email. Their church is created automatically — no setup needed. They get a 60-day free trial with no credit card required.',
+    narration: `A pastor signs up with their email. Their church is created automatically — no setup needed. They get a ${TRIAL_DAYS}-day free trial with no credit card required.`,
     icon: LogIn,
     color: 'bg-signal',
     content: [
       { label: 'Email', value: 'One-click signup', icon: LogIn },
       { label: 'Church Created', value: 'Automatically', icon: Church },
-      { label: 'Free Trial', value: '60 days', icon: Clock },
+      { label: 'Free Trial', value: `${TRIAL_DAYS} days`, icon: Clock },
       { label: 'No Credit Card', value: 'Required', icon: CreditCard },
     ],
   },
@@ -84,26 +85,26 @@ const DEMO_SCENES = [
   {
     id: 'multi-branch',
     title: 'Multi-Branch: District & Zone Management',
-    narration: 'Upgrade to District or Zone plan to manage multiple branches. District Pastors oversee branches; Zone Pastors oversee districts. All with custom terminology support.',
+    narration: 'Upgrade to a District or Zone plan to oversee multiple branches. District pastors oversee branches; zone pastors oversee districts. Branches are covered by the plan above them, so they never pay separately.',
     icon: Building2,
     color: 'bg-signal',
     content: [
       { label: 'Custom Terminology', value: 'District, Region, Area, Circuit, State', icon: Settings },
-      { label: 'District Plan', value: '₦20k/mo — monitor unlimited branches', icon: Building2 },
-      { label: 'Zone Plan', value: '₦50k/mo — monitor unlimited districts', icon: Building2 },
+      { label: 'District Plan', value: `${formatNaira(PLANS.find((p) => p.id === 'district').price)}/mo — covers all its branches`, icon: Building2 },
+      { label: 'Zone Plan', value: `${formatNaira(PLANS.find((p) => p.id === 'zone').price)}/mo — covers its districts and branches`, icon: Building2 },
       { label: 'Branch Invites', value: 'District/Zone can invite branches', icon: UserPlus2 },
-      { label: 'Cross-Branch Reports', value: 'Giving, attendance, members', icon: TrendingUp },
+      { label: 'Cross-Branch Overview', value: 'Giving, attendance, member counts', icon: TrendingUp },
     ],
   },
   {
     id: 'branches',
     title: 'Manage Branches',
-    narration: 'District/Zone pastors can add branches, view real-time stats for each branch — members, giving, attendance — all in one dashboard.',
+    narration: 'District and zone pastors invite branches and see how each one is doing — member counts, giving and attendance — in one dashboard. They see the numbers, not the names of who is in each branch.',
     icon: Building2,
     color: 'bg-gold',
     content: [
       { label: 'Add Branch', value: 'One click', icon: Plus },
-      { label: 'Branch Stats', value: 'Members, giving, attendance', icon: TrendingUp },
+      { label: 'Branch Stats', value: 'Counts, giving, attendance', icon: TrendingUp },
       { label: 'Branch Login', value: 'Independent dashboards', icon: LogIn },
       { label: 'Invite Branch Pastor', value: 'Email invite', icon: UserPlus2 },
     ],
@@ -111,14 +112,14 @@ const DEMO_SCENES = [
   {
     id: 'district-dashboard',
     title: 'District/Zone Monitoring Dashboard',
-    narration: 'See consolidated metrics across all branches or districts — giving trends, attendance patterns, member growth. Drill down into any branch.',
+    narration: 'See consolidated numbers across all your branches or districts, spot the ones that need a check-in, and export a CSV for your records.',
     icon: TrendingUp,
     color: 'bg-sage',
     content: [
       { label: 'Consolidated Giving', value: 'All branches', icon: Wallet },
       { label: 'Attendance Trends', value: 'Weekly/monthly', icon: ClipboardCheck },
-      { label: 'Member Growth', value: 'Per branch', icon: Users },
-      { label: 'Top Branches', value: 'Leaderboard', icon: TrendingUp },
+      { label: 'Needs a Check-In', value: 'Flagged branches', icon: Bell },
+      { label: 'CSV Export', value: 'Download anytime', icon: ListChecks },
     ],
   },
   {
@@ -215,11 +216,11 @@ const DEMO_SCENES = [
   {
     id: 'billing',
     title: 'Subscription & Billing',
-    narration: 'After the 60-day trial, pick a plan: Regular (₦10k), Multi-Leader (₦15k), District (₦20k), Zone (₦50k). Automatic billing via Paystack — cancel anytime.',
+    narration: `After the ${TRIAL_DAYS}-day trial, pick a plan: ${PLANS.map((p) => `${p.name} (${formatNaira(p.price)})`).join(', ')}. Automatic billing via Paystack — cancel anytime.`,
     icon: Wallet,
     color: 'bg-signal',
     content: [
-      { label: '60-Day Free Trial', value: 'No card needed', icon: Clock },
+      { label: `${TRIAL_DAYS}-Day Free Trial`, value: 'No card needed', icon: Clock },
       { label: 'Automatic Billing', value: 'Monthly', icon: Wallet },
       { label: 'Grace Period', value: '3 days', icon: Shield },
       { label: 'Plan Management', value: 'Self-service', icon: Settings },
