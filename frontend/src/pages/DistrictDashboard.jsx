@@ -4,11 +4,12 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
 import {
-  Users, Wallet, ClipboardCheck, Building2,
-  BarChart3, PieChart, Activity, Download, Plus,
+  Users, Wallet, ClipboardCheck, Building2, Activity,
+  Download, Plus, AlertTriangle,
 } from 'lucide-react';
 
 const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+const RANGE_LABELS = { '7d': '7 Days', '30d': '30 Days', '90d': '90 Days', '1y': '1 Year' };
 
 function getSinceDate(range) {
   const d = new Date();
@@ -16,8 +17,17 @@ function getSinceDate(range) {
   return d;
 }
 
+function formatDate(value) {
+  if (!value) return 'Never';
+  return new Date(value).toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function statusLabel(status) {
-  return status ? status.replace(/_/g, ' ') : 'unknown';
+  return status ? String(status).replace(/_/g, ' ') : 'unknown';
 }
 
 function statusClasses(status) {
@@ -27,164 +37,56 @@ function statusClasses(status) {
   return 'bg-rose/10 text-rose';
 }
 
+// 'active' = attendance or giving in the period; 'new' = under 14 days old; 'quiet' = needs a check-in
+function activityOf(row) {
+  if (Number(row.attendance_count) > 0 || Number(row.giving_count) > 0) return 'active';
+  const ageDays = (Date.now() - new Date(row.branch_created_at).getTime()) / 86400000;
+  if (ageDays < 14) return 'new';
+  return 'quiet';
+}
+
+const ACTIVITY_STYLES = {
+  active: { label: 'Active', classes: 'bg-sage/10 text-sage' },
+  new: { label: 'New', classes: 'bg-signal/10 text-signal' },
+  quiet: { label: 'No recent activity', classes: 'bg-amber/10 text-amber' },
+};
+
 export default function DistrictDashboard() {
   const { church } = useAuth();
-  const [branches, setBranches] = useState([]);
-  const [stats, setStats] = useState({});
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [timeRange, setTimeRange] = useState('30d');
-  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   const isDistrict = church?.hierarchy_level === 'district';
   const isZone = church?.hierarchy_level === 'zone';
   const terminology = church?.terminology || 'District';
+  const isChildView = isDistrict || isZone;
+  const childLabel = isZone ? 'Districts' : 'Branches';
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, church?.id]);
 
-  function emptyStats() {
-    return {
-      totalMembers: 0,
-      totalGiving: 0,
-      totalAttendance: 0,
-      activeBranches: 0,
-      branchesWithActivity: 0,
-    };
-  }
-
   async function loadData() {
-    // Wait until the church has loaded; this effect runs again when it does
-    if (!church) return;
+    if (!church || !isChildView) return;
 
     setLoading(true);
+    setLoadError('');
     try {
-      // Child churches (branches for a district, districts for a zone)
-      const childLevel = isZone ? 'district' : 'branch';
-
-      const { data: childChurches, error } = await supabase
-        .from('churches')
-        .select('id, name, logo_url, plan, hierarchy_level, created_at, max_members, subscription_status')
-        .eq('parent_church_id', church.id)
-        .eq('hierarchy_level', childLevel)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.rpc('get_district_oversight', {
+        p_since: getSinceDate(timeRange).toISOString(),
+      });
       if (error) throw error;
-      setBranches(childChurches || []);
-
-      const branchIds = (childChurches || []).map((b) => b.id);
-      if (branchIds.length > 0) {
-        await loadAggregatedStats(branchIds);
-      } else {
-        setStats(emptyStats());
-      }
+      setRows(data || []);
     } catch (err) {
-      console.error('Failed to load district dashboard:', err);
-      setStats(emptyStats());
+      console.error('Failed to load oversight data:', err);
+      setRows([]);
+      setLoadError(err.message || 'Could not load branch data.');
     }
     setLoading(false);
-  }
-
-  async function loadAggregatedStats(branchIds) {
-    const since = getSinceDate(timeRange);
-    const sinceIso = since.toISOString();
-    const sinceDay = sinceIso.split('T')[0];
-
-    const { count: totalMembers, error: membersError } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .in('church_id', branchIds)
-      .is('deleted_at', null);
-    if (membersError) console.error('District members query failed:', membersError);
-
-    const { data: givingData, error: givingError } = await supabase
-      .from('giving_records')
-      .select('amount')
-      .in('church_id', branchIds)
-      .eq('status', 'success')
-      .gte('given_at', sinceIso);
-    if (givingError) console.error('District giving query failed:', givingError);
-
-    const totalGiving = givingData?.reduce((sum, g) => sum + (g.amount || 0), 0) || 0;
-
-    const { data: attendanceData, error: attendanceError } = await supabase
-      .from('attendance_records')
-      .select('id, church_id')
-      .in('church_id', branchIds)
-      .gte('date', sinceDay)
-      .is('deleted_at', null);
-    if (attendanceError) console.error('District attendance query failed:', attendanceError);
-
-    const totalAttendance = attendanceData?.length || 0;
-    const uniqueBranches = new Set((attendanceData || []).map((a) => a.church_id)).size;
-
-    setStats({
-      totalMembers: totalMembers || 0,
-      totalGiving,
-      totalAttendance,
-      activeBranches: branchIds.length,
-      branchesWithActivity: uniqueBranches,
-    });
-  }
-
-  async function loadBranchDetail(branchId) {
-    const sinceIso = getSinceDate(timeRange).toISOString();
-    const sinceDay = sinceIso.split('T')[0];
-
-    const [membersRes, givingRes, attendanceRes] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('church_id', branchId)
-        .is('deleted_at', null),
-      supabase
-        .from('giving_records')
-        .select('amount, given_at')
-        .eq('church_id', branchId)
-        .eq('status', 'success')
-        .gte('given_at', sinceIso)
-        .order('given_at', { ascending: false }),
-      supabase
-        .from('attendance_records')
-        .select('*')
-        .eq('church_id', branchId)
-        .gte('date', sinceDay)
-        .is('deleted_at', null),
-    ]);
-
-    if (membersRes.error) console.error('Branch members query failed:', membersRes.error);
-    if (givingRes.error) console.error('Branch giving query failed:', givingRes.error);
-    if (attendanceRes.error) console.error('Branch attendance query failed:', attendanceRes.error);
-
-    const branch = branches.find((b) => b.id === branchId);
-    const giving = givingRes.data || [];
-    const attendanceRows = attendanceRes.data || [];
-
-    // Group attendance by date (uses a count column if the table has one, otherwise 1 per row)
-    const byDate = {};
-    attendanceRows.forEach((a) => {
-      const add = typeof a.count === 'number' ? a.count : 1;
-      byDate[a.date] = (byDate[a.date] || 0) + add;
-    });
-    const attendanceDays = Object.entries(byDate)
-      .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
-      .slice(0, 10)
-      .map(([date, count]) => ({ date, count }));
-
-    setSelectedBranch({
-      branch,
-      members: membersRes.count || 0,
-      giving: giving.reduce((sum, g) => sum + (g.amount || 0), 0),
-      givingRecords: giving.slice(0, 10),
-      attendanceTotal: attendanceRows.length,
-      attendance: attendanceDays,
-    });
-  }
-
-  function closeBranchDetail() {
-    setSelectedBranch(null);
   }
 
   function formatCurrency(amount) {
@@ -192,12 +94,41 @@ export default function DistrictDashboard() {
       style: 'currency',
       currency: 'NGN',
       minimumFractionDigits: 0,
-    }).format((amount || 0) / 100);
+    }).format((Number(amount) || 0) / 100);
   }
 
-  function getTimeRangeLabel() {
-    const labels = { '7d': '7 Days', '30d': '30 Days', '90d': '90 Days', '1y': '1 Year' };
-    return labels[timeRange] || '30 Days';
+  function exportCsv() {
+    const header = [
+      'Name', 'Pastor', 'Plan', 'Subscription', 'Active members', 'New members',
+      `Giving (${RANGE_LABELS[timeRange]}, NGN)`, 'Gifts', 'Attendance check-ins',
+      'Last attendance', 'Last gift', 'Activity',
+    ];
+    const lines = rows.map((r) => [
+      r.branch_name,
+      r.pastor_name || '',
+      r.branch_plan || '',
+      r.branch_status || '',
+      r.member_count,
+      r.new_members,
+      ((Number(r.giving_total) || 0) / 100).toFixed(2),
+      r.giving_count,
+      r.attendance_count,
+      r.last_attendance_at ? new Date(r.last_attendance_at).toISOString().slice(0, 10) : '',
+      r.last_giving_at ? new Date(r.last_giving_at).toISOString().slice(0, 10) : '',
+      ACTIVITY_STYLES[activityOf(r)].label,
+    ]);
+    const csv = [header, ...lines]
+      .map((line) => line.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${childLabel.toLowerCase()}-summary-${timeRange}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   if (!church) {
@@ -205,9 +136,6 @@ export default function DistrictDashboard() {
       <div className="min-h-screen flex items-center justify-center bg-parchment">Loading…</div>
     );
   }
-
-  const isChildView = isDistrict || isZone;
-  const childLabel = isZone ? 'Districts' : 'Branches';
 
   if (!isChildView) {
     return (
@@ -229,16 +157,18 @@ export default function DistrictDashboard() {
     );
   }
 
-  const totalMembers = stats.totalMembers || 0;
-  const totalGiving = stats.totalGiving || 0;
-  const totalAttendance = stats.totalAttendance || 0;
-  const activeBranches = stats.activeBranches || 0;
-  const branchesWithActivity = stats.branchesWithActivity || 0;
+  const totalMembers = rows.reduce((sum, r) => sum + Number(r.member_count || 0), 0);
+  const totalGiving = rows.reduce((sum, r) => sum + Number(r.giving_total || 0), 0);
+  const totalAttendance = rows.reduce((sum, r) => sum + Number(r.attendance_count || 0), 0);
+  const activeCount = rows.filter((r) => activityOf(r) === 'active').length;
+  const quietRows = rows.filter((r) => activityOf(r) === 'quiet');
+  const maxGiving = Math.max(1, ...rows.map((r) => Number(r.giving_total || 0)));
 
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <BackButton />
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -249,29 +179,33 @@ export default function DistrictDashboard() {
               Monitor all {childLabel.toLowerCase()} under your {terminology.toLowerCase()}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="border border-ink/10 rounded-lg px-3 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none"
-            >
-              <option value="7d">7 Days</option>
-              <option value="30d">30 Days</option>
-              <option value="90d">90 Days</option>
-              <option value="1y">1 Year</option>
-            </select>
-          </div>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="border border-ink/10 rounded-lg px-3 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none"
+          >
+            <option value="7d">7 Days</option>
+            <option value="30d">30 Days</option>
+            <option value="90d">90 Days</option>
+            <option value="1y">1 Year</option>
+          </select>
         </div>
 
-        {/* Branch Detail Modal */}
-        {selectedBranch && (
+        {loadError && (
+          <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">
+            Could not load {childLabel.toLowerCase()} data: {loadError}
+          </div>
+        )}
+
+        {/* Detail modal */}
+        {selected && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/50">
-            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-5 border-b">
                 <div className="flex items-center gap-3">
-                  {selectedBranch.branch?.logo_url ? (
+                  {selected.branch_logo_url ? (
                     <img
-                      src={selectedBranch.branch.logo_url}
+                      src={selected.branch_logo_url}
                       alt=""
                       className="h-10 w-10 rounded-lg object-contain"
                     />
@@ -281,67 +215,46 @@ export default function DistrictDashboard() {
                     </div>
                   )}
                   <div>
-                    <h2 className="font-display font-bold text-ink">{selectedBranch.branch?.name}</h2>
-                    <p className="text-ink/50 text-sm">{selectedBranch.branch?.plan} Plan</p>
+                    <h2 className="font-display font-bold text-ink">{selected.branch_name}</h2>
+                    <p className="text-ink/50 text-sm capitalize">
+                      {selected.branch_plan || 'unknown'} plan · {statusLabel(selected.branch_status)}
+                    </p>
                   </div>
                 </div>
-                <button onClick={closeBranchDetail} className="text-ink/40 hover:text-ink">✕</button>
+                <button onClick={() => setSelected(null)} className="text-ink/40 hover:text-ink">✕</button>
               </div>
               <div className="p-5 space-y-4">
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className="bg-parchment rounded-lg p-4 text-center">
-                    <p className="text-xs text-ink/50">Members</p>
-                    <p className="font-display font-bold text-2xl text-ink">{selectedBranch.members}</p>
+                <p className="text-sm text-ink/60">
+                  Pastor: <span className="font-medium text-ink">{selected.pastor_name || 'Not set'}</span>
+                </p>
+                <p className="text-xs text-ink/40">Figures for the last {RANGE_LABELS[timeRange].toLowerCase()}</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="bg-parchment rounded-lg p-4">
+                    <p className="text-xs text-ink/50">Active members</p>
+                    <p className="font-display font-bold text-2xl text-ink">{Number(selected.member_count)}</p>
+                    <p className="text-xs text-ink/50 mt-1">{Number(selected.new_members)} joined in this period</p>
                   </div>
-                  <div className="bg-parchment rounded-lg p-4 text-center">
-                    <p className="text-xs text-ink/50">Giving ({getTimeRangeLabel()})</p>
-                    <p className="font-display font-bold text-2xl text-sage">
-                      {formatCurrency(selectedBranch.giving)}
-                    </p>
+                  <div className="bg-parchment rounded-lg p-4">
+                    <p className="text-xs text-ink/50">Giving</p>
+                    <p className="font-display font-bold text-2xl text-sage">{formatCurrency(selected.giving_total)}</p>
+                    <p className="text-xs text-ink/50 mt-1">{Number(selected.giving_count)} gifts · last {formatDate(selected.last_giving_at)}</p>
                   </div>
-                  <div className="bg-parchment rounded-lg p-4 text-center">
-                    <p className="text-xs text-ink/50">Attendance Records</p>
-                    <p className="font-display font-bold text-2xl text-gold">
-                      {selectedBranch.attendanceTotal || 0}
-                    </p>
+                  <div className="bg-parchment rounded-lg p-4">
+                    <p className="text-xs text-ink/50">Attendance check-ins</p>
+                    <p className="font-display font-bold text-2xl text-gold">{Number(selected.attendance_count)}</p>
+                    <p className="text-xs text-ink/50 mt-1">Last service recorded {formatDate(selected.last_attendance_at)}</p>
                   </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-ink mb-2">Recent Giving</h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {selectedBranch.givingRecords?.length === 0 ? (
-                      <p className="text-ink/40 text-sm">No giving records</p>
-                    ) : (
-                      selectedBranch.givingRecords?.map((g, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <span className="text-sm text-ink/70">
-                            {new Date(g.given_at).toLocaleDateString('en-NG')}
-                          </span>
-                          <span className="font-semibold text-sage">{formatCurrency(g.amount)}</span>
-                        </div>
-                      ))
-                    )}
+                  <div className="bg-parchment rounded-lg p-4">
+                    <p className="text-xs text-ink/50">Created</p>
+                    <p className="font-display font-bold text-xl text-ink">{formatDate(selected.branch_created_at)}</p>
+                    <span className={`inline-flex mt-1 px-2 py-0.5 text-xs rounded-full ${ACTIVITY_STYLES[activityOf(selected)].classes}`}>
+                      {ACTIVITY_STYLES[activityOf(selected)].label}
+                    </span>
                   </div>
                 </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-ink mb-2">Recent Attendance</h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {selectedBranch.attendance?.length === 0 ? (
-                      <p className="text-ink/40 text-sm">No attendance records</p>
-                    ) : (
-                      selectedBranch.attendance?.map((a, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <span className="text-sm text-ink/70">
-                            {new Date(a.date).toLocaleDateString('en-NG')}
-                          </span>
-                          <span className="font-semibold text-gold">{a.count || 0}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <p className="text-xs text-ink/40">
+                  Member names, contact details and individual gifts stay private to each branch.
+                </p>
               </div>
             </div>
           </div>
@@ -349,7 +262,7 @@ export default function DistrictDashboard() {
 
         {/* Overview Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className={`bg-white rounded-2xl border p-5 ${stats.totalGiving > 0 ? 'ring-1 ring-sage' : ''}`}>
+          <div className="bg-white rounded-2xl border p-5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-signal/10 flex items-center justify-center">
                 <Users size={24} className="text-signal" />
@@ -366,7 +279,7 @@ export default function DistrictDashboard() {
                 <Wallet size={24} className="text-sage" />
               </div>
               <div>
-                <p className="text-xs text-ink/50">Total Giving ({getTimeRangeLabel()})</p>
+                <p className="text-xs text-ink/50">Total Giving ({RANGE_LABELS[timeRange]})</p>
                 <p className="font-display font-bold text-2xl text-sage">{formatCurrency(totalGiving)}</p>
               </div>
             </div>
@@ -377,7 +290,7 @@ export default function DistrictDashboard() {
                 <ClipboardCheck size={24} className="text-gold" />
               </div>
               <div>
-                <p className="text-xs text-ink/50">Attendance Records</p>
+                <p className="text-xs text-ink/50">Attendance Check-ins</p>
                 <p className="font-display font-bold text-2xl text-gold">{totalAttendance.toLocaleString()}</p>
               </div>
             </div>
@@ -388,8 +301,8 @@ export default function DistrictDashboard() {
                 <Building2 size={24} className="text-amber" />
               </div>
               <div>
-                <p className="text-xs text-ink/50">Active {childLabel}</p>
-                <p className="font-display font-bold text-2xl text-ink">{activeBranches}</p>
+                <p className="text-xs text-ink/50">{childLabel}</p>
+                <p className="font-display font-bold text-2xl text-ink">{rows.length}</p>
               </div>
             </div>
           </div>
@@ -400,119 +313,159 @@ export default function DistrictDashboard() {
               </div>
               <div>
                 <p className="text-xs text-ink/50">{childLabel} with Activity</p>
-                <p className="font-display font-bold text-2xl text-emerald">{branchesWithActivity}</p>
+                <p className="font-display font-bold text-2xl text-emerald">{activeCount}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Charts Placeholder */}
+        {/* Giving by branch + attention list */}
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-ink">Giving Trend</h3>
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="text-sm border border-ink/10 rounded-lg px-3 py-1.5 focus:border-signal focus:ring-1 focus:ring-signal outline-none"
-              >
-                <option value="7d">7D</option>
-                <option value="30d">30D</option>
-                <option value="90d">90D</option>
-                <option value="1y">1Y</option>
-              </select>
-            </div>
-            <div className="h-64 flex items-center justify-center bg-parchment rounded-lg">
-              <div className="text-center text-ink/30">
-                <BarChart3 size={48} className="mx-auto mb-2" />
-                <p className="text-sm">Giving trend chart</p>
-                <p className="text-xs text-ink/40">Connect chart library (Recharts/Chart.js)</p>
+            <h3 className="font-semibold text-ink mb-4">Giving by {childLabel.slice(0, -1)}</h3>
+            {rows.length === 0 ? (
+              <p className="text-sm text-ink/40">Nothing to show yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {rows.map((r) => {
+                  const value = Number(r.giving_total || 0);
+                  return (
+                    <div key={r.branch_id}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-ink/70 truncate max-w-[60%]">{r.branch_name}</span>
+                        <span className="font-medium text-sage">{formatCurrency(value)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-parchment overflow-hidden">
+                        <div
+                          className="h-2 rounded-full bg-sage"
+                          style={{ width: `${Math.round((value / maxGiving) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
+
           <div className="bg-white rounded-2xl border p-6">
-            <h3 className="font-semibold text-ink mb-4">Branch Performance</h3>
-            <div className="h-64 flex items-center justify-center bg-parchment rounded-lg">
-              <div className="text-center text-ink/30">
-                <PieChart size={48} className="mx-auto mb-2" />
-                <p className="text-sm">Branch comparison</p>
-                <p className="text-xs text-ink/40">Giving distribution across branches</p>
+            <h3 className="font-semibold text-ink mb-4 flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber" /> Needs a check-in
+            </h3>
+            {quietRows.length === 0 ? (
+              <p className="text-sm text-ink/50">
+                Every {childLabel.slice(0, -1).toLowerCase()} has recorded attendance or giving in this period.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {quietRows.map((r) => (
+                  <div key={r.branch_id} className="flex items-center justify-between gap-3 border-b last:border-0 pb-3 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink truncate">{r.branch_name}</p>
+                      <p className="text-xs text-ink/50">
+                        Pastor: {r.pastor_name || 'Not set'} · last service {formatDate(r.last_attendance_at)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelected(r)}
+                      className="text-xs text-signal hover:text-signal-deep font-medium shrink-0"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Branches Table */}
+        {/* Table */}
         <div className="bg-white rounded-2xl border">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-semibold text-ink">All {childLabel}</h3>
-            <div className="flex items-center gap-2">
-              <Download size={16} className="text-ink/40" />
-              <span className="text-xs text-ink/40">Export CSV</span>
-            </div>
+            <button
+              onClick={exportCsv}
+              disabled={rows.length === 0}
+              className="flex items-center gap-2 text-xs text-ink/60 hover:text-ink disabled:opacity-40"
+            >
+              <Download size={16} /> Export CSV
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left text-xs text-ink/50">
-                  <th className="p-3 font-semibold">Branch</th>
+                  <th className="p-3 font-semibold">{childLabel.slice(0, -1)}</th>
                   <th className="p-3 font-semibold">Plan</th>
                   <th className="p-3 font-semibold">Members</th>
-                  <th className="p-3 font-semibold">Giving ({getTimeRangeLabel()})</th>
+                  <th className="p-3 font-semibold">Giving ({RANGE_LABELS[timeRange]})</th>
                   <th className="p-3 font-semibold">Attendance</th>
+                  <th className="p-3 font-semibold">Activity</th>
                   <th className="p-3 font-semibold">Status</th>
                   <th className="p-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {branches.map((branch) => (
-                  <tr key={branch.id} className="border-b last:border-0 hover:bg-parchment/50 transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-3">
-                        {branch.logo_url ? (
-                          <img src={branch.logo_url} alt="" className="w-8 h-8 rounded-lg object-contain" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center">
-                            <Building2 size={16} className="text-signal" />
+                {rows.map((r) => {
+                  const act = ACTIVITY_STYLES[activityOf(r)];
+                  return (
+                    <tr key={r.branch_id} className="border-b last:border-0 hover:bg-parchment/50 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          {r.branch_logo_url ? (
+                            <img src={r.branch_logo_url} alt="" className="w-8 h-8 rounded-lg object-contain" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center">
+                              <Building2 size={16} className="text-signal" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-ink truncate max-w-[200px]">{r.branch_name}</p>
+                            <p className="text-xs text-ink/40">{r.pastor_name || 'Pastor not set'}</p>
                           </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-ink truncate max-w-[200px]">{branch.name}</p>
-                          <p className="text-xs text-ink/40 capitalize">{branch.hierarchy_level}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-parchment text-ink/70 capitalize">
-                        {(branch.plan || 'unknown').replace(/-/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm text-ink/70">—</td>
-                    <td className="p-3 text-sm text-ink/70">—</td>
-                    <td className="p-3 text-sm text-ink/70">—</td>
-                    <td className="p-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full capitalize ${statusClasses(
-                          branch.subscription_status
-                        )}`}
-                      >
-                        {statusLabel(branch.subscription_status)}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => loadBranchDetail(branch.id)}
-                        className="text-xs text-signal hover:text-signal-deep font-medium"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-3">
+                        <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-parchment text-ink/70 capitalize">
+                          {(r.branch_plan || 'unknown').replace(/-/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-ink/70">
+                        {Number(r.member_count)}
+                        {Number(r.new_members) > 0 && (
+                          <span className="text-xs text-sage ml-1">+{Number(r.new_members)}</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-sm text-ink/70">{formatCurrency(r.giving_total)}</td>
+                      <td className="p-3 text-sm text-ink/70">
+                        {Number(r.attendance_count)}
+                        <span className="block text-xs text-ink/40">last {formatDate(r.last_attendance_at)}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${act.classes}`}>
+                          {act.label}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full capitalize ${statusClasses(r.branch_status)}`}>
+                          {statusLabel(r.branch_status)}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => setSelected(r)}
+                          className="text-xs text-signal hover:text-signal-deep font-medium"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {!loading && branches.length === 0 && (
+          {!loading && rows.length === 0 && !loadError && (
             <div className="p-10 text-center">
               <Building2 size={48} className="mx-auto text-ink/20 mb-3" />
               <p className="text-ink/50">No {childLabel.toLowerCase()} yet</p>
