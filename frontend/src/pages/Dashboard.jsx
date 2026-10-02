@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck } from 'lucide-react';
+import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -66,6 +66,10 @@ export default function Dashboard() {
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null); // FIX (High): surfaced load errors instead of silent zeros
+  // Open service the member can check in to from this dashboard.
+  const [service, setService] = useState(null);
+  const [checkInWorking, setCheckInWorking] = useState(false);
+  const [checkInError, setCheckInError] = useState('');
 
   const canSeeFinance = ['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role);
   const canSeeChurchStats = CHURCH_WIDE_ROLES.includes(profile?.role);
@@ -274,6 +278,52 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
+  // Members: look for an open service every 30 seconds so the check-in
+  // button appears while a service is running and disappears when it ends.
+  useEffect(() => {
+    if (!isMember) return undefined;
+    let cancelled = false;
+    async function loadService() {
+      const { data } = await supabase.rpc('get_open_service');
+      if (!cancelled) setService(data && data.open ? data : null);
+    }
+    loadService();
+    const timer = setInterval(loadService, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isMember]);
+
+  async function handleMemberCheckIn() {
+    setCheckInWorking(true);
+    setCheckInError('');
+    const { data, error } = await supabase.rpc('member_check_in');
+    setCheckInWorking(false);
+
+    if (error || !data) {
+      setCheckInError('Check-in failed. Please try again, or ask an usher to check you in.');
+      return;
+    }
+    if (data.status === 'checked_in' || data.status === 'already_checked_in') {
+      setService((prev) => (prev ? { ...prev, already_checked_in: true } : prev));
+      if (data.status === 'checked_in') {
+        setMyStats((prev) => ({ ...prev, servicesAttended: (prev.servicesAttended ?? 0) + 1 }));
+      }
+      return;
+    }
+    if (data.status === 'no_service') {
+      setService(null);
+      setCheckInError('This service has just ended.');
+      return;
+    }
+    setCheckInError(
+      data.status === 'no_member'
+        ? 'Your login is not linked to a member record yet. Please ask an usher to check you in.'
+        : 'Check-in failed. Please ask an usher to check you in.'
+    );
+  }
+
   // Nothing church-wide to show this role, and they don't lead a cell or
   // have personal member stats either — rather than an empty stat row,
   // say so plainly instead of implying there's just no data.
@@ -299,6 +349,36 @@ export default function Dashboard() {
       )}
 
       <OnboardingChecklist />
+
+      {isMember && service && service.is_member && (
+        <Card className="p-5 mb-6">
+          {service.already_checked_in ? (
+            <div className="flex items-center gap-3">
+              <CheckCircle2 size={28} className="text-sage shrink-0" />
+              <div>
+                <p className="font-display font-bold text-ink">You're checked in</p>
+                <p className="text-sm text-ink/50">{service.service_name}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs text-ink/40">Service in progress</p>
+                <p className="font-display font-bold text-ink">{service.service_name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleMemberCheckIn}
+                disabled={checkInWorking}
+                className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {checkInWorking ? 'Checking in…' : 'Check me in'}
+              </button>
+            </div>
+          )}
+          {checkInError && <p className="text-sm text-rose mt-3">{checkInError}</p>}
+        </Card>
+      )}
 
       {!noStatsAvailable && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
