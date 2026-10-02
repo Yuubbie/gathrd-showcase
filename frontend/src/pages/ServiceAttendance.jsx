@@ -1,22 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Circle, QrCode, Users } from 'lucide-react';
+import { CheckCircle2, Circle, QrCode, Users, Play, Square, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
+const SERVICE_TYPES = [
+  { id: 'sunday', label: 'Sunday', defaultName: 'Sunday Service' },
+  { id: 'midweek', label: 'Midweek', defaultName: 'Midweek Service' },
+  { id: 'special', label: 'Special', defaultName: 'Special Service' },
+];
+
+const METHOD_LABELS = { qr_self: 'QR', dashboard: 'App', manual: 'Manual' };
+
+const CARD =
+  'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
+
 export default function ServiceAttendance() {
   const { profile } = useAuth();
-  const [session, setSession] = useState(null);
+  const [service, setService] = useState(null); // the open service, or null
   const [members, setMembers] = useState([]);
   const [attendance, setAttendance] = useState({}); // member_id -> { method, at }
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showQr, setShowQr] = useState(false);
-  // FIX: attendance_slug isn't on the shared `church` object from
-  // AuthContext (that only fetches id, name). Fetching it directly here,
-  // same pattern Members.jsx already uses for onboarding_slug — this is
-  // what was producing a QR pointing at ".../checkin/" with nothing after
-  // the slash.
   const [attendanceSlug, setAttendanceSlug] = useState(null);
+  const [message, setMessage] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Start-service form
+  const [serviceType, setServiceType] = useState('sunday');
+  const [serviceName, setServiceName] = useState('Sunday Service');
+  const [starting, setStarting] = useState(false);
+  const [ending, setEnding] = useState(false);
 
   useEffect(() => {
     async function loadSlug() {
@@ -31,153 +46,307 @@ export default function ServiceAttendance() {
     loadSlug();
   }, [profile]);
 
-  const load = useCallback(async () => {
-    if (!profile?.church_id) return;
-    setLoading(true);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!profile?.church_id) return;
+      if (!silent) setLoading(true);
 
-    // Find or reflect today's default session. We don't create it here —
-    // self_check_in() creates it lazily the moment the first QR scan
-    // happens. If nobody's scanned yet and no usher has opened this page
-    // before, "no session yet" is the honest starting state.
-    const { data: sessionRow } = await supabase
-      .from('service_sessions')
-      .select('id, service_name, service_date')
-      .eq('church_id', profile.church_id)
-      .eq('service_date', new Date().toISOString().slice(0, 10))
-      .eq('service_name', 'Sunday Service')
-      .is('deleted_at', null)
-      .maybeSingle();
+      const { data: svc, error: svcError } = await supabase.rpc('get_open_service');
+      if (svcError) {
+        setMessage('Could not load the service. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
 
-    const { data: memberRows } = await supabase
-      .from('members')
-      .select('id, full_name, phone')
-      .eq('church_id', profile.church_id)
-      .eq('status', 'active')
-      .is('deleted_at', null)
-      .order('full_name');
+      if (!svc?.open) {
+        setService(null);
+        setAttendance({});
+        setLoading(false);
+        return;
+      }
 
-    setMembers(memberRows || []);
+      setService(svc);
 
-    if (sessionRow) {
-      setSession(sessionRow);
-      const { data: attendanceRows } = await supabase
-        .from('attendance_records')
-        .select('member_id, check_in_method, checked_in_at')
-        .eq('service_session_id', sessionRow.id)
-        .is('deleted_at', null);
+      const [{ data: memberRows }, { data: attendanceRows }] = await Promise.all([
+        supabase
+          .from('members')
+          .select('id, full_name')
+          .eq('church_id', profile.church_id)
+          .eq('status', 'active')
+          .is('deleted_at', null)
+          .order('full_name'),
+        supabase
+          .from('attendance_records')
+          .select('member_id, check_in_method, checked_in_at')
+          .eq('service_session_id', svc.session_id)
+          .is('deleted_at', null),
+      ]);
 
+      setMembers(memberRows || []);
       const map = {};
       for (const a of attendanceRows || []) {
         map[a.member_id] = { method: a.check_in_method, at: a.checked_in_at };
       }
       setAttendance(map);
-    } else {
-      setSession(null);
-      setAttendance({});
-    }
-
-    setLoading(false);
-  }, [profile]);
+      setLoading(false);
+    },
+    [profile]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function ensureSession() {
-    if (session) return session;
-    const { data, error } = await supabase
-      .from('service_sessions')
-      .insert({
-        church_id: profile.church_id,
-        service_name: 'Sunday Service',
-        service_date: new Date().toISOString().slice(0, 10),
-      })
-      .select('id, service_name, service_date')
-      .single();
-    if (error) return null;
-    setSession(data);
-    return data;
+  // While a service is open, refresh quietly so QR and app check-ins show up live.
+  useEffect(() => {
+    if (!service) return undefined;
+    const timer = setInterval(() => load(true), 15000);
+    return () => clearInterval(timer);
+  }, [service, load]);
+
+  function pickType(type) {
+    setServiceType(type.id);
+    setServiceName(type.defaultName);
   }
 
-  async function handleManualToggle(memberId) {
-    const already = attendance[memberId];
-    if (already) return; // one-way: check-in only, no un-checking from this screen by design
+  async function handleStart() {
+    setStarting(true);
+    setMessage('');
+    const { data, error } = await supabase.rpc('start_service', {
+      p_service_name: serviceName,
+      p_service_type: serviceType,
+    });
+    setStarting(false);
 
-    const activeSession = await ensureSession();
-    if (!activeSession) return;
+    if (error || !data) {
+      setMessage('Could not start the service. Please try again.');
+      return;
+    }
+    if (data.status === 'not_allowed') {
+      setMessage('Only a pastor or church admin can start a service.');
+      return;
+    }
+    await load();
+  }
 
-    // Optimistic update — the roster should feel instant during a live
-    // service, not wait on a round trip before showing the tap registered.
-    setAttendance((prev) => ({ ...prev, [memberId]: { method: 'manual', at: new Date().toISOString() } }));
+  async function handleEnd() {
+    if (!service) return;
+    if (!window.confirm('End this service? Members will no longer be able to check in.')) return;
+    setEnding(true);
+    const { data, error } = await supabase.rpc('end_service', { p_session_id: service.session_id });
+    setEnding(false);
+    if (error || !data || (data.status !== 'ended' && data.status !== 'not_found')) {
+      setMessage('Could not end the service. Please try again.');
+      return;
+    }
+    setShowQr(false);
+    await load();
+  }
 
-    const { error } = await supabase.from('attendance_records').insert({
-      church_id: profile.church_id,
-      service_session_id: activeSession.id,
-      member_id: memberId,
-      check_in_method: 'manual',
+  async function handleCheckIn(member) {
+    if (!service || attendance[member.id]) return;
+    setMessage('');
+    // Show the tap instantly. Roll back if the server says no.
+    setAttendance((prev) => ({ ...prev, [member.id]: { method: 'manual', at: new Date().toISOString() } }));
+
+    const { data, error } = await supabase.rpc('staff_check_in', {
+      p_session_id: service.session_id,
+      p_member_id: member.id,
     });
 
-    if (error) {
-      // Roll back on failure — RLS or a duplicate-key race are the two
-      // realistic causes; either way the optimistic mark shouldn't stick
-      // if the write didn't actually happen.
+    const ok = !error && data && (data.status === 'checked_in' || data.status === 'already_checked_in');
+    if (!ok) {
       setAttendance((prev) => {
         const next = { ...prev };
-        delete next[memberId];
+        delete next[member.id];
         return next;
       });
+      setMessage(
+        data?.status === 'closed'
+          ? 'This service has ended.'
+          : `Could not check in ${member.full_name}. Please try again.`
+      );
     }
   }
 
-  const checkInUrl = attendanceSlug
-    ? `${window.location.origin}/checkin/${attendanceSlug}`
-    : '';
+  async function handleUndo(member) {
+    if (!service) return;
+    if (!window.confirm(`Remove the check-in for ${member.full_name}?`)) return;
+    setMessage('');
 
-  const filteredMembers = members.filter((m) =>
-    m.full_name.toLowerCase().includes(search.toLowerCase())
-  );
+    const previous = attendance[member.id];
+    setAttendance((prev) => {
+      const next = { ...prev };
+      delete next[member.id];
+      return next;
+    });
 
+    const { data, error } = await supabase.rpc('staff_undo_check_in', {
+      p_session_id: service.session_id,
+      p_member_id: member.id,
+    });
+
+    if (error || !data || (data.status !== 'undone' && data.status !== 'not_found')) {
+      setAttendance((prev) => ({ ...prev, [member.id]: previous }));
+      setMessage(`Could not remove the check-in for ${member.full_name}. Please try again.`);
+    }
+  }
+
+  const checkInUrl =
+    attendanceSlug && service?.check_in_token
+      ? `${window.location.origin}/checkin/${attendanceSlug}?t=${service.check_in_token}`
+      : '';
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(checkInUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      setMessage('Could not copy the link. Select it and copy it by hand.');
+    }
+  }
+
+  const filteredMembers = members.filter((m) => m.full_name.toLowerCase().includes(search.toLowerCase()));
   const checkedInCount = Object.keys(attendance).length;
-  const qrCount = Object.values(attendance).filter((a) => a.method === 'qr_self').length;
+  const selfCount = Object.values(attendance).filter((a) => a.method === 'qr_self' || a.method === 'dashboard').length;
   const manualCount = Object.values(attendance).filter((a) => a.method === 'manual').length;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-parchment px-4 py-10">
+        <p className="text-ink/40 text-sm text-center">Loading…</p>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------- no service open
+  if (!service) {
+    return (
+      <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
+        <div className="max-w-xl mx-auto space-y-4">
+          <h1 className="text-xl font-semibold">Attendance</h1>
+
+          <div className={`${CARD} p-6 space-y-4`}>
+            <div>
+              <h2 className="font-display font-bold text-ink">Start a service</h2>
+              <p className="text-ink/50 text-sm mt-1">
+                Check-in opens when you start a service and closes when you end it.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {SERVICE_TYPES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => pickType(t)}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                    serviceType === t.id ? 'bg-signal text-white' : 'bg-ink/5 text-ink/60 hover:bg-ink/10'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div>
+              <label htmlFor="service-name" className="block text-sm text-ink/60 mb-1">
+                Service name
+              </label>
+              <input
+                id="service-name"
+                value={serviceName}
+                maxLength={80}
+                onChange={(e) => setServiceName(e.target.value)}
+                className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={starting}
+              className="w-full flex items-center justify-center gap-2 bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
+            >
+              <Play size={16} /> {starting ? 'Starting…' : 'Start service'}
+            </button>
+          </div>
+
+          {message && <p className="text-sm text-rose text-center">{message}</p>}
+
+          <p className="text-ink/30 text-xs text-center flex items-center justify-center gap-1.5">
+            <Users size={14} /> A service closes by itself after 6 hours if nobody ends it.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------- service open
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-semibold">Today's Attendance</h1>
-          <button
-            onClick={() => setShowQr((v) => !v)}
-            className="flex items-center gap-1.5 text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
-          >
-            <QrCode size={16} /> Show Check-In QR
-          </button>
+          <div>
+            <h1 className="text-xl font-semibold">{service.service_name}</h1>
+            <p className="text-ink/50 text-xs mt-0.5 flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-sage" /> Check-in is open
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowQr((v) => !v)}
+              className="flex items-center gap-1.5 text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
+            >
+              <QrCode size={16} /> {showQr ? 'Hide QR' : 'Show Check-In QR'}
+            </button>
+            <button
+              type="button"
+              onClick={handleEnd}
+              disabled={ending}
+              className="flex items-center gap-1.5 text-sm bg-rose/10 text-rose rounded-lg px-3.5 py-2 font-semibold hover:bg-rose/20 transition-colors disabled:opacity-50"
+            >
+              <Square size={14} /> {ending ? 'Ending…' : 'End service'}
+            </button>
+          </div>
         </div>
 
-        {showQr && checkInUrl && (
-          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 text-center space-y-3">
-            <p className="text-sm text-ink/60">
-              Display this at the entrance — members scan with their own phone camera to check in.
-            </p>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(checkInUrl)}`}
-              alt="Attendance check-in QR code"
-              className="mx-auto border rounded-lg"
-              width={240}
-              height={240}
-            />
-            <p className="text-ink/40 text-xs break-all">{checkInUrl}</p>
+        {showQr && (
+          <div className={`${CARD} p-6 text-center space-y-3`}>
+            {checkInUrl ? (
+              <>
+                <p className="text-sm text-ink/60">
+                  Display this at the entrance. Members scan it with their phone camera to check in. It stops working
+                  when you end the service.
+                </p>
+                <div className="inline-block p-3 bg-white border rounded-lg">
+                  <QRCodeSVG value={checkInUrl} size={240} />
+                </div>
+                <p className="text-ink/40 text-xs break-all">{checkInUrl}</p>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="inline-flex items-center gap-1.5 text-sm text-signal font-semibold hover:text-signal-deep"
+                >
+                  <Copy size={14} /> {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-ink/50">The check-in link is not ready yet. Refresh the page and try again.</p>
+            )}
           </div>
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-4 text-center">
+          <div className={`${CARD} p-4 text-center`}>
             <p className="font-display text-2xl font-bold text-ink">{checkedInCount}</p>
             <p className="text-ink/50 text-xs mt-0.5">Checked In</p>
           </div>
           <div className="bg-signal-50 rounded-2xl p-4 text-center">
-            <p className="font-display text-2xl font-bold text-signal-deep">{qrCount}</p>
-            <p className="text-signal text-xs mt-0.5">Via QR</p>
+            <p className="font-display text-2xl font-bold text-signal-deep">{selfCount}</p>
+            <p className="text-signal text-xs mt-0.5">Self check-in</p>
           </div>
           <div className="bg-sage-50 rounded-2xl p-4 text-center">
             <p className="font-display text-2xl font-bold text-sage">{manualCount}</p>
@@ -185,7 +354,9 @@ export default function ServiceAttendance() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+        {message && <p className="text-sm text-rose text-center">{message}</p>}
+
+        <div className={`${CARD} p-5 space-y-3`}>
           <input
             placeholder="Search by name…"
             value={search}
@@ -193,48 +364,45 @@ export default function ServiceAttendance() {
             className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
 
-          {loading ? (
-            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
-          ) : filteredMembers.length === 0 ? (
+          {filteredMembers.length === 0 ? (
             <p className="text-ink/40 text-sm py-6 text-center">No members found.</p>
           ) : (
             <div className="divide-y max-h-[60vh] overflow-y-auto">
               {filteredMembers.map((m) => {
                 const record = attendance[m.id];
                 return (
-                  <button
-                    key={m.id}
-                    onClick={() => handleManualToggle(m.id)}
-                    disabled={!!record}
-                    className="w-full flex items-center justify-between py-3 px-1 text-left disabled:cursor-default"
-                  >
-                    <div className="flex items-center gap-3">
+                  <div key={m.id} className="flex items-center justify-between py-1">
+                    <button
+                      type="button"
+                      onClick={() => handleCheckIn(m)}
+                      disabled={!!record}
+                      className="flex-1 flex items-center gap-3 py-2.5 px-1 text-left disabled:cursor-default"
+                    >
                       {record ? (
                         <CheckCircle2 size={20} className="text-sage shrink-0" />
                       ) : (
                         <Circle size={20} className="text-ink/20 shrink-0" />
                       )}
-                      <span className={`text-sm font-medium ${record ? 'text-ink/40' : 'text-ink'}`}>
-                        {m.full_name}
-                      </span>
-                    </div>
+                      <span className={`text-sm font-medium ${record ? 'text-ink/40' : 'text-ink'}`}>{m.full_name}</span>
+                    </button>
                     {record && (
-                      <span className="text-xs text-ink/40">
-                        {record.method === 'qr_self' ? 'QR' : 'Manual'}
-                      </span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs text-ink/40">{METHOD_LABELS[record.method] || record.method}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleUndo(m)}
+                          className="text-xs text-rose hover:text-rose/80 font-medium"
+                        >
+                          Undo
+                        </button>
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
-
-        {!session && !loading && (
-          <p className="text-ink/30 text-xs text-center flex items-center justify-center gap-1.5">
-            <Users size={14} /> No one has checked in yet today — the session starts automatically with the first check-in.
-          </p>
-        )}
       </div>
     </div>
   );

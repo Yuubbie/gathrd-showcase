@@ -1,60 +1,82 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Search, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
+const CARD =
+  'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
+
 export default function PublicAttendanceCheckin() {
   const { slug } = useParams();
-  const [church, setChurch] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('t') || '';
+
+  const [info, setInfo] = useState(null); // { found, church_name, open, service_name }
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [checkingIn, setCheckingIn] = useState(null); // member id currently submitting
+  const [search, setSearch] = useState('');
+  const [matches, setMatches] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [picked, setPicked] = useState(null); // member awaiting confirmation
+  const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { status, memberName }
 
   useEffect(() => {
     async function load() {
-      const { data: churchRows, error: churchError } = await supabase
-        .rpc('get_church_attendance_info_by_slug', { p_slug: slug });
-
-      if (churchError || !churchRows || churchRows.length === 0) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-
-      const churchInfo = churchRows[0];
-      setChurch(churchInfo);
-
-      const { data: memberRows, error: memberError } = await supabase
-        .rpc('get_members_for_checkin', { p_church_id: churchInfo.church_id });
-
-      if (!memberError) setMembers(memberRows || []);
+      const { data, error } = await supabase.rpc('get_checkin_info', { p_slug: slug, p_token: token });
+      setInfo(error || !data ? { found: false } : data);
       setLoading(false);
     }
     load();
-  }, [slug]);
+  }, [slug, token]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.trim().toLowerCase();
-    return members.filter((m) => m.full_name.toLowerCase().includes(q)).slice(0, 8);
-  }, [search, members]);
-
-  async function handleCheckIn(member) {
-    setCheckingIn(member.id);
-    const { data, error } = await supabase.rpc('self_check_in', {
-      p_church_id: church.church_id,
-      p_member_id: member.id,
-    });
-    setCheckingIn(null);
-
-    if (error || !data || data.length === 0) {
-      setResult({ status: 'error', memberName: member.full_name });
-      return;
+  // Ask the server for matches only once at least 3 letters are typed. The full
+  // member list is never sent to this page.
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 3 || !info?.open) {
+      setMatches([]);
+      setSearching(false);
+      return undefined;
     }
-    setResult({ status: data[0].status, memberName: member.full_name });
+    setSearching(true);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('search_checkin_members', {
+        p_slug: slug,
+        p_token: token,
+        p_query: q,
+      });
+      if (cancelled) return;
+      setMatches(error || !Array.isArray(data) ? [] : data);
+      setSearching(false);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, slug, token, info]);
+
+  async function confirmCheckIn() {
+    if (!picked) return;
+    setSubmitting(true);
+    const { data, error } = await supabase.rpc('public_check_in', {
+      p_slug: slug,
+      p_token: token,
+      p_member_id: picked.id,
+    });
+    setSubmitting(false);
+    setResult({
+      status: error || !data ? 'error' : data.status,
+      memberName: picked.full_name,
+    });
+    setPicked(null);
+  }
+
+  function reset() {
+    setResult(null);
+    setPicked(null);
+    setSearch('');
+    setMatches([]);
   }
 
   if (loading) {
@@ -65,23 +87,32 @@ export default function PublicAttendanceCheckin() {
     );
   }
 
-  if (notFound) {
+  if (!info?.found) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
-        <div className="max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 text-center">
+        <div className={`max-w-sm ${CARD} p-6 text-center`}>
           <p className="text-ink/60 text-sm">This check-in link isn't recognized. Please ask an usher for help.</p>
         </div>
       </div>
     );
   }
 
-  // Success / already-checked-in / error state — takes over the whole screen
-  // so there's no confusion about whether the tap registered.
+  if (!info.open) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
+        <div className={`max-w-sm w-full ${CARD} p-6 text-center space-y-2`}>
+          <h1 className="font-display text-lg font-bold text-ink">{info.church_name}</h1>
+          <p className="text-ink/60 text-sm">Check-in is not open right now. Please ask an usher for help.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (result) {
     const isSuccess = result.status === 'checked_in' || result.status === 'already_checked_in';
     return (
       <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-8 text-center space-y-3">
+        <div className={`max-w-sm w-full ${CARD} p-8 text-center space-y-3`}>
           {isSuccess ? (
             <>
               <CheckCircle2 size={40} className="text-sage mx-auto" />
@@ -92,14 +123,13 @@ export default function PublicAttendanceCheckin() {
             </>
           ) : (
             <>
-              <h1 className="font-display text-lg font-bold text-ink">Something went wrong</h1>
-              <p className="text-ink/60 text-sm">Please ask an usher to check you in manually — no need to try again.</p>
+              <h1 className="font-display text-lg font-bold text-ink">
+                {result.status === 'closed' ? 'Check-in has closed' : 'Something went wrong'}
+              </h1>
+              <p className="text-ink/60 text-sm">Please ask an usher to check you in manually.</p>
             </>
           )}
-          <button
-            onClick={() => { setResult(null); setSearch(''); }}
-            className="text-signal text-sm font-semibold hover:text-signal-deep mt-2"
-          >
+          <button onClick={reset} className="text-signal text-sm font-semibold hover:text-signal-deep mt-2">
             Not you? Check in someone else
           </button>
         </div>
@@ -107,41 +137,78 @@ export default function PublicAttendanceCheckin() {
     );
   }
 
+  if (picked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
+        <div className={`max-w-sm w-full ${CARD} p-8 text-center space-y-4`}>
+          <h1 className="font-display text-lg font-bold text-ink">Check in as {picked.full_name}?</h1>
+          <p className="text-ink/50 text-sm">Only tap yes if this is you.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setPicked(null)}
+              disabled={submitting}
+              className="flex-1 border border-ink/15 text-ink/70 rounded-lg py-3 font-semibold hover:bg-parchment transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmCheckIn}
+              disabled={submitting}
+              className="flex-1 bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
+            >
+              {submitting ? 'Checking in…' : "Yes, that's me"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const q = search.trim();
+
   return (
     <div className="min-h-screen bg-parchment px-4 py-10">
       <div className="max-w-sm mx-auto space-y-4">
         <div className="text-center space-y-1">
-          <h1 className="font-display text-xl font-bold text-ink">{church?.church_name}</h1>
+          <h1 className="font-display text-xl font-bold text-ink">{info.church_name}</h1>
+          <p className="text-ink/50 text-sm">{info.service_name}</p>
           <p className="text-ink/50 text-sm">Find your name to check in</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-4">
+        <div className={`${CARD} p-4`}>
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30" />
             <input
               autoFocus
-              placeholder="Start typing your name…"
+              placeholder="Type at least 3 letters of your name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full border border-ink/10 rounded-lg pl-10 pr-3.5 py-3 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             />
           </div>
 
-          {search.trim() && (
+          {q.length > 0 && q.length < 3 && (
+            <p className="text-ink/40 text-sm text-center py-4">Keep typing…</p>
+          )}
+
+          {q.length >= 3 && (
             <div className="mt-3 space-y-1">
-              {filtered.length === 0 ? (
+              {searching ? (
+                <p className="text-ink/40 text-sm text-center py-4">Searching…</p>
+              ) : matches.length === 0 ? (
                 <p className="text-ink/40 text-sm text-center py-4">
-                  No match — check the spelling, or ask an usher to check you in.
+                  No match. Check the spelling, or ask an usher to check you in.
                 </p>
               ) : (
-                filtered.map((m) => (
+                matches.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => handleCheckIn(m)}
-                    disabled={checkingIn === m.id}
-                    className="w-full text-left px-3.5 py-3 rounded-lg hover:bg-parchment transition-colors text-base font-medium text-ink disabled:opacity-50"
+                    onClick={() => setPicked(m)}
+                    disabled={m.checked_in}
+                    className="w-full text-left px-3.5 py-3 rounded-lg hover:bg-parchment transition-colors text-base font-medium text-ink disabled:opacity-50 disabled:cursor-default flex items-center justify-between"
                   >
-                    {checkingIn === m.id ? 'Checking you in…' : m.full_name}
+                    <span>{m.full_name}</span>
+                    {m.checked_in && <span className="text-xs text-sage font-semibold">Checked in</span>}
                   </button>
                 ))
               )}
