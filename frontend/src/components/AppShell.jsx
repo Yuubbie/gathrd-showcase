@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import WhatsAppButton from './WhatsAppButton';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
@@ -174,6 +175,10 @@ export default function AppShell({ children }) {
       )}
 
       <main className="flex-1 min-w-0">{children}</main>
+
+      <WhatsAppButton
+        message={`Hello Gathrd, I'm ${profile?.full_name || 'a user'} from ${church?.name || 'my church'}. I need help with: `}
+      />
     </div>
   );
 }
