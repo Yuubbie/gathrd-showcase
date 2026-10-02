@@ -5,6 +5,7 @@ import {
   Bell, Settings, Smartphone, Shield, Clock,
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
+import WhatsAppButton from '../components/WhatsAppButton';
 import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 
 const FEATURES = [
@@ -220,6 +221,8 @@ export default function Landing() {
           <p className="text-white/50 text-sm">© 2026 Gathrd. All rights reserved.</p>
         </div>
       </footer>
+
+      <WhatsAppButton message="Hello Gathrd, I'd like to know more about the platform." />
     </div>
   );
 }
