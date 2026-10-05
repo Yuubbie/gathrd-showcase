@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
@@ -131,6 +132,18 @@ export default function GivingSettings() {
 
         {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
         {success && <div className="text-sm text-sage bg-sage-50 rounded-lg p-3">{success}</div>}
+
+        <div className="bg-white rounded-2xl border border-ink/5 p-5 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-sm font-semibold text-ink/80">Bank transfer details</h2>
+            <p className="text-xs text-ink/50 mt-0.5">
+              List the accounts members can send offerings to by bank transfer.
+            </p>
+          </div>
+          <Link to="/giving/bank-accounts" className="text-sm text-signal font-semibold hover:text-signal-deep">
+            Manage →
+          </Link>
+        </div>
 
         <form onSubmit={saveBankDetails} className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
           <h2 className="text-sm font-semibold text-ink/80">1. Settlement Bank Account</h2>
