@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Copy } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 const CATEGORIES = [
@@ -11,6 +12,39 @@ const CATEGORIES = [
 ];
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 20000];
+
+const CARD =
+  'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
+
+function formatDate(value) {
+  try {
+    return new Date(value).toLocaleDateString('en-NG', { dateStyle: 'medium' });
+  } catch (err) {
+    return '';
+  }
+}
+
+function ModeTabs({ mode, onChange }) {
+  const base = 'flex-1 text-sm rounded-lg py-2 font-medium transition-colors';
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={() => onChange('card')}
+        className={`${base} ${mode === 'card' ? 'bg-signal text-white' : 'bg-ink/5 text-ink/60 hover:bg-ink/10'}`}
+      >
+        Card or online
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('bank')}
+        className={`${base} ${mode === 'bank' ? 'bg-signal text-white' : 'bg-ink/5 text-ink/60 hover:bg-ink/10'}`}
+      >
+        Bank transfer
+      </button>
+    </div>
+  );
+}
 
 export default function PublicGive() {
   const { slug } = useParams();
@@ -25,19 +59,38 @@ export default function PublicGive() {
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [bank, setBank] = useState({ accounts: [], lastChanged: null });
+  const [mode, setMode] = useState('card');
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   useEffect(() => {
     async function loadChurch() {
-      const { data, error } = await supabase.rpc('get_church_giving_info_by_slug', { p_slug: slug });
+      const [{ data, error }, { data: bankData }] = await Promise.all([
+        supabase.rpc('get_church_giving_info_by_slug', { p_slug: slug }),
+        supabase.rpc('get_bank_accounts_by_slug', { p_slug: slug }),
+      ]);
       if (error || !data || data.length === 0) {
         setNotFound(true);
       } else {
         setChurch(data[0]);
+        const accounts = bankData && bankData.found ? bankData.accounts || [] : [];
+        setBank({ accounts, lastChanged: bankData ? bankData.last_changed : null });
+        setMode(data[0].has_giving_enabled ? 'card' : 'bank');
       }
       setLoadingChurch(false);
     }
     loadChurch();
   }, [slug]);
+
+  async function copyNumber(text, index) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      // The number is shown on screen, so it can still be copied by hand.
+    }
+  }
 
   async function handleGive(e) {
     e.preventDefault();
@@ -94,7 +147,10 @@ export default function PublicGive() {
     );
   }
 
-  if (!church.has_giving_enabled) {
+  const hasCard = Boolean(church.has_giving_enabled);
+  const hasBank = bank.accounts.length > 0;
+
+  if (!hasCard && !hasBank) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="text-center">
@@ -104,9 +160,57 @@ export default function PublicGive() {
     );
   }
 
+  if (mode === 'bank' || !hasCard) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
+        <div className={`w-full max-w-sm ${CARD} p-6 space-y-4`}>
+          {hasCard && hasBank && <ModeTabs mode="bank" onChange={setMode} />}
+
+          <div className="text-center mb-2">
+            <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
+            <h1 className="font-display text-lg font-bold text-ink">Give to {church.church_name}</h1>
+            <p className="text-ink/50 text-sm mt-1">Give by bank transfer</p>
+          </div>
+
+          <div className="space-y-3">
+            {bank.accounts.map((a, i) => (
+              <div key={`${a.account_number}-${i}`} className="border border-ink/10 rounded-xl p-4">
+                <p className="text-xs font-semibold text-signal-deep uppercase tracking-wide">{a.label}</p>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <p className="font-display text-xl font-bold text-ink tracking-wider">{a.account_number}</p>
+                  <button
+                    type="button"
+                    onClick={() => copyNumber(a.account_number, i)}
+                    className="flex items-center gap-1 text-xs text-signal font-semibold hover:text-signal-deep shrink-0"
+                  >
+                    <Copy size={13} /> {copiedIndex === i ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <p className="text-sm text-ink/70 mt-1">{a.bank_name}</p>
+                <p className="text-sm text-ink/50">{a.account_name}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-ink/50">
+            Put your name and what you are giving toward (for example Tithe) in the transfer narration, so your church
+            can record it.
+          </p>
+          <p className="text-xs text-ink/40">
+            Always check that the account name matches your church before you send.
+            {bank.lastChanged ? ` These details were last changed on ${formatDate(bank.lastChanged)}.` : ''} If anything
+            differs from what your church told you, confirm with your church first.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
       <form onSubmit={handleGive} className="w-full max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
+        {hasBank && <ModeTabs mode="card" onChange={setMode} />}
+
         <div className="text-center mb-2">
           <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
           <h1 className="font-display text-lg font-bold text-ink">Give to {church.church_name}</h1>

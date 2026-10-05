@@ -135,6 +135,9 @@ export default function GivingLog() {
             <Link to="/giving/counting" className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
               Counting Sheets
             </Link>
+            <Link to="/giving/bank-accounts" className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
+              Bank Accounts
+            </Link>
             <Link to="/giving/settings" className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors">
               Settings
             </Link>

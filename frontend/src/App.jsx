@@ -11,6 +11,7 @@ import VisitorCheckIn from './pages/VisitorCheckIn';
 import VisitorLog from './pages/VisitorLog';
 import DiscipleshipTracker from './pages/DiscipleshipTracker';
 import GivingSettings from './pages/GivingSettings';
+import BankAccounts from './pages/BankAccounts';
 import GivingLog from './pages/GivingLog';
 import CountingSheet from './pages/CountingSheet';
 import PublicGive from './pages/PublicGive';
@@ -162,6 +163,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <GivingSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/giving/bank-accounts"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin']}>
+                <BankAccounts />
               </ProtectedRoute>
             }
           />
