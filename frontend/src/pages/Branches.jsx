@@ -9,15 +9,6 @@ import {
 } from 'lucide-react';
 import { createBranchInvitation, getBranchInvitations, revokeInvitation } from '../lib/branchInviteFlow';
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export default function Branches() {
   const { profile, church } = useAuth();
   const [branches, setBranches] = useState([]);
@@ -69,7 +60,7 @@ export default function Branches() {
       const signupUrl = `${window.location.origin}/branch-signup/${result.invitation.token}`;
 
       console.log('Sending invitation email...', { signupUrl });
-      const emailSent = await sendInvitationEmail(inviteEmail.trim(), signupUrl);
+      const emailSent = await sendInvitationEmail(inviteEmail.trim(), result.invitation.token);
       console.log('Email sent result:', emailSent);
 
       setInviting(false);
@@ -89,66 +80,13 @@ export default function Branches() {
     }
   }
 
-  async function sendInvitationEmail(toEmail, signupUrl) {
+  // The server builds the email itself from a fixed template (inviter name, church
+  // name and link all come from the server). The browser only sends the recipient
+  // and the invitation token.
+  async function sendInvitationEmail(toEmail, token) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-
-      const inviterName = escapeHtml(profile?.full_name || 'Pastor');
-      const parentChurchName = escapeHtml(church?.name || 'Your Church');
-      const hierarchyLevel = escapeHtml(church?.hierarchy_level || 'District');
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
-      const year = new Date().getFullYear();
-
-      const emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
-            <h1 style="color: #fbbf24; margin: 0; font-size: 28px; font-weight: 700;">You're Invited</h1>
-            <p style="color: #d1d5db; margin-top: 8px; font-size: 16px;">To join ${parentChurchName} on Gathrd</p>
-          </div>
-
-          <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Hello,</p>
-            <p style="color: #4b5563; margin-bottom: 24px;">
-              <strong>${inviterName}</strong> has invited you to set up a <strong>${hierarchyLevel}</strong> branch
-              under <strong>${parentChurchName}</strong> on Gathrd.
-            </p>
-
-            <div style="text-align: center; margin: 32px 0;">
-              <a href="${signupUrl}"
-                 style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
-                        color: #fbbf24; padding: 16px 32px; text-decoration: none;
-                        border-radius: 8px; font-weight: 600; font-size: 16px;">
-                Set Up Your Branch
-              </a>
-            </div>
-
-            <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 24px 0;">
-              <p style="margin: 0; color: #92400e; font-size: 14px;">
-                <strong>This invitation expires on ${expiresAt}.</strong><br>
-                Please complete your setup before then.
-              </p>
-            </div>
-
-            <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
-              If you didn't expect this invitation, you can safely ignore this email.
-            </p>
-
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
-            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              &copy; ${year} Gathrd. All rights reserved.<br>
-              Church Management Platform for Nigerian Churches
-            </p>
-          </div>
-        </body>
-        </html>
-      `;
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
@@ -157,9 +95,9 @@ export default function Branches() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
+          type: 'branch_invite',
           to: toEmail,
-          subject: `You're invited to join ${church?.name || 'a church'} on Gathrd`,
-          html: emailHtml,
+          token,
         }),
       });
 
