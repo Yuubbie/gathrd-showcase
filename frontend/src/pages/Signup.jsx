@@ -4,15 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +15,9 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  async function sendWelcomeEmail({ to, fullName, churchName }) {
+  // The server builds the welcome email itself from a fixed template and sends it
+  // only to the logged-in user's own address. The browser only asks for it.
+  async function sendWelcomeEmail() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -32,71 +25,13 @@ export default function Signup() {
         return false;
       }
 
-      const safeName = escapeHtml(fullName);
-      const safeChurch = escapeHtml(churchName);
-      const year = new Date().getFullYear();
-      const loginUrl = `${window.location.origin}/login`;
-
-      const emailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
-            <h1 style="color: #fbbf24; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Gathrd!</h1>
-            <p style="color: #d1d5db; margin-top: 8px; font-size: 16px;">Your church management journey starts now</p>
-          </div>
-
-          <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Hello ${safeName},</p>
-            <p style="color: #4b5563; margin-bottom: 24px;">
-              Welcome to Gathrd! Your church <strong>${safeChurch}</strong> is now set up and ready to go.
-            </p>
-
-            <div style="text-align: center; margin: 32px 0;">
-              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fbbf24; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                Log In to Your Dashboard
-              </a>
-            </div>
-
-            <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin: 24px 0;">
-              <p style="margin: 0; color: #92400e; font-size: 14px;">
-                <strong>Next steps:</strong><br>
-                &bull; Log in to your dashboard<br>
-                &bull; Invite your team members<br>
-                &bull; Add your congregation members<br>
-                &bull; Set up giving and tithes
-              </p>
-            </div>
-
-            <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
-              If you have any questions, reply to this email &mdash; we're here to help!
-            </p>
-
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
-            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              &copy; ${year} Gathrd. All rights reserved.<br>
-              Church Management Platform for Nigerian Churches
-            </p>
-          </div>
-        </body>
-        </html>
-      `;
-
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          to,
-          subject: `Welcome to Gathrd, ${fullName}!`,
-          html: emailHtml,
-        }),
+        body: JSON.stringify({ type: 'welcome' }),
       });
 
       let data = null;
@@ -131,8 +66,8 @@ export default function Signup() {
       return;
     }
 
-    // Send welcome email via the Vercel API route (never blocks signup if it fails)
-    await sendWelcomeEmail({ to: email, fullName, churchName });
+    // Ask the server to send the welcome email (never blocks signup if it fails)
+    await sendWelcomeEmail();
 
     navigate('/check-email');
   }
