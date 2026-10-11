@@ -1,3 +1,4 @@
+// BranchSignup.tsx - NEW VERSION: looks up the invitation by token through a database function
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -38,11 +39,13 @@ export default function BranchSignup() {
 
   async function verifyToken() {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('branch_invitations')
-        .select('*')
-        .eq('token', token)
-        .single();
+      // The database returns ONLY the invitation that matches this secret token.
+      const { data: rows, error: fetchError } = await supabase.rpc(
+        'get_branch_invitation_by_token',
+        { p_token: token }
+      );
+
+      const data = Array.isArray(rows) ? rows[0] : null;
 
       if (fetchError || !data) {
         throw new Error('Invalid or expired invitation token');
@@ -88,15 +91,15 @@ export default function BranchSignup() {
       const branchName =
         formData.churchName.trim() || `Branch - ${formData.email.split('@')[0]}`;
 
-      // 1. Create the login (or sign in if an earlier attempt already created it)
+      // 1. Create the login (or sign in if an earlier attempt already created it).
+      //    No church name or role is sent here: the invitation (step 2) decides both,
+      //    so the account is NOT given a separate church of its own at sign-up.
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             full_name: formData.fullName,
-            church_name: branchName,
-            role: 'senior_pastor',
           },
         },
       });
@@ -316,7 +319,7 @@ export default function BranchSignup() {
               disabled={submitting}
               className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
             >
-              {submitting ? 'Creating Account…' : 'Create Account & Continue'}
+              {submitting ? 'Creating Account...' : 'Create Account & Continue'}
             </button>
 
             <p className="text-sm text-center text-ink/50">
