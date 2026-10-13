@@ -1,3 +1,4 @@
+// SetPassword.jsx - NEW VERSION (works for invite links and password reset links)
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -15,11 +16,9 @@ export default function SetPassword() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // The invite link carries a token in the URL that supabase-js
-    // automatically detects and uses to establish a temporary session —
-    // this happens before this component even mounts, in most cases. We
-    // just need to confirm that session actually exists before showing
-    // the form, rather than assume it silently worked.
+    // Invite links and password reset links both carry a token in the URL that
+    // supabase-js detects and uses to establish a temporary session, usually before
+    // this component mounts. We confirm that session exists before showing the form.
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       setSessionValid(!!session);
@@ -27,8 +26,8 @@ export default function SetPassword() {
     }
     checkSession();
 
-    // Also listen for the moment Supabase finishes processing the invite
-    // token, in case it hasn't resolved yet on the very first check above.
+    // Also listen for the moment Supabase finishes processing the token, in case it
+    // has not resolved yet on the very first check above.
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setSessionValid(true);
@@ -48,7 +47,7 @@ export default function SetPassword() {
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords don\u2019t match.');
+      setError("Passwords don't match.");
       return;
     }
 
@@ -66,7 +65,7 @@ export default function SetPassword() {
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-parchment px-4">
-        <p className="text-ink/40 text-sm">Confirming your invite…</p>
+        <p className="text-ink/40 text-sm">Confirming your link...</p>
       </div>
     );
   }
@@ -77,8 +76,17 @@ export default function SetPassword() {
         <div className="max-w-sm w-full bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 text-center space-y-3">
           <h1 className="font-display text-lg font-bold text-ink">This link isn't working</h1>
           <p className="text-ink/60 text-sm">
-            This invite link may have expired or already been used. Ask whoever invited you to send a new one.
+            This link may have expired or already been used. If you were resetting your password, go to
+            the log in page and choose Forgot password to get a new link. If you were invited, ask whoever
+            invited you to send a new one.
           </p>
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors"
+          >
+            Go to log in
+          </button>
         </div>
       </div>
     );
@@ -95,7 +103,7 @@ export default function SetPassword() {
         </div>
         <div className="relative">
           <h1 className="font-display text-3xl font-bold text-white leading-tight mb-3">
-            You've been added to your church's Gathrd account.
+            Choose a password for your Gathrd account.
           </h1>
           <p className="text-white/70 text-sm">
             Set a password to finish getting in.
@@ -111,7 +119,7 @@ export default function SetPassword() {
 
           <div>
             <h2 className="font-display text-2xl font-bold text-ink">Set your password</h2>
-            <p className="text-ink/50 text-sm mt-1">Choose a password to finish setting up your account.</p>
+            <p className="text-ink/50 text-sm mt-1">Choose a new password for your account.</p>
           </div>
 
           {error && (
@@ -171,7 +179,7 @@ export default function SetPassword() {
             disabled={submitting}
             className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
           >
-            {submitting ? 'Setting password…' : 'Set Password & Continue'}
+            {submitting ? 'Setting password...' : 'Set Password & Continue'}
           </button>
         </form>
       </div>
