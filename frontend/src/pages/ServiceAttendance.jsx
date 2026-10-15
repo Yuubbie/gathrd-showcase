@@ -313,6 +313,23 @@ export default function ServiceAttendance() {
           </div>
         </div>
 
+        <div className={`${CARD} p-6 text-center space-y-2`}>
+          <p className="text-sm text-ink/60">Check-in code</p>
+          {service.check_in_code ? (
+            <>
+              <p className="font-display text-5xl font-bold tracking-[0.3em] pl-[0.3em] text-ink">
+                {service.check_in_code}
+              </p>
+              <p className="text-ink/40 text-xs">
+                Announce this code or show it on the screen. Members type it into the app to check in. It changes every
+                service and stops working when you end the service.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-ink/50">This service has no code. End it and start a new service to get one.</p>
+          )}
+        </div>
+
         {showQr && (
           <div className={`${CARD} p-6 text-center space-y-3`}>
             {checkInUrl ? (
