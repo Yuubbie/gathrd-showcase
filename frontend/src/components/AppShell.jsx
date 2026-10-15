@@ -1,9 +1,9 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
-  CreditCard, Building2, BarChart3,
+  CreditCard, Building2, BarChart3, CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -12,6 +12,7 @@ import WhatsAppButton from './WhatsAppButton';
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/roster', label: 'Roster', icon: CalendarDays, roles: null },
   { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/discipleship', label: 'Discipleship', icon: Sparkles, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
