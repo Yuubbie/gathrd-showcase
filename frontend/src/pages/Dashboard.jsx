@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [service, setService] = useState(null);
   const [checkInWorking, setCheckInWorking] = useState(false);
   const [checkInError, setCheckInError] = useState('');
+  const [checkInCode, setCheckInCode] = useState('');
 
   const canSeeFinance = ['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role);
   const canSeeChurchStats = CHURCH_WIDE_ROLES.includes(profile?.role);
@@ -296,9 +297,14 @@ export default function Dashboard() {
   }, [isMember]);
 
   async function handleMemberCheckIn() {
+    const code = checkInCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setCheckInError('Enter the 6-digit code shown at church.');
+      return;
+    }
     setCheckInWorking(true);
     setCheckInError('');
-    const { data, error } = await supabase.rpc('member_check_in');
+    const { data, error } = await supabase.rpc('member_check_in_with_code', { p_code: code });
     setCheckInWorking(false);
 
     if (error || !data) {
@@ -306,10 +312,19 @@ export default function Dashboard() {
       return;
     }
     if (data.status === 'checked_in' || data.status === 'already_checked_in') {
+      setCheckInCode('');
       setService((prev) => (prev ? { ...prev, already_checked_in: true } : prev));
       if (data.status === 'checked_in') {
         setMyStats((prev) => ({ ...prev, servicesAttended: (prev.servicesAttended ?? 0) + 1 }));
       }
+      return;
+    }
+    if (data.status === 'wrong_code') {
+      setCheckInError('That code is not correct. Check the screen or ask an usher.');
+      return;
+    }
+    if (data.status === 'too_many_attempts') {
+      setCheckInError('Too many wrong codes. Please wait 10 minutes, or ask an usher to check you in.');
       return;
     }
     if (data.status === 'no_service') {
@@ -361,19 +376,33 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="space-y-3">
               <div>
                 <p className="text-xs text-ink/40">Service in progress</p>
                 <p className="font-display font-bold text-ink">{service.service_name}</p>
+                <p className="text-sm text-ink/50 mt-1">Enter the 6-digit code shown at church.</p>
               </div>
-              <button
-                type="button"
-                onClick={handleMemberCheckIn}
-                disabled={checkInWorking}
-                className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {checkInWorking ? 'Checking in…' : 'Check me in'}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  placeholder="000000"
+                  aria-label="6-digit check-in code"
+                  value={checkInCode}
+                  onChange={(e) => setCheckInCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="flex-1 border border-ink/10 rounded-lg px-4 py-3 text-center text-lg tracking-[0.3em] focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={handleMemberCheckIn}
+                  disabled={checkInWorking || checkInCode.length !== 6}
+                  className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {checkInWorking ? 'Checking in…' : 'Check me in'}
+                </button>
+              </div>
             </div>
           )}
           {checkInError && <p className="text-sm text-rose mt-3">{checkInError}</p>}
