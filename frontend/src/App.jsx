@@ -32,6 +32,7 @@ import BranchSignup from './pages/BranchSignup';
 import DistrictDashboard from './pages/DistrictDashboard';
 import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
+import Roster from './pages/Roster';
 import InviteStaff from './pages/InviteStaff';
 import SetPassword from './pages/SetPassword';
 import ClaimAccount from './pages/ClaimAccount';
@@ -97,6 +98,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <ServiceAttendance />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roster"
+            element={
+              <ProtectedRoute>
+                <Roster />
               </ProtectedRoute>
             }
           />
