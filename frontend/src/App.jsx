@@ -33,6 +33,7 @@ import DistrictDashboard from './pages/DistrictDashboard';
 import PublicAttendanceCheckin from './pages/PublicAttendanceCheckin';
 import ServiceAttendance from './pages/ServiceAttendance';
 import Roster from './pages/Roster';
+import ChurchCalendar from './pages/Calendar';
 import InviteStaff from './pages/InviteStaff';
 import SetPassword from './pages/SetPassword';
 import ClaimAccount from './pages/ClaimAccount';
@@ -106,6 +107,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Roster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <ChurchCalendar />
               </ProtectedRoute>
             }
           />
