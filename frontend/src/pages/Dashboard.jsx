@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2 } from 'lucide-react';
+import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2, CalendarDays } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -49,6 +49,14 @@ function timeAgo(dateStr) {
   return `${days}d ago`;
 }
 
+function formatDutyDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
 export default function Dashboard() {
   const { profile, church } = useAuth();
   const [stats, setStats] = useState({ members: 0, visitors: 0, givingThisMonth: 0, converts: 0 });
@@ -71,6 +79,8 @@ export default function Dashboard() {
   const [checkInWorking, setCheckInWorking] = useState(false);
   const [checkInError, setCheckInError] = useState('');
   const [checkInCode, setCheckInCode] = useState('');
+  // Roster duties assigned to the logged-in person (next 60 days).
+  const [myDuties, setMyDuties] = useState([]);
 
   const canSeeFinance = ['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role);
   const canSeeChurchStats = CHURCH_WIDE_ROLES.includes(profile?.role);
@@ -296,6 +306,21 @@ export default function Dashboard() {
     };
   }, [isMember]);
 
+  // Anyone with a linked member record: load the duties assigned to them.
+  // The database function only ever returns the caller's own duties.
+  useEffect(() => {
+    if (!profile?.church_id) return undefined;
+    let cancelled = false;
+    async function loadDuties() {
+      const { data, error } = await supabase.rpc('get_my_duties');
+      if (!cancelled && !error && Array.isArray(data)) setMyDuties(data);
+    }
+    loadDuties();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.church_id]);
+
   async function handleMemberCheckIn() {
     const code = checkInCode.trim();
     if (!/^\d{6}$/.test(code)) {
@@ -343,6 +368,19 @@ export default function Dashboard() {
   // have personal member stats either — rather than an empty stat row,
   // say so plainly instead of implying there's just no data.
   const noStatsAvailable = !canSeeChurchStats && !canSeeFinance && !cellStats && !isMember;
+
+  // Group the duty lines by service so a person with several duties at one
+  // service sees them together.
+  const dutyGroups = [];
+  for (const d of myDuties) {
+    const key = `${d.service_date}|${d.service_title}`;
+    let group = dutyGroups.find((g) => g.key === key);
+    if (!group) {
+      group = { key, date: d.service_date, title: d.service_title, duties: [] };
+      dutyGroups.push(group);
+    }
+    group.duties.push(d.duty);
+  }
 
   return (
     <div className="px-5 py-8 md:px-10 md:py-10 max-w-5xl mx-auto">
@@ -406,6 +444,28 @@ export default function Dashboard() {
             </div>
           )}
           {checkInError && <p className="text-sm text-rose mt-3">{checkInError}</p>}
+        </Card>
+      )}
+
+      {dutyGroups.length > 0 && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays size={18} className="text-signal" />
+              <h2 className="font-display font-bold text-ink text-sm">My Duties</h2>
+            </div>
+            <Link to="/roster" className="text-xs text-signal font-semibold hover:text-signal-deep">View roster →</Link>
+          </div>
+          <div className="divide-y divide-ink/5">
+            {dutyGroups.slice(0, 5).map((g) => (
+              <div key={g.key} className="py-2.5">
+                <p className="text-sm font-medium text-ink">
+                  {formatDutyDate(g.date)} <span className="text-ink/40 font-normal">· {g.title}</span>
+                </p>
+                <p className="text-sm text-ink/60 mt-0.5">{g.duties.join(', ')}</p>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
