@@ -2,25 +2,25 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, Settings, Smartphone, Shield, Clock,
+  Bell, Settings, Smartphone, Shield, Clock, CalendarDays,
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 
 const FEATURES = [
-  { icon: Users, title: 'Member Management', desc: '8 role types, departments, cell groups, and self-service member claiming.' },
-  { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'QR self-check-in and manual usher entry for Sunday services.' },
+  { icon: Users, title: 'Member Management', desc: 'Members, departments, cell groups, and role-based access for your leaders and workers.' },
+  { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'A fresh QR code and 6-digit code every Sunday, plus manual usher entry.' },
   { icon: Wallet, title: 'Giving & Tithes', desc: 'Accept donations via Paystack with full transaction records and counting sheets.' },
-  { icon: Megaphone, title: 'Announcements', desc: 'Send SMS and in-app notifications to your entire congregation.' },
+  { icon: Megaphone, title: 'Announcements', desc: 'Send announcements that reach every member in the app.' },
   { icon: UsersRound, title: 'Cell Groups', desc: 'Manage cell groups, track attendance, and submit weekly reports.' },
   { icon: ListChecks, title: 'Follow-Up Dashboard', desc: 'Never miss a visitor or struggling member again.' },
   { icon: UserPlus, title: 'Visitor Management', desc: 'Track every visitor from first visit to membership.' },
   { icon: Sparkles, title: 'Discipleship Tracking', desc: 'Track spiritual journeys and celebrate milestones.' },
-  { icon: Bell, title: 'Notifications', desc: 'Real-time in-app and SMS notifications for your church.' },
+  { icon: CalendarDays, title: 'Church Calendar', desc: 'Events that repeat weekly or monthly, with reminders in the app.' },
   { icon: Settings, title: 'Church Branding', desc: 'Custom logo and brand colors throughout the app.' },
-  { icon: Smartphone, title: 'Installable PWA', desc: 'Works on any device, even offline.' },
-  { icon: Shield, title: 'Role-Based Access', desc: '8 role types with granular permissions.' },
+  { icon: Smartphone, title: 'Installs Like an App', desc: 'Add Gathrd to any phone home screen. No app store needed.' },
+  { icon: Bell, title: 'Duty Roster', desc: 'An order of service for every Sunday, with duties and reminders for your workers.' },
 ];
 
 export default function Landing() {
@@ -65,10 +65,10 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight">
-              The Easiest Church Management & Administration Platform
+              Church Management Built for Nigerian Churches
             </h1>
             <p className="text-ink/60 text-lg mt-4 max-w-lg">
-              Manage members, track attendance, accept giving, and grow your congregation — all from one simple dashboard.
+              Run Sunday check-in, duty rosters, giving, visitor follow-up and discipleship from one simple dashboard, designed for how churches in Nigeria work.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center transition-colors">
@@ -88,7 +88,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <p className="font-semibold text-ink text-sm">Active Members</p>
-                  <p className="text-ink/50 text-xs">Your church</p>
+                  <p className="text-ink/50 text-xs">Sample church</p>
                 </div>
                 <span className="ml-auto font-display font-bold text-ink text-lg">247</span>
               </div>
@@ -113,6 +113,7 @@ export default function Landing() {
                 <span className="ml-auto font-display font-bold text-ink text-lg">189</span>
               </div>
             </div>
+            <p className="text-white/60 text-xs text-center mt-3">Sample data</p>
           </div>
         </div>
       </section>
@@ -122,7 +123,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl font-bold text-ink text-center">Everything Your Church Needs</h2>
           <p className="text-ink/50 text-center mt-2 max-w-2xl mx-auto">
-            From member management to giving, Gathrd handles it all so you can focus on ministry.
+            From Sunday check-in to duty rosters and giving, Gathrd handles the administration so your Nigerian church can focus on ministry.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
             {FEATURES.map((f) => {
@@ -198,7 +199,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto bg-signal-gradient rounded-2xl p-8 md:p-12 text-center">
           <h2 className="font-display text-3xl font-bold text-white">Ready to Transform Your Church Management?</h2>
           <p className="text-white/70 mt-2 max-w-xl mx-auto">
-            Join churches across Nigeria who are simplifying their administration with Gathrd.
+            Be among the first Nigerian churches to simplify their administration with Gathrd.
           </p>
           <Link to="/signup" className="inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-ink font-semibold px-6 py-3 rounded-lg mt-6 transition-colors">
             Start Your Free Trial <ArrowRight size={18} />
