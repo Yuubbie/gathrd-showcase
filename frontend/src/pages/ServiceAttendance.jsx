@@ -15,6 +15,15 @@ const METHOD_LABELS = { qr_self: 'QR', dashboard: 'App', manual: 'Manual' };
 const CARD =
   'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
 
+function formatShortDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export default function ServiceAttendance() {
   const { profile } = useAuth();
   const [service, setService] = useState(null); // the open service, or null
@@ -32,6 +41,13 @@ export default function ServiceAttendance() {
   const [serviceName, setServiceName] = useState('Sunday Service');
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
+
+  // Attendance reports (shown when no service is open)
+  const [history, setHistory] = useState([]);
+  const [missed, setMissed] = useState(null); // { sessions, members }
+  const [openId, setOpenId] = useState(null);
+  const [details, setDetails] = useState({});
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     async function loadSlug() {
@@ -103,6 +119,38 @@ export default function ServiceAttendance() {
     const timer = setInterval(() => load(true), 15000);
     return () => clearInterval(timer);
   }, [service, load]);
+
+  const loadReports = useCallback(async () => {
+    setReportLoading(true);
+    const [hist, miss] = await Promise.all([
+      supabase.rpc('get_attendance_history', { p_limit: 12 }),
+      supabase.rpc('get_missed_services', { p_last: 3 }),
+    ]);
+    setHistory(Array.isArray(hist.data) ? hist.data : []);
+    setMissed(miss.data && !miss.error ? miss.data : null);
+    setDetails({});
+    setOpenId(null);
+    setReportLoading(false);
+  }, []);
+
+  // When no service is open, show who came and who did not.
+  useEffect(() => {
+    if (!loading && !service && profile?.church_id) loadReports();
+  }, [loading, service, profile, loadReports]);
+
+  async function toggleSession(sessionId) {
+    if (openId === sessionId) {
+      setOpenId(null);
+      return;
+    }
+    setOpenId(sessionId);
+    if (!details[sessionId]) {
+      const { data, error } = await supabase.rpc('get_service_attendance', { p_session_id: sessionId });
+      if (!error && data && data.status === 'ok') {
+        setDetails((prev) => ({ ...prev, [sessionId]: data }));
+      }
+    }
+  }
 
   function pickType(type) {
     setServiceType(type.id);
@@ -224,7 +272,7 @@ export default function ServiceAttendance() {
   if (!service) {
     return (
       <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
-        <div className="max-w-xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-4">
           <h1 className="text-xl font-semibold">Attendance</h1>
 
           <div className={`${CARD} p-6 space-y-4`}>
@@ -274,6 +322,117 @@ export default function ServiceAttendance() {
           </div>
 
           {message && <p className="text-sm text-rose text-center">{message}</p>}
+
+          <div className={`${CARD} p-6 space-y-3`}>
+            <h2 className="font-display font-bold text-ink">Needs a call</h2>
+            {reportLoading && !missed ? (
+              <p className="text-ink/40 text-sm">Loading…</p>
+            ) : missed && missed.sessions >= 3 ? (
+              missed.members.length === 0 ? (
+                <p className="text-ink/50 text-sm">
+                  Everyone came to at least one of the last {missed.sessions} Sundays.
+                </p>
+              ) : (
+                <>
+                  <p className="text-ink/50 text-sm">
+                    {missed.members.length} member{missed.members.length === 1 ? '' : 's'} missed the last{' '}
+                    {missed.sessions} Sundays.
+                  </p>
+                  <div className="divide-y divide-ink/5">
+                    {missed.members.map((m) => (
+                      <div key={m.member_id} className="flex items-center justify-between gap-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-ink">{m.full_name}</p>
+                          <p className="text-xs text-ink/40">
+                            {m.last_seen ? `Last seen ${formatShortDate(m.last_seen)}` : 'Not seen yet'}
+                          </p>
+                        </div>
+                        {m.phone && (
+                          <a
+                            href={`tel:${m.phone}`}
+                            className="text-sm text-signal font-semibold hover:text-signal-deep shrink-0"
+                          >
+                            {m.phone}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            ) : (
+              <p className="text-ink/50 text-sm">This list appears after three completed Sunday services.</p>
+            )}
+          </div>
+
+          <div className={`${CARD} p-6 space-y-3`}>
+            <h2 className="font-display font-bold text-ink">Past services</h2>
+            {history.length === 0 ? (
+              <p className="text-ink/50 text-sm">{reportLoading ? 'Loading…' : 'No completed services yet.'}</p>
+            ) : (
+              <div className="divide-y divide-ink/5">
+                {history.map((h) => {
+                  const pct = h.total > 0 ? Math.round((h.present / h.total) * 100) : 0;
+                  const detail = details[h.session_id];
+                  return (
+                    <div key={h.session_id} className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleSession(h.session_id)}
+                        className="w-full flex items-center justify-between gap-3 py-2.5 text-left"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-ink">{formatShortDate(h.service_date)}</p>
+                          <p className="text-xs text-ink/40">{h.service_name}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-ink">
+                            {h.present} of {h.total}
+                          </p>
+                          <p className="text-xs text-ink/40">{pct}% attended</p>
+                        </div>
+                      </button>
+                      {openId === h.session_id && (
+                        <div className="pb-3">
+                          {!detail ? (
+                            <p className="text-ink/40 text-sm">Loading…</p>
+                          ) : (
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-sage mb-1">
+                                  Present ({detail.present.length})
+                                </p>
+                                <div className="space-y-1 max-h-64 overflow-y-auto">
+                                  {detail.present.map((p) => (
+                                    <p key={p.member_id} className="text-sm text-ink/70">
+                                      {p.full_name}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-rose mb-1">
+                                  Absent ({detail.absent.length})
+                                </p>
+                                <div className="space-y-1 max-h-64 overflow-y-auto">
+                                  {detail.absent.map((a) => (
+                                    <p key={a.member_id} className="text-sm text-ink/70">
+                                      {a.full_name}
+                                      {a.phone ? <span className="text-ink/40"> · {a.phone}</span> : null}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <p className="text-ink/30 text-xs text-center flex items-center justify-center gap-1.5">
             <Users size={14} /> A service closes by itself after 6 hours if nobody ends it.
