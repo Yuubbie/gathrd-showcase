@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import WhatsAppButton from './WhatsAppButton';
+import InstallPrompt from './InstallPrompt';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
@@ -181,6 +182,7 @@ export default function AppShell({ children }) {
       <WhatsAppButton
         message={`Hello Gathrd, I'm ${profile?.full_name || 'a user'} from ${church?.name || 'my church'}. I need help with: `}
       />
+      <InstallPrompt />
     </div>
   );
 }
