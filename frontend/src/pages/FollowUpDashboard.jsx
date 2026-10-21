@@ -1,131 +1,106 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
-import { useAuth } from '../context/AuthContext';
-
-const PRIORITY_STYLES = {
-  urgent: 'bg-rose-50 text-rose',
-  normal: 'bg-amberflag/10 text-amberflag',
-  low: 'bg-ink/5 text-ink/50',
-};
+import React, { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 export default function FollowUpDashboard() {
-  const { profile } = useAuth();
-  const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    if (!profile?.church_id) return;
-    setLoading(true);
-    const collected = [];
-
-    // 1. Overdue visitor follow-up tasks (Week 3)
-    const { data: overdueTasks } = await supabase
-      .from('follow_up_tasks')
-      .select('id, visitor_id, status, due_at, visitors(full_name, phone)')
-      .eq('church_id', profile.church_id)
-      .eq('status', 'pending')
-      .lt('due_at', new Date().toISOString());
-
-    for (const t of overdueTasks || []) {
-      const hoursOverdue = Math.floor((Date.now() - new Date(t.due_at).getTime()) / (1000 * 60 * 60));
-      collected.push({
-        id: `visitor-${t.id}`,
-        type: 'Visitor Follow-Up',
-        name: t.visitors?.full_name || 'Unknown visitor',
-        detail: `Follow-up overdue by ${hoursOverdue}h`,
-        priority: hoursOverdue > 72 ? 'urgent' : 'normal',
-        link: '/visitors',
-      });
-    }
-
-    // 2. Converts stalled in discipleship 30+ days (Week 3)
-    const { data: discipleship } = await supabase
-      .from('discipleship_records')
-      .select('id, current_stage, stage_entered_at, visitors(full_name)')
-      .eq('church_id', profile.church_id)
-      .is('deleted_at', null);
-
-    for (const d of discipleship || []) {
-      const days = Math.floor((Date.now() - new Date(d.stage_entered_at).getTime()) / (1000 * 60 * 60 * 24));
-      if (days >= 30) {
-        collected.push({
-          id: `discipleship-${d.id}`,
-          type: 'Discipleship Stalled',
-          name: d.visitors?.full_name || 'Unknown',
-          detail: `Stuck at "${d.current_stage.replace(/_/g, ' ')}" for ${days} days`,
-          priority: days > 60 ? 'urgent' : 'normal',
-          link: '/discipleship',
-        });
-      }
-    }
-
-    // 3. Cell group absentees (this week)
-    const { data: cellGroups } = await supabase
-      .from('cell_groups')
-      .select('id, name')
-      .eq('church_id', profile.church_id)
-      .is('deleted_at', null);
-
-    for (const cg of cellGroups || []) {
-      const { data: absentees } = await supabase.rpc('get_cell_absentees', { p_cell_group_id: cg.id, p_consecutive_threshold: 3 });
-      for (const a of absentees || []) {
-        collected.push({
-          id: `cell-${cg.id}-${a.member_id}`,
-          type: 'Cell Group Absentee',
-          name: a.full_name,
-          detail: `Absent from ${cg.name} for ${a.consecutive_absences} consecutive meetings`,
-          priority: 'normal',
-          link: `/cell-groups/${cg.id}`,
-        });
-      }
-    }
-
-    collected.sort((a, b) => {
-      const order = { urgent: 0, normal: 1, low: 2 };
-      return order[a.priority] - order[b.priority];
-    });
-
-    setFlags(collected);
-    setLoading(false);
-  }, [profile]);
+  const [absentees, setAbsentees] = useState([]);
+  const [activeTab, setActiveTab] = useState("absentees");
 
   useEffect(() => {
-    load();
-  }, [load]);
+    fetchFollowUpData();
+  }, []);
+
+  async function fetchFollowUpData() {
+    try {
+      setLoading(true);
+      const { data: absenteeData, error } = await supabase.rpc("get_missed_services", { p_last: 3 });
+      if (error) {
+        console.error("Error fetching absentees:", error);
+      } else {
+        setAbsentees(absenteeData || []);
+      }
+    } catch (err) {
+      console.error("Exception fetching follow-up data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
-      <div className="max-w-2xl mx-auto space-y-4">
-        <h1 className="font-display text-2xl font-bold text-ink">Follow-Up Dashboard</h1>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Follow-Up & Care</h1>
+          <p className="text-gray-500 text-sm">Track members who need retention calls, absentees, and new converts.</p>
+        </div>
+        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab("absentees")}
+            className={`px-4 py-2 text-xs font-semibold rounded-md transition ${
+              activeTab === "absentees" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Absentee Watch ({absentees.length})
+          </button>
+        </div>
+      </div>
 
-        <div className="bg-signal-50 border border-signal-100 rounded-lg p-4 text-xs text-signal-deep">
-          Consolidates flags from Visitor Follow-Up, Discipleship, and Cell Groups.
-          Attendance-based flags (3+ missed Sundays) and Welfare/Prayer request flags aren't included yet — those need
-          the Attendance and Pastoral Care modules, which aren't built yet.
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold text-gray-900">
+            {activeTab === "absentees" ? "Members Missing 3+ Consecutive Sundays" : "Follow-Up Queue"}
+          </h2>
+          <button
+            onClick={fetchFollowUpData}
+            className="text-xs text-emerald-700 hover:underline font-medium"
+          >
+            Refresh List
+          </button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
-          {loading ? (
-            <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
-          ) : flags.length === 0 ? (
-            <p className="text-ink/40 text-sm py-6 text-center">Nothing needs attention right now. 🎉</p>
-          ) : (
-            <div className="divide-y">
-              {flags.map((f) => (
-                <Link key={f.id} to={f.link} className="flex items-center justify-between py-3 hover:bg-parchment -mx-2 px-2 rounded-lg transition-colors">
-                  <div>
-                    <p className="font-medium text-sm text-ink">{f.name}</p>
-                    <p className="text-ink/50 text-xs">{f.type} — {f.detail}</p>
-                  </div>
-                  <span className={`text-xs rounded-full px-2 py-1 font-medium shrink-0 ml-2 ${PRIORITY_STYLES[f.priority]}`}>
-                    {f.priority}
-                  </span>
-                </Link>
-              ))}
+        {loading ? (
+          <p className="text-sm text-gray-500 py-8 text-center">Loading follow-up records...</p>
+        ) : activeTab === "absentees" ? (
+          absentees.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                  <tr>
+                    <th className="px-4 py-3">Member Name</th>
+                    <th className="px-4 py-3">Phone Number</th>
+                    <th className="px-4 py-3">Last Seen</th>
+                    <th className="px-4 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {absentees.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-900">{item.full_name || item.name}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.phone || "No phone provided"}</td>
+                      <td className="px-4 py-3 text-amber-600 font-medium">{item.last_seen || "Over 3 weeks ago"}</td>
+                      <td className="px-4 py-3 text-right">
+                        {item.phone ? (
+                          <a
+                            href={`tel:${item.phone}`}
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-medium transition inline-block"
+                          >
+                            Call Member
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No number</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-sm">Wonderful news! No members have missed the last 3 Sundays.</p>
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
