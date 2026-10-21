@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 export default function FollowUpDashboard() {
   const [loading, setLoading] = useState(true);
   const [absentees, setAbsentees] = useState([]);
-  const [activeTab, setActiveTab] = useState("absentees"); // "absentees"
+  const [activeTab, setActiveTab] = useState("absentees");
 
   useEffect(() => {
     fetchFollowUpData();
@@ -13,7 +13,6 @@ export default function FollowUpDashboard() {
   async function fetchFollowUpData() {
     try {
       setLoading(true);
-      // Fetch absentees via the database RPC function
       const { data: absenteeData, error } = await supabase.rpc("get_missed_services", { p_last: 3 });
       if (error) {
         console.error("Error fetching absentees:", error);
@@ -46,7 +45,6 @@ export default function FollowUpDashboard() {
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-gray-900">
