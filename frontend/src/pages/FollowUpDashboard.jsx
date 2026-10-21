@@ -1,10 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return 'Not seen yet';
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 export default function FollowUpDashboard() {
   const [loading, setLoading] = useState(true);
   const [absentees, setAbsentees] = useState([]);
-  const [activeTab, setActiveTab] = useState("absentees");
+  const [sessionsCount, setSessionsCount] = useState(3);
 
   useEffect(() => {
     fetchFollowUpData();
@@ -13,94 +23,81 @@ export default function FollowUpDashboard() {
   async function fetchFollowUpData() {
     try {
       setLoading(true);
-      const { data: absenteeData, error } = await supabase.rpc("get_missed_services", { p_last: 3 });
+      const { data, error } = await supabase.rpc('get_missed_services', { p_last: 3 });
       if (error) {
-        console.error("Error fetching absentees:", error);
+        console.error('Error fetching absentees:', error);
+      } else if (data && Array.isArray(data.members)) {
+        setAbsentees(data.members);
+        setSessionsCount(data.sessions || 3);
       } else {
-        setAbsentees(absenteeData || []);
+        setAbsentees([]);
       }
     } catch (err) {
-      console.error("Exception fetching follow-up data:", err);
+      console.error('Exception fetching follow-up data:', err);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Follow-Up & Care</h1>
-          <p className="text-gray-500 text-sm">Track members who need retention calls, absentees, and new converts.</p>
-        </div>
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab("absentees")}
-            className={`px-4 py-2 text-xs font-semibold rounded-md transition ${
-              activeTab === "absentees" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Absentee Watch ({absentees.length})
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold text-gray-900">
-            {activeTab === "absentees" ? "Members Missing 3+ Consecutive Sundays" : "Follow-Up Queue"}
-          </h2>
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-ink">Follow-Up & Care</h1>
+            <p className="text-ink/50 text-sm mt-0.5">
+              Track members who need retention calls, absentees, and care check-ins.
+            </p>
+          </div>
           <button
             onClick={fetchFollowUpData}
-            className="text-xs text-emerald-700 hover:underline font-medium"
+            className="text-xs bg-signal/10 text-signal hover:bg-signal/20 px-3 py-1.5 rounded-lg font-semibold transition-colors"
           >
             Refresh List
           </button>
         </div>
 
-        {loading ? (
-          <p className="text-sm text-gray-500 py-8 text-center">Loading follow-up records...</p>
-        ) : activeTab === "absentees" ? (
-          absentees.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
-                  <tr>
-                    <th className="px-4 py-3">Member Name</th>
-                    <th className="px-4 py-3">Phone Number</th>
-                    <th className="px-4 py-3">Last Seen</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {absentees.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">{item.full_name || item.name}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.phone || "No phone provided"}</td>
-                      <td className="px-4 py-3 text-amber-600 font-medium">{item.last_seen || "Over 3 weeks ago"}</td>
-                      <td className="px-4 py-3 text-right">
-                        {item.phone ? (
-                          <a
-                            href={`tel:${item.phone}`}
-                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-medium transition inline-block"
-                          >
-                            Call Member
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">No number</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
+          <div>
+            <h2 className="font-display font-bold text-ink">Members Missing {sessionsCount}+ Consecutive Sundays</h2>
+            <p className="text-ink/50 text-xs mt-0.5">
+              {absentees.length} member{absentees.length === 1 ? '' : 's'} missed the last {sessionsCount} Sunday services.
+            </p>
+          </div>
+
+          {loading ? (
+            <p className="text-ink/40 text-sm py-8 text-center">Loading follow-up records…</p>
+          ) : absentees.length > 0 ? (
+            <div className="divide-y divide-ink/5">
+              {absentees.map((m) => (
+                <div key={m.member_id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{m.full_name}</p>
+                    <p className="text-xs text-ink/40">
+                      {m.last_seen ? `Last seen ${formatShortDate(m.last_seen)}` : 'Not seen yet'}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    {m.phone ? (
+                      <a
+                        href={`tel:${m.phone}`}
+                        className="text-sm text-signal font-semibold hover:text-signal-deep"
+                      >
+                        {m.phone}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-ink/30 italic">No phone</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-sm">Wonderful news! No members have missed the last 3 Sundays.</p>
+            <div className="text-center py-10">
+              <p className="text-ink/50 text-sm">Everyone came to at least one of the last {sessionsCount} Sundays. 🎉</p>
             </div>
-          )
-        ) : null}
+          )}
+        </div>
       </div>
     </div>
   );
