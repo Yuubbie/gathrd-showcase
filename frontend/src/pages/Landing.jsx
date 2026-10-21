@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
-  Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, Settings, Smartphone, Shield, Clock, CalendarDays, Phone, MessageSquare
+  Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
+  Megaphone, UsersRound, ListChecks, Check, ArrowRight, Play,
+  Bell, Settings, Smartphone, CalendarDays, Phone,
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
@@ -26,32 +26,29 @@ const FEATURES = [
 export default function Landing() {
   return (
     <div className="min-h-screen bg-parchment">
-      {/* Top announcement bar for sales & church onboarding */}
-      <div className="bg-signal-deep text-white/90 text-xs py-2 px-4 text-center border-b border-white/10 flex items-center justify-center gap-2">
-        <span>Need a demo or church onboarding support?</span>
-        <a 
-          href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20to%20speak%20with%20Onboarding%20about%20a%20demo%20for%20our%20church." 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-gold font-semibold hover:underline inline-flex items-center gap-1"
-        >
-          <Phone size={12} /> Talk to Growth & Onboarding (0810 013 3673)
-        </a>
-      </div>
-
       {/* Navigation */}
-      <nav className="bg-signal-gradient px-4 py-4 md:px-10">
+      <nav className="bg-signal-gradient px-4 py-4 md:px-10 border-b border-white/10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo-mark.png" alt="Gathrd" className="h-8 w-8" />
             <span className="font-display font-bold text-white text-xl">Gathrd</span>
           </div>
+
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link to="/demo" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
-              Watch Demo
+          <div className="hidden md:flex items-center gap-5">
+            <a 
+              href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20to%20request%20an%20onboarding%20walkthrough%20for%20our%20church."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/80 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+            >
+              <Phone size={13} className="text-gold" />
+              <span>Onboarding: 0810 013 3673</span>
+            </a>
+            <Link to="/demo" className="text-white/80 hover:text-white text-sm font-medium transition-colors">
+              Explore Walkthrough
             </Link>
-            <Link to="/login" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
+            <Link to="/login" className="text-white/80 hover:text-white text-sm font-medium transition-colors">
               Sign In
             </Link>
             <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink font-semibold text-sm px-4 py-2 rounded-lg transition-colors">
@@ -62,7 +59,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="px-4 pt-12 pb-16 md:px-10 md:pt-20 md:pb-24">
+      <section className="px-4 pt-14 pb-16 md:px-10 md:pt-20 md:pb-24">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 bg-signal/10 text-signal px-3.5 py-1.5 rounded-full text-xs font-semibold">
             <Sparkles size={14} /> Modern Church Management Software
@@ -78,7 +75,7 @@ export default function Landing() {
               Start {TRIAL_DAYS}-Day Free Trial <ArrowRight size={18} />
             </Link>
             <Link to="/demo" className="w-full sm:w-auto bg-white border border-ink/10 text-ink font-semibold px-6 py-3.5 rounded-xl hover:bg-ink/5 transition-colors flex items-center justify-center gap-2">
-              <Play size={16} /> Explore Grace Chapel Demo
+              <Play size={16} /> Explore Grace Chapel Walkthrough
             </Link>
           </div>
         </div>
@@ -186,23 +183,23 @@ export default function Landing() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-white">Direct Onboarding & Sales</p>
-              <p className="text-xs text-white/60">Abuja & Nationwide Contact:</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white">Church Onboarding & Setup</p>
+              <p className="text-xs text-white/60">Assistance for Abuja & Nationwide branches:</p>
               <a 
                 href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20to%20request%20a%20church%20onboarding%20session." 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gold font-medium text-xs hover:underline flex items-center gap-1.5"
               >
-                <Phone size={14} /> Daniel Sule: +234 810 013 3673
+                <Phone size={14} /> +234 810 013 3673
               </a>
-              <p className="text-[11px] text-white/50">Calls & WhatsApp available for demo bookings.</p>
+              <p className="text-[11px] text-white/50">WhatsApp & Direct Calls available for onboarding support.</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-white">Platform Navigation</p>
               <div className="flex flex-col space-y-1 text-xs">
-                <Link to="/demo" className="text-white/60 hover:text-white">Live Grace Chapel Demo</Link>
+                <Link to="/demo" className="text-white/60 hover:text-white">Grace Chapel Walkthrough</Link>
                 <Link to="/login" className="text-white/60 hover:text-white">Staff Sign In</Link>
                 <Link to="/signup" className="text-white/60 hover:text-white">Church Sign Up</Link>
               </div>
@@ -216,8 +213,4 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Official Floating WhatsApp Support */}
-      <WhatsAppButton message="Hello Gathrd, I'd like to know more about the platform." />
-    </div>
-  );
-}
+      {/* Official Floating WhatsApp
