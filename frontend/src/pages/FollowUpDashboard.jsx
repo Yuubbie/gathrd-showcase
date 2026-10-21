@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import React, { useEffect, useState } from "react"
+import { supabase } from "../lib/supabaseClient";
 
 export default function FollowUpDashboard() {
   const [loading, setLoading] = useState(true);
