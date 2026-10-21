@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, Settings, Smartphone, Shield, Clock, CalendarDays,
+  Bell, Settings, Smartphone, Shield, Clock, CalendarDays, Phone, MessageSquare
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
@@ -26,6 +26,19 @@ const FEATURES = [
 export default function Landing() {
   return (
     <div className="min-h-screen bg-parchment">
+      {/* Top announcement bar for sales & church onboarding */}
+      <div className="bg-signal-deep text-white/90 text-xs py-2 px-4 text-center border-b border-white/10 flex items-center justify-center gap-2">
+        <span>Need a demo or church onboarding support?</span>
+        <a 
+          href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20to%20speak%20with%20Onboarding%20about%20a%20demo%20for%20our%20church." 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-gold font-semibold hover:underline inline-flex items-center gap-1"
+        >
+          <Phone size={12} /> Talk to Growth & Onboarding (0810 013 3673)
+        </a>
+      </div>
+
       {/* Navigation */}
       <nav className="bg-signal-gradient px-4 py-4 md:px-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -41,100 +54,56 @@ export default function Landing() {
             <Link to="/login" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
               Sign In
             </Link>
-            <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              Start Free Trial
-            </Link>
-          </div>
-          {/* Mobile nav */}
-          <div className="flex md:hidden items-center gap-2">
-            <Link to="/demo" className="text-white/80 hover:text-white text-xs font-medium px-2 py-1.5">
-              Demo
-            </Link>
-            <Link to="/login" className="text-white/80 hover:text-white text-xs font-medium px-2 py-1.5">
-              Sign In
-            </Link>
-            <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
-              Free Trial
+            <Link to="/signup" className="bg-gold hover:bg-gold-light text-ink font-semibold text-sm px-4 py-2 rounded-lg transition-colors">
+              Get Started Free
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="px-4 py-16 md:py-24 md:px-10">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight">
-              Church Management Built for Nigerian Churches
-            </h1>
-            <p className="text-ink/60 text-lg mt-4 max-w-lg">
-              Run Sunday check-in, duty rosters, giving, visitor follow-up and discipleship from one simple dashboard, designed for how churches in Nigeria work.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
-              <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center transition-colors">
-                Start {TRIAL_DAYS}-Day Free Trial
-              </Link>
-              <Link to="/demo" className="flex items-center justify-center gap-2 text-ink/70 hover:text-ink font-medium px-6 py-3 rounded-lg border border-ink/10 hover:border-ink/20 transition-colors">
-                <Play size={18} /> Watch Demo
-              </Link>
-            </div>
-            <p className="text-ink/40 text-sm mt-3">No credit card required · Cancel anytime</p>
+      <section className="px-4 pt-12 pb-16 md:px-10 md:pt-20 md:pb-24">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <div className="inline-flex items-center gap-2 bg-signal/10 text-signal px-3.5 py-1.5 rounded-full text-xs font-semibold">
+            <Sparkles size={14} /> Modern Church Management Software
           </div>
-          <div className="bg-signal-gradient rounded-2xl p-6 shadow-xl">
-            <div className="bg-white rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-signal/10 flex items-center justify-center">
-                  <Users size={20} className="text-signal" />
-                </div>
-                <div>
-                  <p className="font-semibold text-ink text-sm">Active Members</p>
-                  <p className="text-ink/50 text-xs">Sample church</p>
-                </div>
-                <span className="ml-auto font-display font-bold text-ink text-lg">247</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-sage/10 flex items-center justify-center">
-                  <Wallet size={20} className="text-sage" />
-                </div>
-                <div>
-                  <p className="font-semibold text-ink text-sm">Giving This Month</p>
-                  <p className="text-ink/50 text-xs">Via Paystack</p>
-                </div>
-                <span className="ml-auto font-display font-bold text-ink text-lg">₦1.2M</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
-                  <ClipboardCheck size={20} className="text-gold" />
-                </div>
-                <div>
-                  <p className="font-semibold text-ink text-sm">Sunday Attendance</p>
-                  <p className="text-ink/50 text-xs">This week</p>
-                </div>
-                <span className="ml-auto font-display font-bold text-ink text-lg">189</span>
-              </div>
-            </div>
-            <p className="text-white/60 text-xs text-center mt-3">Sample data</p>
+          <h1 className="font-display text-4xl md:text-6xl font-bold text-ink tracking-tight">
+            Structure your church, keep your members close.
+          </h1>
+          <p className="text-ink/60 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+            From Sunday check-in codes and duty rosters to member care and discipleship tracking—everything your church workforce needs in one secure app.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Link to="/signup" className="w-full sm:w-auto bg-signal hover:bg-signal-deep text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+              Start {TRIAL_DAYS}-Day Free Trial <ArrowRight size={18} />
+            </Link>
+            <Link to="/demo" className="w-full sm:w-auto bg-white border border-ink/10 text-ink font-semibold px-6 py-3.5 rounded-xl hover:bg-ink/5 transition-colors flex items-center justify-center gap-2">
+              <Play size={16} /> Explore Grace Chapel Demo
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="px-4 py-16 md:px-10 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink text-center">Everything Your Church Needs</h2>
-          <p className="text-ink/50 text-center mt-2 max-w-2xl mx-auto">
-            From Sunday check-in to duty rosters and giving, Gathrd handles the administration so your Nigerian church can focus on ministry.
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-            {FEATURES.map((f) => {
+      {/* Features Grid */}
+      <section className="px-4 py-16 md:px-10 bg-white border-y border-ink/5">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <h2 className="font-display text-3xl font-bold text-ink">Built for the Way Nigerian Churches Work</h2>
+            <p className="text-ink/60 text-sm md:text-base max-w-xl mx-auto">
+              Simple, mobile-first tools built specifically for church administrators, pastors, and unit leaders.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f, i) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="bg-parchment rounded-xl p-4 border border-ink/5">
-                  <div className="w-10 h-10 rounded-lg bg-signal/10 flex items-center justify-center mb-3">
-                    <Icon size={20} className="text-signal" />
+                <div key={i} className="bg-parchment/60 rounded-2xl p-6 border border-ink/5 space-y-3">
+                  <div className="h-10 w-10 rounded-xl bg-signal/10 text-signal flex items-center justify-center">
+                    <Icon size={20} />
                   </div>
-                  <h3 className="font-display font-bold text-ink">{f.title}</h3>
-                  <p className="text-ink/50 text-sm mt-1">{f.desc}</p>
+                  <h3 className="font-display font-bold text-lg text-ink">{f.title}</h3>
+                  <p className="text-ink/60 text-sm leading-relaxed">{f.desc}</p>
                 </div>
               );
             })}
@@ -142,49 +111,44 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Demo CTA Section */}
-      <section className="px-4 py-16 md:px-10">
-        <div className="max-w-4xl mx-auto bg-signal-gradient rounded-2xl p-8 md:p-12 text-center">
-          <h2 className="font-display text-3xl font-bold text-white">See Gathrd in Action</h2>
-          <p className="text-white/70 mt-2 max-w-xl mx-auto">
-            Watch a quick demo of everything Gathrd can do for your church.
-          </p>
-          <Link to="/demo" className="inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-ink font-semibold px-6 py-3 rounded-lg mt-6 transition-colors">
-            <Play size={18} /> Watch the Demo
-          </Link>
-        </div>
-      </section>
-
       {/* Pricing Section */}
-      <section className="px-4 py-16 md:px-10 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink text-center">Simple, Transparent Pricing</h2>
-          <p className="text-ink/50 text-center mt-2">Start free for {TRIAL_DAYS} days. No credit card required.</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
+      <section className="px-4 py-16 md:px-10">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <h2 className="font-display text-3xl font-bold text-ink">Simple, Transparent Pricing</h2>
+            <p className="text-ink/60 text-sm md:text-base max-w-xl mx-auto">
+              All plans include complete church management tools. Upgrade anytime as your congregation expands.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PLANS.map((p) => (
-              <div key={p.id} className={`bg-parchment rounded-2xl border p-6 flex flex-col ${p.popular ? 'border-signal ring-1 ring-signal/20' : 'border-ink/5'}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-display font-bold text-ink text-lg">{p.name}</p>
-                  {p.popular && (
-                    <span className="text-xs font-semibold bg-signal/10 text-signal-deep rounded-full px-2 py-0.5">Most popular</span>
-                  )}
+              <div key={p.id} className="bg-white rounded-2xl border border-ink/10 p-6 flex flex-col justify-between shadow-sm">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-display font-bold text-xl text-ink">{p.name}</h3>
+                    <p className="text-ink/50 text-xs mt-1">{p.desc}</p>
+                  </div>
+                  <div className="pt-2">
+                    <span className="font-display text-3xl font-bold text-ink">{formatNaira(p.price)}</span>
+                    <span className="text-ink/50 text-xs ml-1">/ month</span>
+                  </div>
+                  <ul className="space-y-2 text-sm text-ink/70 pt-4 border-t border-ink/5">
+                    {p.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <Check size={16} className="text-signal shrink-0" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <p className="text-signal font-semibold text-xl mt-1">{formatNaira(p.price)}<span className="text-sm font-normal text-ink/50">/month</span></p>
-                <p className="text-ink/50 text-sm mt-1">{p.desc}</p>
-                <p className="text-ink/70 text-sm font-medium mt-3 mb-3">{p.audience}</p>
-                <ul className="space-y-2 flex-1">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-ink/70">
-                      <Check size={16} className="text-sage shrink-0 mt-0.5" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/signup" className="mt-4 text-center text-sm bg-signal hover:bg-signal-deep text-white font-semibold px-4 py-2.5 rounded-lg transition-colors">
+                <Link to="/signup" className="mt-6 text-center text-sm bg-signal hover:bg-signal-deep text-white font-semibold px-4 py-2.5 rounded-lg transition-colors">
                   Start Free Trial
                 </Link>
               </div>
             ))}
           </div>
+
           <p className="text-ink/50 text-sm text-center mt-6 max-w-2xl mx-auto">
             District and Zone plans cover every branch under them on one invoice. Branches never pay separately.
           </p>
@@ -208,21 +172,51 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-signal-gradient px-4 py-8 md:px-10">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="Gathrd" className="h-6 w-6" />
-            <span className="font-display font-bold text-white">Gathrd</span>
+      <footer className="bg-signal-gradient px-4 py-12 md:px-10 text-white/80">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-white/10">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <img src="/logo-mark.png" alt="Gathrd" className="h-6 w-6" />
+                <span className="font-display font-bold text-white text-lg">Gathrd</span>
+              </div>
+              <p className="text-white/60 text-xs leading-relaxed max-w-xs">
+                Church management software built for Nigerian ministries. Simplify workforce, attendance, giving, and follow-up.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white">Direct Onboarding & Sales</p>
+              <p className="text-xs text-white/60">Abuja & Nationwide Contact:</p>
+              <a 
+                href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20to%20request%20a%20church%20onboarding%20session." 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gold font-medium text-xs hover:underline flex items-center gap-1.5"
+              >
+                <Phone size={14} /> Daniel Sule: +234 810 013 3673
+              </a>
+              <p className="text-[11px] text-white/50">Calls & WhatsApp available for demo bookings.</p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white">Platform Navigation</p>
+              <div className="flex flex-col space-y-1 text-xs">
+                <Link to="/demo" className="text-white/60 hover:text-white">Live Grace Chapel Demo</Link>
+                <Link to="/login" className="text-white/60 hover:text-white">Staff Sign In</Link>
+                <Link to="/signup" className="text-white/60 hover:text-white">Church Sign Up</Link>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link to="/demo" className="text-white/50 hover:text-white text-sm">Demo</Link>
-            <Link to="/login" className="text-white/50 hover:text-white text-sm">Sign In</Link>
-            <Link to="/signup" className="text-white/50 hover:text-white text-sm">Sign Up</Link>
+
+          <div className="flex flex-col md:flex-row items-center justify-between text-xs text-white/50 gap-4">
+            <p>© 2026 Gathrd. All rights reserved.</p>
+            <p>Made with dedication for ministries across Nigeria.</p>
           </div>
-          <p className="text-white/50 text-sm">© 2026 Gathrd. All rights reserved.</p>
         </div>
       </footer>
 
+      {/* Official Floating WhatsApp Support */}
       <WhatsAppButton message="Hello Gathrd, I'd like to know more about the platform." />
     </div>
   );
