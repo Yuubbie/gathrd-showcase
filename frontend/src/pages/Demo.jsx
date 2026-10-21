@@ -1,362 +1,306 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import {
-  LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
-  Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, Settings, Smartphone, Shield, Clock, Church, UserCog,
-  ClipboardList, CreditCard, LogIn, Palette, UserPlus2,
-  Building2, TrendingUp, Plus, TrendingDown,
+  Church, QrCode, Users, ListChecks, Wallet, CalendarDays,
+  ArrowRight, ArrowLeft, CheckCircle2, Phone, ShieldCheck,
+  Check, Smartphone, Clock, Sparkles
 } from 'lucide-react';
-import { TRIAL_DAYS, PLANS, formatNaira } from '../lib/plans';
 
-const DEMO_SCENES = [
+const WALKTHROUGH_STEPS = [
   {
-    id: 'signup',
-    title: 'Pastor Signs Up',
-    narration: `A pastor signs up with their email. Their church is created automatically — no setup needed. They get a ${TRIAL_DAYS}-day free trial with no credit card required.`,
-    icon: LogIn,
-    color: 'bg-signal',
-    content: [
-      { label: 'Email', value: 'One-click signup', icon: LogIn },
-      { label: 'Church Created', value: 'Automatically', icon: Church },
-      { label: 'Free Trial', value: `${TRIAL_DAYS} days`, icon: Clock },
-      { label: 'No Credit Card', value: 'Required', icon: CreditCard },
-    ],
+    id: 'setup',
+    title: '1. Instant Church Setup',
+    badge: 'Step 1 of 5',
+    headline: 'Set up Grace Chapel in under 3 minutes',
+    description: 'Create your main church profile, assign branch administrators, and set your ministry brand colors. Leaders and department heads receive instant invites to access their specific tools.',
+    icon: Church,
+    previewType: 'setup',
   },
   {
-    id: 'branding',
-    title: 'Set Up Church Branding',
-    narration: 'First, the pastor uploads their church logo and picks a brand color. This makes Gathrd feel like their own — every page shows their church\'s identity.',
-    icon: Palette,
-    color: 'bg-gold',
-    content: [
-      { label: 'Church Logo', value: 'Upload image', icon: Settings },
-      { label: 'Brand Color', value: 'Pick your color', icon: Palette },
-      { label: 'Applied Everywhere', value: 'All pages', icon: Sparkles },
-      { label: 'Preview', value: 'Real-time', icon: Play },
-    ],
-  },
-  {
-    id: 'invite-staff',
-    title: 'Invite Staff & Team',
-    narration: 'Next, the pastor invites their team — assistant pastors, church admins, finance admins. Each person gets an email invite and sets their own password.',
-    icon: UserPlus2,
-    color: 'bg-sage',
-    content: [
-      { label: 'Send Invites', value: 'Via email', icon: Bell },
-      { label: 'Set Roles', value: 'At invite time', icon: Shield },
-      { label: 'Staff Set Password', value: 'Self-service', icon: LogIn },
-      { label: 'Team Dashboard', value: 'Role-based', icon: LayoutDashboard },
-    ],
-  },
-  {
-    id: 'add-members',
-    title: 'Add Members (with Staff Help)',
-    narration: 'Now the team can work together. Staff add members in bulk or one by one. Each member gets a profile with their role, department, and cell group.',
-    icon: UserPlus,
-    color: 'bg-signal',
-    content: [
-      { label: 'Bulk Import', value: 'CSV upload', icon: ClipboardList },
-      { label: 'Individual Add', value: 'Quick form', icon: UserPlus },
-      { label: 'Assign Role', value: '8 types', icon: Shield },
-      { label: 'Department', value: 'Optional', icon: LayoutDashboard },
-      { label: 'Cell Group', value: 'Optional', icon: UsersRound },
-      { label: 'Member Claiming', value: 'Self-service', icon: UserPlus2 },
-    ],
-  },
-  {
-    id: 'assign-roles',
-    title: 'Roles & Permissions',
-    narration: 'Gathrd has 8 role types — from Senior Pastor to Member. Each role sees only what they need. A finance admin sees giving, a cell leader sees their group.',
-    icon: Shield,
-    color: 'bg-gold',
-    content: [
-      { label: 'Senior Pastor', value: 'Full access', icon: Shield },
-      { label: 'Assistant Pastor', value: 'Full access', icon: Users },
-      { label: 'Church Admin', value: 'Operations', icon: Settings },
-      { label: 'Finance Admin', value: 'Giving only', icon: Wallet },
-      { label: 'Department Head', value: 'Department', icon: LayoutDashboard },
-      { label: 'Cell Leader', value: 'Cell group', icon: UsersRound },
-      { label: "Children's Teacher", value: 'Children', icon: Sparkles },
-      { label: 'Member', value: 'Personal only', icon: Users },
-    ],
-  },
-  {
-    id: 'multi-branch',
-    title: 'Multi-Branch: District & Zone Management',
-    narration: 'Upgrade to a District or Zone plan to oversee multiple branches. District pastors oversee branches; zone pastors oversee districts. Branches are covered by the plan above them, so they never pay separately.',
-    icon: Building2,
-    color: 'bg-signal',
-    content: [
-      { label: 'Custom Terminology', value: 'District, Region, Area, Circuit, State', icon: Settings },
-      { label: 'District Plan', value: `${formatNaira(PLANS.find((p) => p.id === 'district').price)}/mo — covers all its branches`, icon: Building2 },
-      { label: 'Zone Plan', value: `${formatNaira(PLANS.find((p) => p.id === 'zone').price)}/mo — covers its districts and branches`, icon: Building2 },
-      { label: 'Branch Invites', value: 'District/Zone can invite branches', icon: UserPlus2 },
-      { label: 'Cross-Branch Overview', value: 'Giving, attendance, member counts', icon: TrendingUp },
-    ],
-  },
-  {
-    id: 'branches',
-    title: 'Manage Branches',
-    narration: 'District and zone pastors invite branches and see how each one is doing — member counts, giving and attendance — in one dashboard. They see the numbers, not the names of who is in each branch.',
-    icon: Building2,
-    color: 'bg-gold',
-    content: [
-      { label: 'Add Branch', value: 'One click', icon: Plus },
-      { label: 'Branch Stats', value: 'Counts, giving, attendance', icon: TrendingUp },
-      { label: 'Branch Login', value: 'Independent dashboards', icon: LogIn },
-      { label: 'Invite Branch Pastor', value: 'Email invite', icon: UserPlus2 },
-    ],
-  },
-  {
-    id: 'district-dashboard',
-    title: 'District/Zone Monitoring Dashboard',
-    narration: 'See consolidated numbers across all your branches or districts, spot the ones that need a check-in, and export a CSV for your records.',
-    icon: TrendingUp,
-    color: 'bg-sage',
-    content: [
-      { label: 'Consolidated Giving', value: 'All branches', icon: Wallet },
-      { label: 'Attendance Trends', value: 'Weekly/monthly', icon: ClipboardCheck },
-      { label: 'Needs a Check-In', value: 'Flagged branches', icon: Bell },
-      { label: 'CSV Export', value: 'Download anytime', icon: ListChecks },
-    ],
-  },
-  {
-    id: 'cell-groups',
-    title: 'Create Cell Groups',
-    narration: 'The pastor creates cell groups and assigns leaders. Each leader can track their group\'s attendance and submit weekly reports.',
-    icon: UsersRound,
-    color: 'bg-sage',
-    content: [
-      { label: 'Create Groups', value: 'Unlimited', icon: UsersRound },
-      { label: 'Assign Leaders', value: 'One click', icon: UserCog },
-      { label: 'Track Attendance', value: 'Per group', icon: ClipboardCheck },
-      { label: 'Weekly Reports', value: 'Submitted', icon: ListChecks },
-    ],
-  },
-  {
-    id: 'giving',
-    title: 'Set Up Giving',
-    narration: 'The finance admin connects Paystack. Now the church can accept tithes and offerings online. Every transaction is recorded automatically.',
-    icon: Wallet,
-    color: 'bg-signal',
-    content: [
-      { label: 'Paystack Integration', value: 'Secure', icon: Shield },
-      { label: 'Transaction Logs', value: 'Complete', icon: ListChecks },
-      { label: 'Counting Sheets', value: 'Digital', icon: LayoutDashboard },
-      { label: 'Top Givers', value: 'Recognized', icon: Cake },
-    ],
-  },
-  {
-    id: 'dashboard',
-    title: 'Your Dashboard',
-    narration: 'Now the pastor can see everything at a glance — active members, visitors, discipleship progress, and giving. All updated in real time.',
-    icon: LayoutDashboard,
-    color: 'bg-gold',
-    content: [
-      { label: 'Active Members', value: '247', icon: Users },
-      { label: 'Visitors This Month', value: '12', icon: UserPlus },
-      { label: 'In Discipleship', value: '34', icon: Sparkles },
-      { label: 'Giving This Month', value: '₦1.2M', icon: Wallet },
-    ],
-  },
-  {
-    id: 'attendance',
-    title: 'Track Attendance',
-    narration: 'On Sunday, members check in with a QR code, or ushers can manually enter attendance. No more paper registers.',
-    icon: ClipboardCheck,
-    color: 'bg-sage',
-    content: [
-      { label: 'QR Self Check-In', value: 'Instant', icon: Smartphone },
-      { label: 'Manual Entry', value: 'Usher-friendly', icon: ClipboardCheck },
-      { label: 'Service History', value: 'Full records', icon: Clock },
-      { label: 'Absentee Detection', value: 'Automatic', icon: ListChecks },
-    ],
-  },
-  {
-    id: 'announcements',
-    title: 'Send Announcements',
-    narration: 'The pastor sends an announcement to the entire congregation via SMS and in-app notifications. Everyone stays informed.',
-    icon: Megaphone,
-    color: 'bg-signal',
-    content: [
-      { label: 'SMS via Termii', value: 'Bulk send', icon: Megaphone },
-      { label: 'In-App Notifications', value: 'Real-time', icon: Bell },
-      { label: 'Milestones', value: 'Celebrated', icon: Cake },
-      { label: 'Targeted Messages', value: 'By role/department', icon: Users },
-    ],
+    id: 'checkin',
+    title: '2. Sunday Morning Check-In',
+    badge: 'Step 2 of 5',
+    headline: 'Dynamic 6-digit codes and usher roll call',
+    description: 'Every Sunday service automatically generates a secure 6-digit check-in code and printable QR display. Members check in from their phones upon arrival, while ushers verify attendance in real-time.',
+    icon: QrCode,
+    previewType: 'checkin',
   },
   {
     id: 'followup',
-    title: 'Follow-Up Dashboard',
-    narration: 'Gathrd flags visitors who need contact, members who\'ve stopped attending, and discipleship stalls — so the team can act fast.',
+    title: '3. Follow-Up & Absentee Watch',
+    badge: 'Step 3 of 5',
+    headline: 'Automatically detect members missing 3+ Sundays',
+    description: 'Never let anyone slip through the cracks. Gathrd automatically flags absent members and assigns them to care ministers with direct WhatsApp and phone action links.',
     icon: ListChecks,
-    color: 'bg-gold',
-    content: [
-      { label: 'Visitor Flags', value: 'New visitors', icon: UserPlus },
-      { label: 'Stalled Discipleship', value: 'Detected', icon: Sparkles },
-      { label: 'Absent Members', value: '2+ weeks absent', icon: Clock },
-      { label: 'Action Required', value: 'Prioritized', icon: ListChecks },
-    ],
+    previewType: 'followup',
   },
   {
-    id: 'discipleship',
-    title: 'Discipleship Tracking',
-    narration: 'Track every member\'s spiritual journey. Celebrate milestones and identify those who need extra care.',
-    icon: Sparkles,
-    color: 'bg-sage',
-    content: [
-      { label: 'Progress Tracking', value: 'Visual', icon: Sparkles },
-      { label: 'Milestones', value: 'Celebrated', icon: Cake },
-      { label: 'Stalled Detection', value: 'Automatic', icon: Clock },
-      { label: 'Care Alerts', value: 'Pastor notified', icon: Bell },
-    ],
+    id: 'roster',
+    title: '4. Worker Duty Rosters',
+    badge: 'Step 4 of 5',
+    headline: 'Order of service & workforce scheduling',
+    description: 'Publish worker assignments for Choir, Protocol, Ushers, and Media weeks in advance. Workers view their personal schedule and duties directly on their phones without paper printouts.',
+    icon: CalendarDays,
+    previewType: 'roster',
   },
   {
-    id: 'billing',
-    title: 'Subscription & Billing',
-    narration: `After the ${TRIAL_DAYS}-day trial, pick a plan: ${PLANS.map((p) => `${p.name} (${formatNaira(p.price)})`).join(', ')}. Automatic billing via Paystack — cancel anytime.`,
+    id: 'giving',
+    title: '5. Collections & Transparent Counting',
+    badge: 'Step 5 of 5',
+    headline: 'Digital tithes and Sunday cash counting sheets',
+    description: 'Record physical Sunday collections with dual-signature verification while accepting Paystack online offerings. Generate clean monthly reports for church leadership.',
     icon: Wallet,
-    color: 'bg-signal',
-    content: [
-      { label: `${TRIAL_DAYS}-Day Free Trial`, value: 'No card needed', icon: Clock },
-      { label: 'Automatic Billing', value: 'Monthly', icon: Wallet },
-      { label: 'Grace Period', value: '3 days', icon: Shield },
-      { label: 'Plan Management', value: 'Self-service', icon: Settings },
-    ],
-  },
-  {
-    id: 'pwa',
-    title: 'Installable & Mobile-Friendly',
-    narration: 'Gathrd is a Progressive Web App — install it on any device, use it offline, and get a native app experience.',
-    icon: Smartphone,
-    color: 'bg-gold',
-    content: [
-      { label: 'Installable', value: 'Any device', icon: Smartphone },
-      { label: 'Offline Support', value: 'Works offline', icon: Shield },
-      { label: 'Push Notifications', value: 'Real-time', icon: Bell },
-      { label: 'Mobile-First', value: 'Responsive', icon: Smartphone },
-    ],
+    previewType: 'giving',
   },
 ];
 
 export default function Demo() {
-  const [currentScene, setCurrentScene] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
+  const step = WALKTHROUGH_STEPS[currentStep];
 
-  useEffect(() => {
-    if (!isPlaying) return;
-    const timer = setInterval(() => {
-      setCurrentScene((prev) => (prev + 1) % DEMO_SCENES.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [isPlaying]);
+  const handleNext = () => {
+    if (currentStep < WALKTHROUGH_STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
-  const scene = DEMO_SCENES[currentScene];
-  const Icon = scene.icon;
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-void flex flex-col items-center justify-center px-4 py-10">
-      <div className="text-center mb-8">
-        <BackButton to="/" label="Back to Home" />
-        <h1 className="font-display text-3xl font-bold text-white">See Gathrd in Action</h1>
-        <p className="text-white/50 mt-2">Follow the journey from signup to a fully managed church</p>
-      </div>
-
-      {/* Demo Card */}
-      <div className="w-full max-w-2xl bg-signal-gradient rounded-2xl p-6 shadow-2xl">
-        <div className="bg-white rounded-xl p-6">
-          {/* Scene Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-12 h-12 rounded-xl ${scene.color} flex items-center justify-center`}>
-              <Icon size={24} className="text-white" />
+    <div className="min-h-screen bg-parchment text-ink flex flex-col justify-between">
+      {/* Top Header */}
+      <header className="bg-signal-gradient px-4 py-4 md:px-10 border-b border-white/10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BackButton to="/" />
+            <div className="flex items-center gap-2">
+              <img src="/logo-mark.png" alt="Gathrd" className="h-7 w-7" />
+              <span className="font-display font-bold text-white text-lg">Gathrd Walkthrough</span>
             </div>
-            <div>
-              <h2 className="font-display font-bold text-ink text-xl">{scene.title}</h2>
-            </div>
+            <span className="hidden sm:inline-block bg-white/10 text-white/90 text-xs px-2.5 py-1 rounded-md">
+              Grace Chapel Demo
+            </span>
           </div>
 
-          {/* Narration */}
-          <div className="bg-parchment rounded-lg p-4 mb-4 border-l-4 border-signal">
-            <p className="text-ink/70 text-sm leading-relaxed">
-              <span className="font-semibold text-ink">Narration: </span>
-              {scene.narration}
-            </p>
-          </div>
-
-          {/* Scene Content */}
-          <div className="grid grid-cols-2 gap-3">
-            {scene.content.map((item) => {
-              const ItemIcon = item.icon;
-              return (
-                <div key={item.label} className="bg-parchment rounded-lg p-3 flex items-center gap-3">
-                  <ItemIcon size={18} className="text-signal shrink-0" />
-                  <div>
-                    <p className="text-xs text-ink/50">{item.label}</p>
-                    <p className="font-semibold text-ink text-sm">{item.value}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-4 h-1 bg-ink/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-signal transition-all duration-1000"
-              style={{ width: `${((currentScene + 1) / DEMO_SCENES.length) * 100}%` }}
-            />
-          </div>
-
-          {/* Progress Dots */}
-          <div className="flex items-center justify-center gap-2 mt-4">
-            {DEMO_SCENES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setCurrentScene(i); setIsPlaying(false); }}
-                className={`w-2 h-2 rounded-full transition-colors ${i === currentScene ? 'bg-signal' : 'bg-ink/20'}`}
-              />
-            ))}
+          <div className="flex items-center gap-3">
+            <a 
+              href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20am%20exploring%20the%20Grace%20Chapel%20walkthrough%20and%20would%20like%20to%20onboard%20our%20church."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gold hover:bg-gold-light text-ink text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors"
+            >
+              <Phone size={13} /> Onboard My Church
+            </a>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Controls */}
-      <div className="flex items-center gap-3 mt-6">
-        <button
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="flex items-center gap-2 bg-signal hover:bg-signal-deep text-white font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          {isPlaying ? 'Pause' : 'Play'} Demo
-        </button>
-        <Link to="/signup" className="flex items-center gap-2 bg-gold hover:bg-gold-light text-ink font-semibold px-4 py-2 rounded-lg transition-colors">
-          Start Free Trial <ArrowRight size={16} />
-        </Link>
-      </div>
-
-      {/* Scene Counter */}
-      <p className="text-white/30 text-xs mt-4">
-        Scene {currentScene + 1} of {DEMO_SCENES.length}
-      </p>
-
-      {/* Thumbnail Navigation */}
-      <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl">
-        {DEMO_SCENES.map((s, i) => {
-          const ThumbIcon = s.icon;
-          return (
+      {/* Main Walkthrough Body */}
+      <main className="max-w-5xl mx-auto px-4 py-8 md:py-12 w-full">
+        {/* Step Indicator Pills */}
+        <div className="grid grid-cols-5 gap-2 mb-8">
+          {WALKTHROUGH_STEPS.map((s, idx) => (
             <button
               key={s.id}
-              onClick={() => { setCurrentScene(i); setIsPlaying(false); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                i === currentScene ? 'bg-signal text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+              onClick={() => setCurrentStep(idx)}
+              className={`h-2 rounded-full transition-all ${
+                idx === currentStep ? 'bg-signal' : idx < currentStep ? 'bg-signal/40' : 'bg-ink/10'
               }`}
-            >
-              <ThumbIcon size={14} /> {s.title.split(' ')[0]}
-            </button>
-          );
-        })}
-      </div>
+              title={s.title}
+            />
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-ink/10 shadow-sm p-6 md:p-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Step Narration */}
+            <div className="lg:col-span-5 space-y-4">
+              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-signal bg-signal/10 px-3 py-1 rounded-full">
+                {step.badge}
+              </span>
+              <h1 className="font-display text-2xl md:text-3xl font-bold text-ink leading-tight">
+                {step.headline}
+              </h1>
+              <p className="text-ink/70 text-sm md:text-base leading-relaxed">
+                {step.description}
+              </p>
+
+              <div className="pt-4 border-t border-ink/5 flex items-center gap-2 text-xs text-ink/50">
+                <ShieldCheck size={16} className="text-signal" />
+                <span>Operational template active in Grace Chapel Demo</span>
+              </div>
+            </div>
+
+            {/* Interactive Mock Preview Box */}
+            <div className="lg:col-span-7 bg-parchment/60 rounded-xl border border-ink/10 p-5 md:p-6">
+              {step.previewType === 'setup' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-ink/10">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-signal text-white flex items-center justify-center font-bold text-xs">GC</div>
+                      <div>
+                        <p className="font-bold text-sm text-ink">Grace Chapel Central</p>
+                        <p className="text-[11px] text-ink/50">Abuja Branch • Active</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-signal/10 text-signal font-medium px-2 py-0.5 rounded">Trial Active</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-white p-3 rounded-lg border border-ink/5">
+                      <p className="text-ink/50">Total Congregation</p>
+                      <p className="text-lg font-bold text-ink mt-1">41 Members</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-ink/5">
+                      <p className="text-ink/50">Active Departments</p>
+                      <p className="text-lg font-bold text-ink mt-1">4 Units</p>
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-ink/5 flex items-center justify-between text-xs">
+                    <span className="text-ink/70">Role-Based Invitations</span>
+                    <span className="text-signal font-semibold">Ushers, Choir, Follow-Up</span>
+                  </div>
+                </div>
+              )}
+
+              {step.previewType === 'checkin' && (
+                <div className="space-y-4 text-center">
+                  <p className="text-xs font-semibold text-ink/50 uppercase tracking-wider">Sunday Morning Live Service</p>
+                  <div className="bg-white p-6 rounded-xl border border-ink/10 max-w-xs mx-auto shadow-sm space-y-2">
+                    <span className="text-xs text-ink/60">Today's Check-In Code</span>
+                    <p className="font-mono text-3xl font-extrabold tracking-widest text-signal">482 915</p>
+                    <p className="text-[11px] text-ink/40">Expires at service conclusion</p>
+                  </div>
+                  <div className="flex items-center justify-center gap-4 text-xs text-ink/60">
+                    <span className="flex items-center gap-1"><Smartphone size={14} className="text-signal" /> Mobile Web</span>
+                    <span className="flex items-center gap-1"><Clock size={14} className="text-signal" /> Instant Audit</span>
+                  </div>
+                </div>
+              )}
+
+              {step.previewType === 'followup' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-ink/10 text-xs">
+                    <span className="font-bold text-ink">Absentee Watch Queue</span>
+                    <span className="text-signal font-medium">5 Members Need Care</span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { name: 'Dorcas Akinola', last: '27 Sept 2026', phone: '09000000037' },
+                      { name: 'Gift Etim', last: '11 Oct 2026', phone: '09000000019' },
+                      { name: 'Ruth Nnamdi', last: '11 Oct 2026', phone: '09000000031' }
+                    ].map((m, i) => (
+                      <div key={i} className="bg-white p-2.5 rounded-lg border border-ink/5 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-medium text-ink">{m.name}</p>
+                          <p className="text-[11px] text-ink/40">Last seen: {m.last}</p>
+                        </div>
+                        <span className="text-signal font-mono font-medium">{m.phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {step.previewType === 'roster' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-ink/10 text-xs">
+                    <span className="font-bold text-ink">Sunday Duty Roster</span>
+                    <span className="text-ink/50">Next Service</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="bg-white p-2.5 rounded-lg border border-ink/5 flex justify-between">
+                      <span className="text-ink/60">Praise & Worship</span>
+                      <span className="font-semibold text-ink">Choir Lead (Brother John)</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-lg border border-ink/5 flex justify-between">
+                      <span className="text-ink/60">Offering Collection</span>
+                      <span className="font-semibold text-ink">Ushering Team Alpha</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-lg border border-ink/5 flex justify-between">
+                      <span className="text-ink/60">New Believers Care</span>
+                      <span className="font-semibold text-ink">Follow-Up Department</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step.previewType === 'giving' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-ink/10 text-xs">
+                    <span className="font-bold text-ink">Sunday Counting Sheet</span>
+                    <span className="text-signal font-medium">Reconciled</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white p-3 rounded-lg border border-ink/5">
+                      <p className="text-ink/50">Tithe Collections</p>
+                      <p className="text-base font-bold text-ink mt-1">₦ 145,000</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-ink/5">
+                      <p className="text-ink/50">General Offering</p>
+                      <p className="text-base font-bold text-ink mt-1">₦ 82,500</p>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-ink/50 text-center">Dual verification enabled for audit compliance</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stepper Controls */}
+          <div className="mt-8 pt-6 border-t border-ink/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={handlePrev}
+                disabled={currentStep === 0}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors border ${
+                  currentStep === 0
+                    ? 'border-ink/10 text-ink/30 cursor-not-allowed'
+                    : 'border-ink/20 hover:bg-ink/5 text-ink'
+                }`}
+              >
+                <ArrowLeft size={16} /> Previous
+              </button>
+
+              {currentStep < WALKTHROUGH_STEPS.length - 1 ? (
+                <button
+                  onClick={handleNext}
+                  className="bg-signal hover:bg-signal-deep text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  Next Step <ArrowRight size={16} />
+                </button>
+              ) : (
+                <Link
+                  to="/signup"
+                  className="bg-signal hover:bg-signal-deep text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  Start Church Trial <ArrowRight size={16} />
+                </Link>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <a
+                href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20have%20questions%20about%20onboarding%20our%20church."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-signal hover:underline text-xs font-semibold flex items-center gap-1"
+              >
+                <Phone size={13} /> Chat with Onboarding (0810 013 3673)
+              </a>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-signal-gradient px-4 py-6 text-center text-xs text-white/60 border-t border-white/10">
+        <p>© 2026 Gathrd. Church management software built for Nigerian ministries.</p>
+      </footer>
     </div>
   );
 }

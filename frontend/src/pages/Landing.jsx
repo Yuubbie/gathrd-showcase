@@ -213,4 +213,8 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Official Floating WhatsApp
+      {/* Official Floating WhatsApp Support */}
+      <WhatsAppButton message="Hello Gathrd, I'd like to know more about the platform." />
+    </div>
+  );
+}
