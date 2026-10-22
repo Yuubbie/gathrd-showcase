@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Download, Smartphone, X } from 'lucide-react';
+import { Download, Smartphone } from 'lucide-react';
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showGuide, setShowGuide] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    // Check if already in standalone/installed mode
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsInstalled(true);
+    }
+
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    });
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -20,54 +30,77 @@ export default function InstallPrompt() {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
-        setDeferredPrompt(null);
+        setIsInstalled(true);
       }
+      setDeferredPrompt(null);
     } else {
-      setShowGuide((prev) => !prev);
+      // If native event wasn't cached, trigger native browser install prompt
+      window.dispatchEvent(new Event('beforeinstallprompt'));
     }
   };
 
+  // If already running inside installed PWA, do not show button
+  if (isInstalled) return null;
+
   return (
-    <aside aria-label="Install App" className="fixed bottom-5 left-5 md:left-72 z-50 max-w-xs shadow-2xl">
-      <div className="bg-ink text-white p-3 rounded-2xl border-2 border-gold/40 flex items-center justify-between gap-3 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-gold/20 border border-gold/40 flex items-center justify-center shrink-0">
-            <Smartphone className="text-gold" size={16} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-white leading-tight">Install Gathrd</p>
-            <p className="text-[10px] text-white/70">Add to home screen</p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleInstallClick}
-          className="bg-gold hover:bg-gold-light text-ink text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+    <div
+      style={{
+        position: 'fixed',
+        bottom: '24px',
+        left: '24px',
+        zIndex: 9999,
+      }}
+    >
+      <button
+        type="button"
+        onClick={handleInstallClick}
+        style={{
+          backgroundColor: '#15111F',
+          color: '#FFFFFF',
+          padding: '8px 14px',
+          borderRadius: '9999px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
+          border: '1.5px solid #E5C07B',
+          cursor: 'pointer',
+        }}
+      >
+        <div
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(229, 192, 123, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <Download size={13} /> Install
-        </button>
-      </div>
-
-      {showGuide && (
-        <div className="mt-2 bg-white text-ink text-xs p-3.5 rounded-xl border border-ink/15 shadow-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="font-bold text-ink text-xs">How to install:</p>
-            <button
-              type="button"
-              onClick={() => setShowGuide(false)}
-              className="text-ink/40 hover:text-ink text-xs"
-            >
-              ✕
-            </button>
-          </div>
-          <ul className="text-[11px] text-ink/70 space-y-1 list-disc list-inside">
-            <li><strong>Desktop (Chrome/Edge):</strong> Look for the <strong>Install icon</strong> in your URL address bar.</li>
-            <li><strong>iPhone (Safari):</strong> Tap <strong>Share</strong> (box with arrow) → <strong>Add to Home Screen</strong>.</li>
-            <li><strong>Android (Chrome):</strong> Tap <strong>Menu (⋮)</strong> → <strong>Install app</strong>.</li>
-          </ul>
+          <Smartphone size={14} color="#E5C07B" />
         </div>
-      )}
-    </aside>
+        <div style={{ textAlign: 'left' }}>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, lineHeight: 1.1 }}>Install Gathrd</p>
+          <p style={{ margin: 0, fontSize: '9px', opacity: 0.7 }}>Add to Home Screen</p>
+        </div>
+        <div
+          style={{
+            backgroundColor: '#E5C07B',
+            color: '#15111F',
+            fontSize: '11px',
+            fontWeight: 700,
+            padding: '4px 10px',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginLeft: '4px',
+          }}
+        >
+          <Download size={12} /> Install
+        </div>
+      </button>
+    </div>
   );
 }
