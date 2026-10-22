@@ -46,38 +46,14 @@ export default function AdminDashboard() {
 
       setAuthorized(true);
 
-      // Fetch churches
-      const { data: churchData, error: churchError } = await supabase
-        .from('churches')
-        .select(`
-          *,
-          members(count),
-          visitors(count)
-        `)
+      // Query from admin_churches_overview view
+      const { data, error } = await supabase
+        .from('admin_churches_overview')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (churchError) throw churchError;
-
-      // Fetch profiles
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, church_id, full_name, email, phone, role');
-
-      const profileMap = {};
-      if (profilesData) {
-        profilesData.forEach((p) => {
-          if (p.church_id && !profileMap[p.church_id]) {
-            profileMap[p.church_id] = p;
-          }
-        });
-      }
-
-      const mergedChurches = (churchData || []).map((c) => ({
-        ...c,
-        pastor: profileMap[c.id] || null,
-      }));
-
-      setChurches(mergedChurches);
+      if (error) throw error;
+      setChurches(data || []);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -89,7 +65,7 @@ export default function AdminDashboard() {
     try {
       setUpdatingId(churchId);
       const updates = {};
-      if (newPlan) updates.subscription_tier = newPlan;
+      if (newPlan) updates.plan = newPlan;
       if (newStatus) updates.subscription_status = newStatus;
 
       const { error } = await supabase
@@ -100,7 +76,11 @@ export default function AdminDashboard() {
       if (error) throw error;
 
       setChurches((prev) =>
-        prev.map((c) => (c.id === churchId ? { ...c, ...updates } : c))
+        prev.map((c) => (c.id === churchId ? { 
+          ...c, 
+          subscription_tier: newPlan || c.subscription_tier,
+          subscription_status: newStatus || c.subscription_status 
+        } : c))
       );
     } catch (err) {
       alert('Error updating church: ' + err.message);
@@ -154,7 +134,7 @@ export default function AdminDashboard() {
 
   function cleanPhone(raw) {
     if (!raw) return '';
-    const digits = raw.replace(/\D/g, '');
+    const digits = String(raw).replace(/\D/g, '');
     if (digits.startsWith('0')) return `234${digits.slice(1)}`;
     if (digits.startsWith('234')) return digits;
     return `234${digits}`;
@@ -189,14 +169,11 @@ export default function AdminDashboard() {
   }
 
   const filtered = churches.filter((c) => {
-    const pastor = c.pastor || {};
     const searchTarget = `
       ${c.name || ''} 
-      ${c.email || ''} 
-      ${c.phone || ''} 
-      ${pastor.full_name || ''} 
-      ${pastor.email || ''} 
-      ${pastor.phone || ''}
+      ${c.pastor_name || ''} 
+      ${c.pastor_email || ''} 
+      ${c.pastor_phone || ''}
     `.toLowerCase();
     return searchTarget.includes(search.toLowerCase());
   });
@@ -241,13 +218,13 @@ export default function AdminDashboard() {
           <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
             <p className="text-xs font-semibold text-ink/50">Members Tracked</p>
             <p className="font-display text-3xl font-extrabold text-ink mt-1">
-              {churches.reduce((acc, curr) => acc + (curr.members?.[0]?.count || 0), 0)}
+              {churches.reduce((acc, curr) => acc + (curr.members_count || 0), 0)}
             </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
             <p className="text-xs font-semibold text-ink/50">Visitors Logged</p>
             <p className="font-display text-3xl font-extrabold text-gold mt-1">
-              {churches.reduce((acc, curr) => acc + (curr.visitors?.[0]?.count || 0), 0)}
+              {churches.reduce((acc, curr) => acc + (curr.visitors_count || 0), 0)}
             </p>
           </div>
         </div>
@@ -264,7 +241,7 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Church Management Directory */}
+        {/* Church Directory */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-ink/5 flex items-center justify-between">
             <h2 className="font-display font-bold text-sm text-ink">Registered Churches ({filtered.length})</h2>
@@ -274,11 +251,9 @@ export default function AdminDashboard() {
           {filtered.length > 0 ? (
             <div className="divide-y divide-ink/5 text-xs">
               {filtered.map((church) => {
-                const pastor = church.pastor || {};
-                const contactEmail = pastor.email || church.email;
-                const rawPhone = pastor.phone || church.phone;
-                const phone = cleanPhone(rawPhone);
-                const pastorName = pastor.full_name || 'Pastor / Administrator';
+                const pastorName = church.pastor_name || 'Pastor / Administrator';
+                const contactEmail = church.pastor_email;
+                const phone = cleanPhone(church.pastor_phone);
 
                 const waUrl = phone
                   ? `https://wa.me/${phone}?text=${encodeURIComponent(
@@ -350,18 +325,18 @@ export default function AdminDashboard() {
                       </p>
 
                       <p className="text-ink/50 text-[11px]">
-                        Phone: <strong className="font-mono text-ink/70">{rawPhone || 'None'}</strong> • Registered: {new Date(church.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        Phone: <strong className="font-mono text-ink/70">{church.pastor_phone || 'None'}</strong> • Registered: {new Date(church.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
 
                     {/* Usage Metrics */}
                     <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-2 md:pt-0 border-ink/5 text-right min-w-[110px]">
                       <div>
-                        <span className="font-bold text-sm text-ink">{church.members?.[0]?.count || 0}</span>
+                        <span className="font-bold text-sm text-ink">{church.members_count || 0}</span>
                         <span className="text-[11px] text-ink/50 ml-1">Members</span>
                       </div>
                       <div className="text-[11px] text-ink/50">
-                        <span>{church.visitors?.[0]?.count || 0} Visitors</span>
+                        <span>{church.visitors_count || 0} Visitors</span>
                       </div>
                     </div>
 
