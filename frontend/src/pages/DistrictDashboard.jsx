@@ -9,7 +9,7 @@ import {
 export default function DistrictDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [church, setChurch] = useState(null);
+  const [hqChurch, setHqChurch] = useState(null);
   const [branches, setBranches] = useState([]);
   const [timeRange, setTimeRange] = useState('30');
 
@@ -27,38 +27,57 @@ export default function DistrictDashboard() {
         return;
       }
 
-      // 1. Get current user's profile and church
+      // 1. Fetch user's profile to get their assigned church_id
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*, churches(*)')
+        .select('church_id')
         .eq('id', user.id)
         .single();
 
-      if (!profile || !profile.churches) {
+      const userChurchId = profile?.church_id;
+      if (!userChurchId) {
         navigate('/dashboard');
         return;
       }
 
-      const currentChurch = profile.churches;
-      setChurch(currentChurch);
-
-      // 2. Fetch District HQ + All Child Branches
-      let branchQuery = supabase
+      // 2. Fetch the HQ Church record with member count
+      const { data: hqData } = await supabase
         .from('churches')
-        .select(`
-          id,
-          name,
-          plan,
-          subscription_status,
-          members(count),
-          attendance(count)
-        `)
-        .or(`id.eq.${currentChurch.id},parent_church_id.eq.${currentChurch.id}`);
+        .select('id, name, plan, subscription_status, members(count)')
+        .eq('id', userChurchId)
+        .single();
 
-      const { data: branchData, error: branchErr } = await branchQuery;
-      if (branchErr) throw branchErr;
+      // 3. Fetch all Child Branches under this District HQ safely
+      // Checks parent_church_id first, falls back to district_id
+      let { data: branchData } = await supabase
+        .from('churches')
+        .select('id, name, plan, subscription_status, members(count)')
+        .eq('parent_church_id', userChurchId);
 
-      setBranches(branchData || []);
+      if (!branchData || branchData.length === 0) {
+        const fallback = await supabase
+          .from('churches')
+          .select('id, name, plan, subscription_status, members(count)')
+          .eq('district_id', userChurchId);
+        if (fallback.data) branchData = fallback.data;
+      }
+
+      setHqChurch(hqData);
+
+      // Combine HQ + Child Branches into the district roster
+      const allDistrictOrgs = [];
+      if (hqData) {
+        allDistrictOrgs.push({ ...hqData, is_hq: true });
+      }
+      if (branchData) {
+        branchData.forEach((b) => {
+          if (b.id !== userChurchId) {
+            allDistrictOrgs.push({ ...b, is_hq: false });
+          }
+        });
+      }
+
+      setBranches(allDistrictOrgs);
     } catch (err) {
       console.error('Error loading district dashboard:', err);
     } finally {
@@ -67,8 +86,7 @@ export default function DistrictDashboard() {
   }
 
   const totalMembers = branches.reduce((acc, b) => acc + (b.members?.[0]?.count || 0), 0);
-  const totalAttendance = branches.reduce((acc, b) => acc + (b.attendance?.[0]?.count || 0), 0);
-  const branchesWithActivity = branches.filter((b) => (b.attendance?.[0]?.count || 0) > 0).length;
+  const totalLocations = branches.length;
 
   if (loading) {
     return (
@@ -82,7 +100,7 @@ export default function DistrictDashboard() {
     <div className="min-h-screen bg-parchment px-4 py-8 md:px-10 text-ink">
       <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Back Button */}
+        {/* Back Link */}
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-1.5 text-xs text-ink/60 hover:text-ink font-semibold transition-colors"
@@ -94,7 +112,7 @@ export default function DistrictDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold text-ink">
-              {church?.name || 'District'} — District Dashboard
+              {hqChurch?.name || 'Your church'} — District Dashboard
             </h1>
             <p className="text-xs text-ink/60 mt-0.5">
               Monitor headquarters and all branches under your district
@@ -113,59 +131,31 @@ export default function DistrictDashboard() {
         </div>
 
         {/* Aggregate KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-          <div className="bg-white p-4 rounded-2xl border border-ink/5 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-ink/5 text-ink flex items-center justify-center">
-              <Users size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-ink/50">Total Members</p>
-              <p className="font-display text-xl font-bold text-ink">{totalMembers}</p>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
+            <p className="text-xs font-semibold text-ink/50">Total Members</p>
+            <p className="font-display text-3xl font-extrabold text-signal mt-1">{totalMembers}</p>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-ink/5 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Wallet size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-ink/50">Total Giving ({timeRange} Days)</p>
-              <p className="font-display text-xl font-bold text-emerald-600">₦0</p>
-            </div>
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
+            <p className="text-xs font-semibold text-ink/50">Total Giving ({timeRange} Days)</p>
+            <p className="font-display text-3xl font-extrabold text-emerald-600 mt-1">₦0</p>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-ink/5 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-ink/5 text-ink flex items-center justify-center">
-              <CheckSquare size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-ink/50">Attendance Check-ins</p>
-              <p className="font-display text-xl font-bold text-ink">{totalAttendance}</p>
-            </div>
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
+            <p className="text-xs font-semibold text-ink/50">Total Locations</p>
+            <p className="font-display text-3xl font-extrabold text-ink mt-1">{totalLocations}</p>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-ink/5 shadow-sm flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-ink/5 text-ink flex items-center justify-center">
-              <Building2 size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-ink/50">Total Locations</p>
-              <p className="font-display text-xl font-bold text-ink">{branches.length}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-ink/5 shadow-sm flex items-center gap-3 col-span-2 md:col-span-1">
-            <div className="w-10 h-10 rounded-xl bg-ink/5 text-ink flex items-center justify-center">
-              <Activity size={18} />
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-ink/50">Active Locations</p>
-              <p className="font-display text-xl font-bold text-ink">{branchesWithActivity}</p>
-            </div>
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
+            <p className="text-xs font-semibold text-ink/50">Active Branches</p>
+            <p className="font-display text-3xl font-extrabold text-ink mt-1">
+              {branches.filter((b) => !b.is_hq).length}
+            </p>
           </div>
         </div>
 
-        {/* Branches & HQ Table */}
+        {/* Organizations Table */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-ink/5 flex items-center justify-between">
             <h2 className="font-display font-bold text-sm text-ink">
@@ -178,27 +168,28 @@ export default function DistrictDashboard() {
             <table className="w-full text-left text-xs">
               <thead className="bg-parchment/60 text-ink/50 font-semibold border-b border-ink/5">
                 <tr>
-                  <th className="py-3 px-4">Location</th>
+                  <th className="py-3 px-4">Organization</th>
                   <th className="py-3 px-4">Role / Plan</th>
                   <th className="py-3 px-4">Members</th>
                   <th className="py-3 px-4">Giving ({timeRange} Days)</th>
-                  <th className="py-3 px-4">Attendance</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/5">
                 {branches.map((b) => {
-                  const isHq = b.id === church?.id;
                   const memberCount = b.members?.[0]?.count || 0;
-                  const attendanceCount = b.attendance?.[0]?.count || 0;
 
                   return (
                     <tr key={b.id} className="hover:bg-parchment/30 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-ink flex items-center gap-2">
                         {b.name}
-                        {isHq && (
-                          <span className="text-[10px] bg-signal/10 text-signal font-bold px-1.5 py-0.5 rounded">
-                            HQ
+                        {b.is_hq ? (
+                          <span className="text-[10px] bg-signal/10 text-signal font-bold px-2 py-0.5 rounded-full">
+                            District HQ
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-ink/5 text-ink/60 font-medium px-2 py-0.5 rounded-full">
+                            Branch
                           </span>
                         )}
                       </td>
@@ -210,9 +201,6 @@ export default function DistrictDashboard() {
                       </td>
                       <td className="py-3.5 px-4 text-emerald-600 font-semibold">
                         ₦0
-                      </td>
-                      <td className="py-3.5 px-4 text-ink/70">
-                        {attendanceCount}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
