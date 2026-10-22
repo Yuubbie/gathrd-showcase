@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import {
   Building2, Users, Calendar, ShieldCheck, Phone,
-  MessageSquare, RefreshCw, Search, ShieldAlert
+  MessageSquare, RefreshCw, Search, ShieldAlert,
+  Clock, CheckCircle, ChevronDown, Award
 } from 'lucide-react';
 
-// Only this account has superadmin access
 const SUPERADMIN_EMAILS = [
   'owner@example.invalid',
 ];
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [authorized, setAuthorized] = useState(false);
   const [churches, setChurches] = useState([]);
   const [search, setSearch] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     checkAuthAndFetch();
@@ -26,15 +27,12 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      // Verify active session
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-
       if (authError || !user) {
         navigate('/login');
         return;
       }
 
-      // Check access permission
       const userEmail = (user.email || '').toLowerCase().trim();
       if (!SUPERADMIN_EMAILS.includes(userEmail)) {
         setAuthorized(false);
@@ -44,13 +42,14 @@ export default function AdminDashboard() {
 
       setAuthorized(true);
 
-      // Fetch church data
+      // Fetch churches, member counts, visitor counts, and the primary pastor profile
       const { data, error } = await supabase
         .from('churches')
         .select(`
           *,
           members(count),
-          visitors(count)
+          visitors(count),
+          profiles(full_name, email, phone, role)
         `)
         .order('created_at', { ascending: false });
 
@@ -60,6 +59,31 @@ export default function AdminDashboard() {
       console.error('Error fetching admin data:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Quick action: Change plan or status directly
+  async function updateChurchPlan(churchId, newPlan, newStatus) {
+    try {
+      setUpdatingId(churchId);
+      const updates = {};
+      if (newPlan) updates.subscription_tier = newPlan;
+      if (newStatus) updates.subscription_status = newStatus;
+
+      const { error } = await supabase
+        .from('churches')
+        .update(updates)
+        .eq('id', churchId);
+
+      if (error) throw error;
+
+      setChurches((prev) =>
+        prev.map((c) => (c.id === churchId ? { ...c, ...updates } : c))
+      );
+    } catch (err) {
+      alert('Error updating church: ' + err.message);
+    } finally {
+      setUpdatingId(null);
     }
   }
 
@@ -99,11 +123,18 @@ export default function AdminDashboard() {
     );
   }
 
-  const filtered = churches.filter((c) =>
-    (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone || '').includes(search)
-  );
+  const filtered = churches.filter((c) => {
+    const pastor = c.profiles?.[0] || {};
+    const searchTarget = `
+      ${c.name || ''} 
+      ${c.email || ''} 
+      ${c.phone || ''} 
+      ${pastor.full_name || ''} 
+      ${pastor.email || ''} 
+      ${pastor.phone || ''}
+    `.toLowerCase();
+    return searchTarget.includes(search.toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-parchment px-4 py-8 md:px-10 text-ink">
@@ -114,11 +145,11 @@ export default function AdminDashboard() {
           <div>
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-              <p className="text-xs uppercase font-bold text-signal tracking-wider">Internal Master Control</p>
+              <p className="text-xs uppercase font-bold text-signal tracking-wider">Superadmin Command Console</p>
             </div>
-            <h1 className="font-display text-2xl font-bold text-ink mt-0.5">Platform Signups & Church Monitor</h1>
+            <h1 className="font-display text-2xl font-bold text-ink mt-0.5">Platform Oversight & Management</h1>
             <p className="text-xs text-ink/60 mt-1">
-              Live database oversight of registered churches, active trials, and usage statistics.
+              Live metrics, pastor contact information, and account administration across all Nigerian branches.
             </p>
           </div>
 
@@ -143,7 +174,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm">
-            <p className="text-xs font-semibold text-ink/50">Total Members Tracked</p>
+            <p className="text-xs font-semibold text-ink/50">Members Tracked</p>
             <p className="font-display text-3xl font-extrabold text-ink mt-1">
               {churches.reduce((acc, curr) => acc + (curr.members?.[0]?.count || 0), 0)}
             </p>
@@ -161,53 +192,105 @@ export default function AdminDashboard() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40" />
           <input
             type="text"
-            placeholder="Search by church name, email, or phone number..."
+            placeholder="Search by church name, pastor name, email, or phone number..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-ink/10 bg-white text-xs focus:outline-none focus:border-signal"
           />
         </div>
 
-        {/* Churches List */}
+        {/* Church Management Directory */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-ink/5">
+          <div className="p-4 border-b border-ink/5 flex items-center justify-between">
             <h2 className="font-display font-bold text-sm text-ink">Registered Churches ({filtered.length})</h2>
+            <span className="text-[11px] text-ink/40">Showing all platform organizations</span>
           </div>
 
           {filtered.length > 0 ? (
             <div className="divide-y divide-ink/5 text-xs">
               {filtered.map((church) => {
-                const phone = cleanPhone(church.phone);
+                // Determine contact info prioritizing profiles table over church table
+                const pastor = (church.profiles && church.profiles[0]) || {};
+                const contactEmail = pastor.email || church.email;
+                const rawPhone = pastor.phone || church.phone;
+                const phone = cleanPhone(rawPhone);
+                const pastorName = pastor.full_name || 'Pastor / Administrator';
+
                 const waUrl = phone
                   ? `https://wa.me/${phone}?text=${encodeURIComponent(
-                      `Hello Pastor, this is Gathrd following up to welcome ${church.name} to the platform!`
+                      `Hello ${pastorName}, this is Gathrd following up to ensure${church.name} is completely set up for your services!`
                     )}`
                   : null;
 
+                const isTrial = church.subscription_status === 'trialing' || !church.subscription_status;
+
                 return (
-                  <div key={church.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-parchment/40 transition-colors">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                  <div key={church.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-parchment/30 transition-colors">
+                    
+                    {/* Left: Organization & Pastor Identity */}
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-sm text-ink">{church.name}</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
-                          {church.subscription_status || 'Trial'}
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          isTrial ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {church.subscription_status || 'trialing'}
+                        </span>
+                        <span className="text-[10px] bg-signal/10 text-signal font-semibold px-2 py-0.5 rounded-full capitalize">
+                          {church.subscription_tier || 'Starter'} Plan
                         </span>
                       </div>
-                      <p className="text-ink/60">
-                        Email: <strong>{church.email || 'None'}</strong> • Phone: <strong className="font-mono">{church.phone || 'None'}</strong>
+
+                      <p className="text-ink/70">
+                        Admin: <strong className="text-ink">{pastorName}</strong> • Email: <strong className="text-ink">{contactEmail || 'No email recorded'}</strong>
                       </p>
-                      <p className="text-[11px] text-ink/40">
-                        Registered: {new Date(church.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+
+                      <p className="text-ink/50 text-[11px]">
+                        Phone: <strong className="font-mono text-ink/70">{rawPhone || 'None'}</strong> • Registered: {new Date(church.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-4 self-start md:self-center">
-                      <div className="text-right">
-                        <p className="font-bold text-ink">{church.members?.[0]?.count || 0} Members</p>
-                        <p className="text-[11px] text-ink/50">{church.visitors?.[0]?.count || 0} Visitors</p>
+                    {/* Middle: Usage Metrics */}
+                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-2 md:pt-0 border-ink/5 text-right min-w-[110px]">
+                      <div>
+                        <span className="font-bold text-sm text-ink">{church.members?.[0]?.count || 0}</span>
+                        <span className="text-[11px] text-ink/50 ml-1">Members</span>
                       </div>
+                      <div className="text-[11px] text-ink/50">
+                        <span>{church.visitors?.[0]?.count || 0} Visitors</span>
+                      </div>
+                    </div>
 
-                      {waUrl && (
+                    {/* Right: Administrative Actions */}
+                    <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                      {/* Change Plan Selector */}
+                      <select
+                        disabled={updatingId === church.id}
+                        value={church.subscription_tier || 'starter'}
+                        onChange={(e) => updateChurchPlan(church.id, e.target.value, null)}
+                        className="bg-parchment border border-ink/10 rounded-lg px-2 py-1.5 text-[11px] font-medium text-ink focus:outline-none"
+                      >
+                        <option value="starter">Starter</option>
+                        <option value="regular">Regular</option>
+                        <option value="district">District</option>
+                        <option value="zone">Zone</option>
+                      </select>
+
+                      {/* Status Toggle */}
+                      <button
+                        disabled={updatingId === church.id}
+                        onClick={() => updateChurchPlan(church.id, null, isTrial ? 'active' : 'trialing')}
+                        className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${
+                          isTrial 
+                            ? 'border-emerald-600/30 text-emerald-700 hover:bg-emerald-50' 
+                            : 'border-amber-600/30 text-amber-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        {isTrial ? 'Mark Active' : 'Mark Trial'}
+                      </button>
+
+                      {/* Direct WhatsApp link */}
+                      {waUrl ? (
                         <a
                           href={waUrl}
                           target="_blank"
@@ -216,8 +299,11 @@ export default function AdminDashboard() {
                         >
                           <MessageSquare size={13} /> Message
                         </a>
+                      ) : (
+                        <span className="text-ink/30 text-[11px] italic px-2">No phone</span>
                       )}
                     </div>
+
                   </div>
                 );
               })}
