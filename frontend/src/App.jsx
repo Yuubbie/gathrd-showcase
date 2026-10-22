@@ -37,6 +37,7 @@ import ChurchCalendar from './pages/Calendar';
 import InviteStaff from './pages/InviteStaff';
 import SetPassword from './pages/SetPassword';
 import ClaimAccount from './pages/ClaimAccount';
+import AdminDashboard from './pages/AdminDashboard';
 
 function CheckEmail() {
   return (
@@ -71,18 +72,10 @@ export default function App() {
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/join/:slug" element={<PublicOnboard />} />
-          {/* FIX: new public route for the Sunday attendance QR — no login,
-              same pattern as /join/:slug and /give/:slug above. */}
           <Route path="/checkin/:slug" element={<PublicAttendanceCheckin />} />
-          {/* FIX: new public route — lands here from an invite email link.
-              Kept outside ProtectedRoute/AppShell deliberately, since it
-              shouldn't depend on AuthContext's normal profile-load timing
-              to render the password form. */}
           <Route path="/set-password" element={<SetPassword />} />
-          {/* FIX: new public route — lets an already-registered member
-              (via QR or manual add) claim a login for their existing
-              roster entry, linking the two via profile_id. */}
           <Route path="/claim/:slug" element={<ClaimAccount />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route
             path="/dashboard"
             element={
@@ -91,9 +84,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* FIX: new protected route for the admin-facing attendance roster
-              and manual check-in — same role set as Visitor Log, matching
-              AppShell's nav gating for the new "Attendance" link. */}
           <Route
             path="/attendance"
             element={
@@ -264,8 +254,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* FIX: new protected route for inviting staff — same role set
-              the invite-staff Edge Function itself checks server-side. */}
           <Route
             path="/team/invite"
             element={
