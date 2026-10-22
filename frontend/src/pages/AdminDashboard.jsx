@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import {
   Building2, Users, Calendar, ShieldCheck, Phone,
-  MessageSquare, RefreshCw, Search, ShieldAlert
+  MessageSquare, RefreshCw, Search, ShieldAlert,
+  Trash2, Edit2, Check, X
 } from 'lucide-react';
 
 const SUPERADMIN_EMAILS = [
@@ -17,6 +18,10 @@ export default function AdminDashboard() {
   const [churches, setChurches] = useState([]);
   const [search, setSearch] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
+
+  // Inline rename state
+  const [editingChurchId, setEditingChurchId] = useState(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     checkAuthAndFetch();
@@ -41,7 +46,7 @@ export default function AdminDashboard() {
 
       setAuthorized(true);
 
-      // 1. Fetch churches with member & visitor counts
+      // Fetch churches
       const { data: churchData, error: churchError } = await supabase
         .from('churches')
         .select(`
@@ -53,12 +58,11 @@ export default function AdminDashboard() {
 
       if (churchError) throw churchError;
 
-      // 2. Fetch pastor profiles separately to avoid nested foreign key join errors
+      // Fetch profiles
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, church_id, full_name, email, phone, role');
 
-      // Map profiles by church_id
       const profileMap = {};
       if (profilesData) {
         profilesData.forEach((p) => {
@@ -68,7 +72,6 @@ export default function AdminDashboard() {
         });
       }
 
-      // Merge profile onto each church
       const mergedChurches = (churchData || []).map((c) => ({
         ...c,
         pastor: profileMap[c.id] || null,
@@ -101,6 +104,49 @@ export default function AdminDashboard() {
       );
     } catch (err) {
       alert('Error updating church: ' + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleRename(churchId) {
+    if (!editName.trim()) return;
+    try {
+      setUpdatingId(churchId);
+      const { error } = await supabase
+        .from('churches')
+        .update({ name: editName.trim() })
+        .eq('id', churchId);
+
+      if (error) throw error;
+
+      setChurches((prev) =>
+        prev.map((c) => (c.id === churchId ? { ...c, name: editName.trim() } : c))
+      );
+      setEditingChurchId(null);
+    } catch (err) {
+      alert('Error renaming church: ' + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleDelete(churchId, churchName) {
+    const confirmed = window.confirm(`Are you sure you want to delete "${churchName}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setUpdatingId(churchId);
+      const { error } = await supabase
+        .from('churches')
+        .delete()
+        .eq('id', churchId);
+
+      if (error) throw error;
+
+      setChurches((prev) => prev.filter((c) => c.id !== churchId));
+    } catch (err) {
+      alert('Error deleting church: ' + err.message);
     } finally {
       setUpdatingId(null);
     }
@@ -241,14 +287,54 @@ export default function AdminDashboard() {
                   : null;
 
                 const isTrial = church.subscription_status === 'trialing' || !church.subscription_status;
+                const isEditing = editingChurchId === church.id;
 
                 return (
                   <div key={church.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-parchment/30 transition-colors">
                     
-                    {/* Left: Organization & Pastor Identity */}
+                    {/* Organization & Pastor Identity */}
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-sm text-ink">{church.name}</span>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="border border-signal rounded px-2 py-0.5 text-xs font-bold text-ink focus:outline-none"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleRename(church.id)}
+                              className="p-1 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                              title="Save"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              onClick={() => setEditingChurchId(null)}
+                              className="p-1 rounded bg-ink/10 text-ink hover:bg-ink/20"
+                              title="Cancel"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-ink">{church.name}</span>
+                            <button
+                              onClick={() => {
+                                setEditingChurchId(church.id);
+                                setEditName(church.name);
+                              }}
+                              className="p-1 text-ink/40 hover:text-signal transition-colors"
+                              title="Rename Church"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
+                        )}
+
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           isTrial ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                         }`}>
@@ -268,7 +354,7 @@ export default function AdminDashboard() {
                       </p>
                     </div>
 
-                    {/* Middle: Usage Metrics */}
+                    {/* Usage Metrics */}
                     <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-2 md:pt-0 border-ink/5 text-right min-w-[110px]">
                       <div>
                         <span className="font-bold text-sm text-ink">{church.members?.[0]?.count || 0}</span>
@@ -279,9 +365,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Right: Administrative Actions */}
+                    {/* Actions */}
                     <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-                      {/* Change Plan Selector */}
+                      {/* Plan Selector */}
                       <select
                         disabled={updatingId === church.id}
                         value={church.subscription_tier || 'starter'}
@@ -317,9 +403,17 @@ export default function AdminDashboard() {
                         >
                           <MessageSquare size={13} /> Message
                         </a>
-                      ) : (
-                        <span className="text-ink/30 text-[11px] italic px-2">No phone</span>
-                      )}
+                      ) : null}
+
+                      {/* Delete Church Button */}
+                      <button
+                        disabled={updatingId === church.id}
+                        onClick={() => handleDelete(church.id, church.name)}
+                        className="p-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete Church"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
 
                   </div>
