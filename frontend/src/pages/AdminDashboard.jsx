@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import {
   Building2, Users, Calendar, ShieldCheck, Phone,
-  MessageSquare, RefreshCw, Search, ShieldAlert,
-  Clock, CheckCircle, ChevronDown, Award
+  MessageSquare, RefreshCw, Search, ShieldAlert
 } from 'lucide-react';
 
 const SUPERADMIN_EMAILS = [
@@ -42,19 +41,40 @@ export default function AdminDashboard() {
 
       setAuthorized(true);
 
-      // Fetch churches, member counts, visitor counts, and the primary pastor profile
-      const { data, error } = await supabase
+      // 1. Fetch churches with member & visitor counts
+      const { data: churchData, error: churchError } = await supabase
         .from('churches')
         .select(`
           *,
           members(count),
-          visitors(count),
-          profiles(full_name, email, phone, role)
+          visitors(count)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setChurches(data || []);
+      if (churchError) throw churchError;
+
+      // 2. Fetch pastor profiles separately to avoid nested foreign key join errors
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, church_id, full_name, email, phone, role');
+
+      // Map profiles by church_id
+      const profileMap = {};
+      if (profilesData) {
+        profilesData.forEach((p) => {
+          if (p.church_id && !profileMap[p.church_id]) {
+            profileMap[p.church_id] = p;
+          }
+        });
+      }
+
+      // Merge profile onto each church
+      const mergedChurches = (churchData || []).map((c) => ({
+        ...c,
+        pastor: profileMap[c.id] || null,
+      }));
+
+      setChurches(mergedChurches);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -62,7 +82,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // Quick action: Change plan or status directly
   async function updateChurchPlan(churchId, newPlan, newStatus) {
     try {
       setUpdatingId(churchId);
@@ -124,7 +143,7 @@ export default function AdminDashboard() {
   }
 
   const filtered = churches.filter((c) => {
-    const pastor = c.profiles?.[0] || {};
+    const pastor = c.pastor || {};
     const searchTarget = `
       ${c.name || ''} 
       ${c.email || ''} 
@@ -209,8 +228,7 @@ export default function AdminDashboard() {
           {filtered.length > 0 ? (
             <div className="divide-y divide-ink/5 text-xs">
               {filtered.map((church) => {
-                // Determine contact info prioritizing profiles table over church table
-                const pastor = (church.profiles && church.profiles[0]) || {};
+                const pastor = church.pastor || {};
                 const contactEmail = pastor.email || church.email;
                 const rawPhone = pastor.phone || church.phone;
                 const phone = cleanPhone(rawPhone);
