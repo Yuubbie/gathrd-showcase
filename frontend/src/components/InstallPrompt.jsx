@@ -6,7 +6,6 @@ export default function InstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if already in standalone/installed mode
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
       setIsInstalled(true);
     }
@@ -34,12 +33,10 @@ export default function InstallPrompt() {
       }
       setDeferredPrompt(null);
     } else {
-      // If native event wasn't cached, trigger native browser install prompt
-      window.dispatchEvent(new Event('beforeinstallprompt'));
+      alert("To install Gathrd: On Chrome or Edge, click the Install icon in your address bar. On iPhone Safari, tap Share then 'Add to Home Screen'.");
     }
   };
 
-  // If already running inside installed PWA, do not show button
   if (isInstalled) return null;
 
   return (
@@ -47,7 +44,8 @@ export default function InstallPrompt() {
       style={{
         position: 'fixed',
         bottom: '24px',
-        left: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: 9999,
       }}
     >
@@ -57,7 +55,7 @@ export default function InstallPrompt() {
         style={{
           backgroundColor: '#15111F',
           color: '#FFFFFF',
-          padding: '8px 14px',
+          padding: '8px 16px',
           borderRadius: '9999px',
           display: 'flex',
           alignItems: 'center',
@@ -65,12 +63,13 @@ export default function InstallPrompt() {
           boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
           border: '1.5px solid #E5C07B',
           cursor: 'pointer',
+          whiteSpace: 'nowrap',
         }}
       >
         <div
           style={{
-            width: '28px',
-            height: '28px',
+            width: '26px',
+            height: '26px',
             borderRadius: '50%',
             backgroundColor: 'rgba(229, 192, 123, 0.2)',
             display: 'flex',
