@@ -228,14 +228,20 @@ export default function Landing() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="space-y-6">
-              <h1 className="font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                Church Management Built for Nigerian Churches
+              <div className="inline-flex items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold border border-gold/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
+                Built for Nigerian Congregations & Branches
+              </div>
+
+              <h1 className="font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl leading-[1.12]">
+                The Modern Operating System Built for Nigerian Churches
               </h1>
-              <p className="text-lg text-ink/70 sm:text-xl">
-                Run Sunday check-in, duty rosters, giving logs, visitor follow-up, and discipleship
-                from one simple dashboard, designed for how churches in Nigeria work.
+
+              <p className="text-base text-ink/70 sm:text-lg leading-relaxed">
+                Run Sunday PIN check-in, workforce rosters, cash counting sheets, and automated 30-day first-timer follow-up from one simple dashboard.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
+
+              <div className="flex flex-col gap-3 sm:flex-row pt-2">
                 <Link
                   to="/signup"
                   className="inline-flex items-center justify-center rounded-xl bg-gold px-6 py-3 text-base font-bold text-ink shadow-sm hover:bg-gold-light transition-colors"
