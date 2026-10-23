@@ -12,7 +12,7 @@ import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 const FEATURES = [
   { icon: Users, title: 'Member Management', desc: 'Members, departments, cell groups, and role-based access for your leaders and workers.' },
   { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'A fresh QR code and 6-digit code every Sunday, plus manual usher entry.' },
-  { icon: Wallet, title: 'Giving & Tithes', desc: 'Accept donations via Paystack with full transaction records and counting sheets.' },
+  { icon: Wallet, title: 'Giving & Tithes', desc: 'Members send tithe and offering to the church bank account and upload a receipt for finance to verify.' },
   { icon: Megaphone, title: 'Announcements', desc: 'Send announcements that reach every member in the app.' },
   { icon: UsersRound, title: 'Cell Groups', desc: 'Manage cell groups, track attendance, and submit weekly reports.' },
   { icon: ListChecks, title: 'Follow-Up Dashboard', desc: 'Never miss a visitor or struggling member again.' },
@@ -99,7 +99,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <p className="font-semibold text-ink text-sm">Giving This Month</p>
-                  <p className="text-ink/50 text-xs">Via Paystack</p>
+                  <p className="text-ink/50 text-xs">Bank transfer</p>
                 </div>
                 <span className="ml-auto font-display font-bold text-ink text-lg">₦1.2M</span>
               </div>

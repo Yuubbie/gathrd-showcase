@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Copy } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-
-const CATEGORIES = [
-  ['tithe', 'Tithe'],
-  ['offering', 'Offering'],
-  ['thanksgiving', 'Thanksgiving'],
-  ['building_project', 'Building / Project'],
-  ['welfare', 'Welfare'],
-];
-
-const QUICK_AMOUNTS = [1000, 5000, 10000, 20000];
 
 const CARD =
   'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
@@ -24,43 +14,12 @@ function formatDate(value) {
   }
 }
 
-function ModeTabs({ mode, onChange }) {
-  const base = 'flex-1 text-sm rounded-lg py-2 font-medium transition-colors';
-  return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={() => onChange('card')}
-        className={`${base} ${mode === 'card' ? 'bg-signal text-white' : 'bg-ink/5 text-ink/60 hover:bg-ink/10'}`}
-      >
-        Card or online
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange('bank')}
-        className={`${base} ${mode === 'bank' ? 'bg-signal text-white' : 'bg-ink/5 text-ink/60 hover:bg-ink/10'}`}
-      >
-        Bank transfer
-      </button>
-    </div>
-  );
-}
-
 export default function PublicGive() {
   const { slug } = useParams();
   const [church, setChurch] = useState(null);
   const [loadingChurch, setLoadingChurch] = useState(true);
   const [notFound, setNotFound] = useState(false);
-
-  const [category, setCategory] = useState('tithe');
-  const [amount, setAmount] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [bank, setBank] = useState({ accounts: [], lastChanged: null });
-  const [mode, setMode] = useState('card');
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   useEffect(() => {
@@ -75,7 +34,6 @@ export default function PublicGive() {
         setChurch(data[0]);
         const accounts = bankData && bankData.found ? bankData.accounts || [] : [];
         setBank({ accounts, lastChanged: bankData ? bankData.last_changed : null });
-        setMode(data[0].has_giving_enabled ? 'card' : 'bank');
       }
       setLoadingChurch(false);
     }
@@ -88,47 +46,7 @@ export default function PublicGive() {
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
-      // The number is shown on screen, so it can still be copied by hand.
-    }
-  }
-
-  async function handleGive(e) {
-    e.preventDefault();
-    setError('');
-
-    if (!amount || Number(amount) < 100) {
-      setError('Please enter an amount of at least ₦100.');
-      return;
-    }
-    if (!email) {
-      setError('Email is required — your receipt goes here.');
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/initialize-giving`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug, category, amount, email, name, phone, origin: window.location.origin }),
-        }
-      );
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Could not start payment.');
-        setSubmitting(false);
-        return;
-      }
-
-      // Redirect to Paystack's hosted checkout page
-      window.location.href = data.authorization_url;
-    } catch (err) {
-      setError('Could not reach the server. Check your connection and try again.');
-      setSubmitting(false);
+      // Number is on screen; copy by hand still works.
     }
   }
 
@@ -140,67 +58,20 @@ export default function PublicGive() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="text-center">
-          <p className="text-ink font-medium">This giving link isn't valid.</p>
-          <p className="text-ink/50 text-sm mt-1">Please check with your church for the correct link.</p>
+          <p className="text-ink font-medium">This giving link is not valid.</p>
+          <p className="text-ink/50 text-sm mt-1">Ask your church for the correct link.</p>
         </div>
       </div>
     );
   }
 
-  const hasCard = Boolean(church.has_giving_enabled);
-  const hasBank = bank.accounts.length > 0;
-
-  if (!hasCard && !hasBank) {
+  if (bank.accounts.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
-        <div className="text-center">
-          <p className="text-ink font-medium">{church.church_name} hasn't activated online giving yet.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (mode === 'bank' || !hasCard) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
-        <div className={`w-full max-w-sm ${CARD} p-6 space-y-4`}>
-          {hasCard && hasBank && <ModeTabs mode="bank" onChange={setMode} />}
-
-          <div className="text-center mb-2">
-            <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
-            <h1 className="font-display text-lg font-bold text-ink">Give to {church.church_name}</h1>
-            <p className="text-ink/50 text-sm mt-1">Give by bank transfer</p>
-          </div>
-
-          <div className="space-y-3">
-            {bank.accounts.map((a, i) => (
-              <div key={`${a.account_number}-${i}`} className="border border-ink/10 rounded-xl p-4">
-                <p className="text-xs font-semibold text-signal-deep uppercase tracking-wide">{a.label}</p>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <p className="font-display text-xl font-bold text-ink tracking-wider">{a.account_number}</p>
-                  <button
-                    type="button"
-                    onClick={() => copyNumber(a.account_number, i)}
-                    className="flex items-center gap-1 text-xs text-signal font-semibold hover:text-signal-deep shrink-0"
-                  >
-                    <Copy size={13} /> {copiedIndex === i ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-sm text-ink/70 mt-1">{a.bank_name}</p>
-                <p className="text-sm text-ink/50">{a.account_name}</p>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-xs text-ink/50">
-            Put your name and what you are giving toward (for example Tithe) in the transfer narration, so your church
-            can record it.
-          </p>
-          <p className="text-xs text-ink/40">
-            Always check that the account name matches your church before you send.
-            {bank.lastChanged ? ` These details were last changed on ${formatDate(bank.lastChanged)}.` : ''} If anything
-            differs from what your church told you, confirm with your church first.
-          </p>
+        <div className="text-center max-w-sm">
+          <p className="text-ink font-medium">{church.church_name} has not listed a bank account yet.</p>
+          <p className="text-ink/50 text-sm mt-2">If you have a Gathrd login, sign in and use Give after the church adds an account.</p>
+          <Link to="/login" className="inline-block mt-4 text-sm font-semibold text-signal">Sign in</Link>
         </div>
       </div>
     );
@@ -208,81 +79,46 @@ export default function PublicGive() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-parchment">
-      <form onSubmit={handleGive} className="w-full max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
-        {hasBank && <ModeTabs mode="card" onChange={setMode} />}
-
+      <div className={`w-full max-w-sm ${CARD} p-6 space-y-4`}>
         <div className="text-center mb-2">
           <img src="/logo-mark.png" alt="Gathrd" className="h-12 w-12 mx-auto mb-2" />
           <h1 className="font-display text-lg font-bold text-ink">Give to {church.church_name}</h1>
+          <p className="text-ink/50 text-sm mt-1">Bank transfer only. Card giving is not offered here.</p>
         </div>
 
-        {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
-
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">What are you giving toward?</label>
-          <div className="grid grid-cols-2 gap-2">
-            {CATEGORIES.map(([value, label]) => (
-              <button
-                type="button"
-                key={value}
-                onClick={() => setCategory(value)}
-                className={`text-sm rounded-md px-3 py-2 border font-medium ${
-                  category === value ? 'bg-signal text-white border-signal' : 'border-ink/15 text-ink/70'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-3">
+          {bank.accounts.map((a, i) => (
+            <div key={`${a.account_number}-${i}`} className="border border-ink/10 rounded-xl p-4">
+              <p className="text-xs font-semibold text-signal-deep uppercase tracking-wide">{a.label}</p>
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <p className="font-display text-xl font-bold text-ink tracking-wider">{a.account_number}</p>
+                <button
+                  type="button"
+                  onClick={() => copyNumber(a.account_number, i)}
+                  className="flex items-center gap-1 text-xs text-signal font-semibold hover:text-signal-deep shrink-0"
+                >
+                  <Copy size={13} /> {copiedIndex === i ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-sm text-ink/70 mt-1">{a.bank_name}</p>
+              <p className="text-sm text-ink/50">{a.account_name}</p>
+            </div>
+          ))}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Amount (₦)</label>
-          <input
-            type="number"
-            required
-            min="100"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            onWheel={(e) => e.target.blur()}
-            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
-            placeholder="0.00"
-          />
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {QUICK_AMOUNTS.map((a) => (
-              <button
-                type="button"
-                key={a}
-                onClick={() => setAmount(String(a))}
-                className="text-xs border border-ink/15 text-ink/70 rounded-full px-3 py-1 hover:border-signal hover:text-signal transition-colors"
-              >
-                ₦{a.toLocaleString()}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Your name (optional)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Email <span className="text-rose">*</span></label>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" placeholder="For your receipt" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Phone (optional)</label>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
-        </div>
-
-        <button type="submit" disabled={submitting} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3.5 font-semibold transition-colors disabled:opacity-50">
-          {submitting ? 'Redirecting to payment…' : `Give ₦${amount ? Number(amount).toLocaleString() : '0'}`}
-        </button>
-
-        <p className="text-xs text-ink/40 text-center">Payments processed securely by Paystack.</p>
-      </form>
+        <p className="text-xs text-ink/50">
+          Put your name and what you are giving toward in the transfer narration.
+        </p>
+        <p className="text-xs text-ink/40">
+          Always check that the account name matches this church before you send.
+          {bank.lastChanged ? ` These details were last changed on ${formatDate(bank.lastChanged)}.` : ''}
+        </p>
+        <p className="text-xs text-ink/50">
+          Already have a Gathrd login?{' '}
+          <Link to="/give/me" className="font-semibold text-signal">Sign in to upload your receipt</Link>
+          so finance can verify it.
+        </p>
+      </div>
     </div>
   );
 }
