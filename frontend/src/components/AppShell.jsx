@@ -182,7 +182,7 @@ export default function AppShell({ children }) {
       <WhatsAppButton
         message={`Hello Gathrd, I'm ${profile?.full_name || 'a user'} from ${church?.name || 'my church'}. I need help with: `}
       />
-      <InstallPrompt />
+      <InstallPrompt offsetForSidebar />
     </div>
   );
 }
