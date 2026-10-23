@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
-  CreditCard, Building2, BarChart3, CalendarDays, Calendar,
+  CreditCard, Building2, BarChart3, CalendarDays, Calendar, Receipt,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -18,7 +18,9 @@ const NAV_ITEMS = [
   { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
   { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/discipleship', label: 'Discipleship', icon: Sparkles, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/giving', label: 'Giving', icon: Wallet, roles: ['senior_pastor', 'assistant_pastor', 'finance_admin'] },
+  { to: '/give/me', label: 'Give', icon: Wallet, roles: null },
+  { to: '/giving/transfers', label: 'Transfers', icon: Receipt, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin'] },
+  { to: '/giving', label: 'Cash log', icon: Wallet, roles: ['senior_pastor', 'assistant_pastor', 'finance_admin'] },
   { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },

@@ -39,6 +39,7 @@ import SetPassword from './pages/SetPassword';
 import ClaimAccount from './pages/ClaimAccount';
 import AdminDashboard from './pages/AdminDashboard';
 import MemberGivingPage from './pages/MemberGivingPage';
+import TransferLog from './pages/TransferLog';
 
 function CheckEmail() {
   return (
@@ -78,10 +79,17 @@ export default function App() {
           <Route path="/claim/:slug" element={<ClaimAccount />} />
           <Route path="/admin" element={<AdminDashboard />} />
 
-          {/* Bank Transfer Giving Portal */}
-          <Route path="/give" element={<MemberGivingPage />} />
-          <Route path="/give/:slug" element={<PublicGive />} />
+          <Route path="/give" element={<Navigate to="/give/me" replace />} />
           <Route path="/give/success" element={<GiveSuccess />} />
+          <Route
+            path="/give/me"
+            element={
+              <ProtectedRoute>
+                <MemberGivingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/give/:slug" element={<PublicGive />} />
 
           <Route
             path="/dashboard"
@@ -168,6 +176,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
                 <GivingLog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/giving/transfers"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin']}>
+                <TransferLog />
               </ProtectedRoute>
             }
           />

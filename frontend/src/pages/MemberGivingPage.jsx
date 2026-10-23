@@ -1,394 +1,358 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Copy, Check, Upload, CheckCircle2, History, Wallet } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { Building2, Copy, Check, Upload, CheckCircle2, History, CreditCard } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+const FUNDS = [
+  ['tithe', 'Tithe'],
+  ['offering', 'Offering'],
+  ['thanksgiving', 'Thanksgiving'],
+  ['building_project', 'Building / Project'],
+  ['welfare', 'Welfare'],
+];
+
+const CARD =
+  'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const MAX_BYTES = 5 * 1024 * 1024;
+
+function naira(value) {
+  return `₦${Number(value || 0).toLocaleString('en-NG')}`;
+}
+
+function statusChip(status) {
+  if (status === 'verified') return 'bg-sage-50 text-sage';
+  if (status === 'rejected') return 'bg-rose-50 text-rose';
+  return 'bg-amberflag/10 text-amberflag';
+}
+
+function statusLabel(status) {
+  if (status === 'verified') return 'Verified';
+  if (status === 'rejected') return 'Rejected';
+  return 'Pending';
+}
 
 export default function MemberGivingPage() {
-  const churchId = 'f243cfb0-7fab-4f6a-93c4-7b6492c1afd1';
-  const [bankAccounts, setBankAccounts] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState(null);
+  const { profile, church } = useAuth();
+  const [tab, setTab] = useState('give');
+  const [payload, setPayload] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
-  const [activeTab, setActiveTab] = useState('give'); // 'give' | 'history'
-
-  // Submission state
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [amount, setAmount] = useState('');
-  const [fundType, setFundType] = useState('Tithe');
+  const [fundType, setFundType] = useState('tithe');
   const [receiptFile, setReceiptFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  // History state
-  const [givingHistory, setGivingHistory] = useState([]);
+  const [duplicateWarn, setDuplicateWarn] = useState(false);
+  const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const loadAccounts = useCallback(async () => {
+    const { data, error: rpcError } = await supabase.rpc('get_my_church_give_accounts');
+    if (rpcError || !data?.ok) {
+      setPayload({ ok: false, accounts: [] });
+      return;
+    }
+    setPayload(data);
+    if (data.accounts?.length) setSelectedId(data.accounts[0].id);
+  }, []);
+
   useEffect(() => {
-    async function fetchAccounts() {
-      const { data } = await supabase
-        .from('church_bank_accounts')
-        .select('*')
-        .eq('church_id', churchId)
-        .eq('is_active', true);
-      
-      if (data && data.length > 0) {
-        setBankAccounts(data);
-        setSelectedAccount(data[0]);
-      }
-    }
+    loadAccounts();
+  }, [loadAccounts]);
 
-    async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email || '');
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('id', user.id)
-          .single();
-        if (profile) {
-          setFullName(profile.full_name || '');
-          setPhone(profile.phone || '');
-        }
-      }
-    }
-
-    fetchAccounts();
-    checkUser();
-  }, [churchId]);
-
-  const loadGivingHistory = async () => {
+  const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    let query = supabase
-      .from('giving')
-      .select('id, amount, fund_type, status, created_at, receipt_url')
-      .eq('church_id', churchId)
-      .order('created_at', { ascending: false });
-
-    if (user?.email) {
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-
-      if (member) {
-        query = query.eq('member_id', member.id);
-      }
-    }
-
-    const { data } = await query;
-    setGivingHistory(data || []);
+    const { data } = await supabase.rpc('get_my_bank_transfers');
+    setHistory(Array.isArray(data) ? data : []);
     setLoadingHistory(false);
-  };
+  }, []);
 
-  const copyToClipboard = (accNum, id) => {
-    navigator.clipboard.writeText(accNum);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  async function copyNumber(number, id) {
+    try {
+      await navigator.clipboard.writeText(number);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      setError('Could not copy. Select the number and copy it by hand.');
+    }
+  }
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!amount || !fullName) {
-      alert('Please fill in your name and amount transferred.');
+    setError('');
+    const nairaAmount = Number(amount);
+    if (!nairaAmount || nairaAmount < 100) {
+      setError('Enter an amount of at least ₦100.');
+      return;
+    }
+    if (!selectedId) {
+      setError('Select the church account you transferred to.');
+      return;
+    }
+    if (!receiptFile) {
+      setError('Upload a screenshot or PDF of the transfer.');
+      return;
+    }
+    if (!ALLOWED_TYPES.includes(receiptFile.type)) {
+      setError('Receipt must be a JPG, PNG, WEBP, or PDF.');
+      return;
+    }
+    if (receiptFile.size > MAX_BYTES) {
+      setError('Receipt must be 5 MB or smaller.');
       return;
     }
 
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-      let uploadedReceiptUrl = null;
+      const ext = receiptFile.name.includes('.')
+        ? receiptFile.name.split('.').pop().toLowerCase()
+        : 'jpg';
+      const path = `${profile.church_id}/${profile.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('giving-receipts')
+        .upload(path, receiptFile, { contentType: receiptFile.type, upsert: false });
+      if (uploadError) throw uploadError;
 
-      if (receiptFile) {
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `receipts/${fileName}`;
+      const { data, error: rpcError } = await supabase.rpc('submit_bank_transfer', {
+        p_amount: nairaAmount,
+        p_fund_type: fundType,
+        p_bank_account_id: selectedId,
+        p_receipt_path: path,
+        p_notes: null,
+      });
+      if (rpcError || !data?.ok) throw new Error(data?.error || rpcError?.message || 'submit_failed');
 
-        const { error: uploadError } = await supabase.storage
-          .from('giving-receipts')
-          .upload(filePath, receiptFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('giving-receipts')
-          .getPublicUrl(filePath);
-
-        uploadedReceiptUrl = publicUrl;
-      }
-
-      let matchedMemberId = null;
-      if (email || phone) {
-        const { data: member } = await supabase
-          .from('members')
-          .select('id')
-          .eq('church_id', churchId)
-          .or(`email.eq.${email || ''},phone.eq.${phone || ''}`)
-          .limit(1)
-          .single();
-        if (member) matchedMemberId = member.id;
-      }
-
-      const { error: insertError } = await supabase.from('giving').insert([
-        {
-          church_id: churchId,
-          member_id: matchedMemberId,
-          amount: parseFloat(amount),
-          fund_type: fundType,
-          bank_account_id: selectedAccount?.id,
-          receipt_url: uploadedReceiptUrl,
-          status: 'pending',
-          notes: `Transfer by ${fullName} (${phone || 'No phone'})`
-        }
-      ]);
-
-      if (insertError) throw insertError;
+      setDuplicateWarn(Boolean(data.duplicate));
       setSubmitted(true);
+      setAmount('');
+      setReceiptFile(null);
     } catch (err) {
-      console.error('Error submitting giving receipt:', err);
-      alert('Error submitting receipt. Please check details and try again.');
+      setError('Could not save this transfer. Check the amount and receipt, then try again.');
     } finally {
       setSubmitting(false);
     }
-  };
+  }
+
+  const accounts = payload?.accounts || [];
+  const churchName = payload?.church_name || church?.name || 'your church';
+  const selected = accounts.find((a) => a.id === selectedId) || null;
+  const canManageBanks = ['senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin'].includes(profile?.role);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 flex flex-col items-center">
-      <div className="max-w-2xl w-full space-y-6">
-        
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            founding pilot church
-          </h1>
-          <p className="text-xs text-slate-500 font-medium">Giving & Stewardship Portal</p>
+    <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
+      <div className="max-w-xl mx-auto space-y-4">
+        <div>
+          <h1 className="font-display text-xl font-bold text-ink">Give to {churchName}</h1>
+          <p className="text-ink/50 text-sm mt-1">
+            Transfer to this church&apos;s own bank account. Your gift is confirmed only after the church verifies it.
+          </p>
         </div>
 
-        <div className="flex bg-slate-200/70 p-1 rounded-2xl max-w-xs mx-auto">
+        <div className="flex bg-ink/5 p-1 rounded-xl">
           <button
-            onClick={() => setActiveTab('give')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition-all ${
-              activeTab === 'give' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            type="button"
+            onClick={() => setTab('give')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
+              tab === 'give' ? 'bg-white text-ink shadow-sm' : 'text-ink/60'
             }`}
           >
-            <CreditCard size={14} /> Transfer & Give
+            <Wallet size={14} /> Transfer
           </button>
           <button
+            type="button"
             onClick={() => {
-              setActiveTab('history');
-              loadGivingHistory();
+              setTab('history');
+              loadHistory();
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl transition-all ${
-              activeTab === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-lg ${
+              tab === 'history' ? 'bg-white text-ink shadow-sm' : 'text-ink/60'
             }`}
           >
-            <History size={14} /> My Giving History
+            <History size={14} /> My giving
           </button>
         </div>
 
-        {activeTab === 'give' ? (
+        {tab === 'give' ? (
           submitted ? (
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 size={32} />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900">Transfer Record Received!</h2>
-              <p className="text-xs text-slate-600 max-w-sm mx-auto">
-                Thank you for your giving, <b>{fullName}</b>. Your transfer receipt has been recorded and will reflect in your history once verified by the finance team.
+            <div className={`${CARD} p-6 text-center space-y-3`}>
+              <CheckCircle2 size={36} className="mx-auto text-sage" />
+              <h2 className="font-display font-bold text-ink">Transfer recorded</h2>
+              <p className="text-sm text-ink/60">
+                Thank you. Finance still has to match this to the bank statement. Until then it stays Pending.
               </p>
+              {duplicateWarn && (
+                <p className="text-xs text-amberflag">
+                  This looks similar to a transfer you already sent today. Finance will check before counting it twice.
+                </p>
+              )}
               <button
-                onClick={() => {
-                  setSubmitted(false);
-                  setAmount('');
-                  setReceiptFile(null);
-                }}
-                className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-800 transition-all"
+                type="button"
+                onClick={() => setSubmitted(false)}
+                className="bg-signal hover:bg-signal-deep text-white rounded-lg px-5 py-2.5 text-sm font-semibold"
               >
-                Submit Another Transfer
+                Record another transfer
               </button>
             </div>
+          ) : accounts.length === 0 ? (
+            <div className={`${CARD} p-6 space-y-3`}>
+              <p className="text-sm text-ink/70">
+                {churchName} has not listed a bank account yet, so members cannot send an offering through Gathrd.
+              </p>
+              {canManageBanks ? (
+                <Link
+                  to="/giving/bank-accounts"
+                  className="inline-block bg-signal hover:bg-signal-deep text-white rounded-lg px-4 py-2.5 text-sm font-semibold"
+                >
+                  Add a bank account
+                </Link>
+              ) : (
+                <p className="text-xs text-ink/50">Ask your pastor or finance admin to add one under Giving → Bank Accounts.</p>
+              )}
+            </div>
           ) : (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Building2 size={15} /> 1. Church Bank Account Details
-                </h2>
-
-                <div className="grid gap-3">
-                  {bankAccounts.map((acc) => (
-                    <div
+            <div className="space-y-4">
+              <div className={`${CARD} p-5 space-y-3`}>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-ink/40">1. Church account</h2>
+                <div className="space-y-2">
+                  {accounts.map((acc) => (
+                    <button
+                      type="button"
                       key={acc.id}
-                      onClick={() => setSelectedAccount(acc)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                        selectedAccount?.id === acc.id
-                          ? 'border-indigo-600 bg-indigo-50/30 ring-1 ring-indigo-600'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      onClick={() => setSelectedId(acc.id)}
+                      className={`w-full text-left p-4 rounded-xl border ${
+                        selectedId === acc.id ? 'border-signal bg-signal-50' : 'border-ink/10 bg-white'
                       }`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                            {acc.purpose || acc.label || 'Tithe & Offering'}
-                          </span>
-                          <p className="font-bold text-base text-slate-900 mt-1">{acc.bank_name}</p>
-                          <p className="text-xs text-slate-500">{acc.account_name}</p>
+                      <div className="flex justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-signal-deep">{acc.label}</p>
+                          <p className="font-bold text-ink mt-0.5">{acc.bank_name}</p>
+                          <p className="text-xs text-ink/50 truncate">{acc.account_name}</p>
                         </div>
-                        <button
-                          type="button"
+                        <span
+                          role="button"
+                          tabIndex={0}
                           onClick={(e) => {
                             e.stopPropagation();
-                            copyToClipboard(acc.account_number, acc.id);
+                            copyNumber(acc.account_number, acc.id);
                           }}
-                          className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl font-medium transition-all"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') copyNumber(acc.account_number, acc.id);
+                          }}
+                          className="flex items-center gap-1 text-xs bg-parchment px-3 py-1.5 rounded-lg font-medium shrink-0 h-fit"
                         >
-                          {copiedId === acc.id ? (
-                            <>
-                              <Check size={13} className="text-emerald-600" /> Copied
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={13} /> Copy
-                            </>
-                          )}
-                        </button>
+                          {copiedId === acc.id ? <><Check size={13} className="text-sage" /> Copied</> : <><Copy size={13} /> Copy</>}
+                        </span>
                       </div>
-                      <p className="font-mono text-xl font-bold text-indigo-700 tracking-wider mt-2">
-                        {acc.account_number}
-                      </p>
-                    </div>
+                      <p className="font-mono text-lg font-bold text-ink tracking-wider mt-2">{acc.account_number}</p>
+                    </button>
                   ))}
                 </div>
+                <p className="text-xs text-ink/40">
+                  Check the account name matches {churchName} before you send. Gathrd never holds this money.
+                </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Upload size={15} /> 2. Notify Church & Upload Receipt
+              <form onSubmit={handleSubmit} className={`${CARD} p-5 space-y-3`}>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-ink/40 flex items-center gap-2">
+                  <Upload size={14} /> 2. Tell the church you sent it
                 </h2>
+                {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Your Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Pastor John Adeyemi"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-indigo-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Phone Number (WhatsApp)</label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="08000000000"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-indigo-600"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Fund / Purpose *</label>
-                    <select
-                      value={fundType}
-                      onChange={(e) => setFundType(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-600"
-                    >
-                      <option value="Tithe">Tithe</option>
-                      <option value="Sunday Offering">Sunday Offering</option>
-                      <option value="Building Project">Building Project</option>
-                      <option value="Thanksgiving / Seed">Thanksgiving / Seed</option>
-                      <option value="Welfare">Welfare</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Amount Transferred (₦) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="100"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="e.g. 10000"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-600"
-                    />
+                <div>
+                  <label className="block text-sm font-medium mb-1">What is this for?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FUNDS.map(([value, label]) => (
+                      <button
+                        type="button"
+                        key={value}
+                        onClick={() => setFundType(value)}
+                        className={`text-sm rounded-md px-3 py-2 border font-medium ${
+                          fundType === value ? 'bg-signal text-white border-signal' : 'border-ink/15 text-ink/70'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">Upload Bank Transfer Receipt (Screenshot)</label>
-                  <div className="border border-dashed border-slate-300 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100/50 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      id="receipt-file"
-                      className="hidden"
-                      onChange={(e) => setReceiptFile(e.target.files[0])}
-                    />
-                    <label htmlFor="receipt-file" className="cursor-pointer space-y-1 block">
-                      <Upload size={20} className="mx-auto text-slate-400" />
-                      <p className="text-xs font-medium text-slate-700">
-                        {receiptFile ? receiptFile.name : 'Tap to select transfer receipt image'}
-                      </p>
-                      <p className="text-[10px] text-slate-400">PNG, JPG, or PDF screenshot</p>
-                    </label>
-                  </div>
+                  <label className="block text-sm font-medium mb-1">Amount transferred (₦)</label>
+                  <input
+                    type="number"
+                    required
+                    min="100"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    onWheel={(e) => e.target.blur()}
+                    className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none"
+                    placeholder="10000"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Transfer receipt (required)</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-ink/70 file:mr-3 file:rounded-lg file:border-0 file:bg-signal file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  />
+                  <p className="text-xs text-ink/40 mt-1">JPG, PNG, WEBP or PDF. 5 MB max.</p>
+                </div>
+
+                {selected && (
+                  <p className="text-xs text-ink/50">
+                    Sending to {selected.bank_name} · {selected.account_name}
+                  </p>
+                )}
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                  className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting Receipt…' : 'Submit Transfer Confirmation'}
+                  {submitting ? 'Saving…' : 'Submit transfer'}
                 </button>
               </form>
             </div>
           )
         ) : (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <History size={16} /> My Previous Giving Records
-            </h2>
-
+          <div className={`${CARD} p-5`}>
             {loadingHistory ? (
-              <p className="text-xs text-slate-400 py-6 text-center">Loading your history…</p>
-            ) : givingHistory.length === 0 ? (
-              <div className="text-center py-8 space-y-2">
-                <p className="text-xs text-slate-500">No giving records found under your account yet.</p>
-                <p className="text-[11px] text-slate-400">Transfers submitted with your registered phone number or email will appear here once recorded.</p>
-              </div>
+              <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
+            ) : history.length === 0 ? (
+              <p className="text-ink/40 text-sm py-6 text-center">No transfers recorded on this login yet.</p>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {givingHistory.map((item) => (
-                  <div key={item.id} className="py-3 flex justify-between items-center text-xs">
+              <div className="divide-y">
+                {history.map((item) => (
+                  <div key={item.id} className="py-3 flex justify-between gap-3 flex-wrap">
                     <div>
-                      <p className="font-semibold text-slate-900">{item.fund_type}</p>
-                      <p className="text-[10px] text-slate-400">
-                        {new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <p className="font-medium text-sm">
+                        {FUNDS.find(([v]) => v === item.fund_type)?.[1] || item.fund_type} — {naira(item.amount)}
                       </p>
+                      <p className="text-xs text-ink/50">
+                        {new Date(item.created_at).toLocaleString('en-NG')}
+                        {item.account_label ? ` · ${item.account_label}` : ''}
+                      </p>
+                      {item.status === 'rejected' && item.rejection_reason && (
+                        <p className="text-xs text-rose mt-1">Reason: {item.rejection_reason}</p>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-900">₦{Number(item.amount).toLocaleString()}</p>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        item.status === 'verified'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {item.status === 'verified' ? 'Verified' : 'Pending Verification'}
-                      </span>
-                    </div>
+                    <span className={`text-xs rounded-full px-2 py-1 font-medium h-fit ${statusChip(item.status)}`}>
+                      {statusLabel(item.status)}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
         )}
-
       </div>
     </div>
   );
