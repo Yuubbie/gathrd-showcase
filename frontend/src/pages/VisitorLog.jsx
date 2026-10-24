@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 const STATUS_LABELS = {
   first_timer: 'First Timer',
@@ -40,7 +41,7 @@ export default function VisitorLog() {
 
     let query = supabase
       .from('visitors')
-      .select('id, full_name, phone, status, first_visit_date')
+      .select('id, full_name, phone, address, how_heard, status, first_visit_date')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (statusFilter) query = query.eq('status', statusFilter);
@@ -51,7 +52,7 @@ export default function VisitorLog() {
     if (visitorData?.length) {
       const { data: tasks } = await supabase
         .from('follow_up_tasks')
-        .select('id, visitor_id, status, due_at')
+        .select('id, visitor_id, status, due_at, assigned_to, profiles!assigned_to(full_name)')
         .in('visitor_id', visitorData.map((v) => v.id))
         .order('created_at', { ascending: false });
 
@@ -125,8 +126,18 @@ export default function VisitorLog() {
                       <p className="text-ink/50 text-xs">
                         {v.phone || 'No phone'} • {STATUS_LABELS[v.status]} • first visit {v.first_visit_date}
                       </p>
+                      {(v.address || v.how_heard || task?.profiles?.full_name) && (
+                        <p className="text-ink/40 text-xs mt-0.5">
+                          {[
+                            v.address,
+                            v.how_heard ? `Invited by: ${v.how_heard}` : null,
+                            task?.profiles?.full_name ? `Follow-up: ${task.profiles.full_name}` : null,
+                          ].filter(Boolean).join(' • ')}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
+                      <ContactActions phone={v.phone} name={v.full_name} />
                       {task && (
                         <select
                           value={task.status}

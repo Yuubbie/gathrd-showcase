@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 const STATUS_LABELS = {
   active: 'Active',
@@ -222,6 +223,7 @@ export default function Members() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <ContactActions phone={m.phone} name={m.full_name} stopClick />
                     <span className="text-xs text-ink/40">
                       {STATUS_LABELS[m.status] || m.status}
                     </span>

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { cleanPhone, telHref, waHref } from '../lib/phone';
 import {
-  MessageSquare, Phone, Send, AlertTriangle, Users,
-  Settings, CheckCircle2, RefreshCw, Sparkles, ChevronRight,
-  Clock, HeartHandshake
+  MessageSquare, Phone, Send, AlertTriangle,
+  Settings, CheckCircle2, RefreshCw, HeartHandshake
 } from 'lucide-react';
 
 function formatShortDate(dateStr) {
@@ -94,14 +94,6 @@ export default function FollowUpDashboard() {
     const updated = { ...sentLog, [key]: !sentLog[key] };
     setSentLog(updated);
     localStorage.setItem('gathrd_followup_sent_log', JSON.stringify(updated));
-  }
-
-  function cleanPhone(raw) {
-    if (!raw) return '';
-    const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('0')) return `234${digits.slice(1)}`;
-    if (digits.startsWith('234')) return digits;
-    return `234${digits}`;
   }
 
   function prepareMessage(templateStr, guestName) {
@@ -209,8 +201,8 @@ export default function FollowUpDashboard() {
                   const isSent = !!sentLog[`${v.id}_${milestone.key}`];
                   const messageText = prepareMessage(templates[milestone.key] || DEFAULT_TEMPLATES[milestone.key], v.full_name);
                   const phoneNum = cleanPhone(v.phone);
-                  const waUrl = phoneNum ? `https://wa.me/${phoneNum}?text=${encodeURIComponent(messageText)}` : null;
-                  const smsUrl = phoneNum ? `sms:${phoneNum}?body=${encodeURIComponent(messageText)}` : null;
+                  const waUrl = waHref(v.phone, messageText);
+                  const smsUrl = phoneNum ? `sms:+${phoneNum}?body=${encodeURIComponent(messageText)}` : null;
 
                   return (
                     <div
@@ -234,7 +226,7 @@ export default function FollowUpDashboard() {
 
                         <p className="text-xs text-ink/60">
                           {milestone.label} • Phone: <strong className="font-mono text-ink/80">{v.phone || 'No phone'}</strong>
-                          {v.invited_by && <span> • Invited by: {v.invited_by}</span>}
+                          {v.how_heard && <span> • Invited by: {v.how_heard}</span>}
                         </p>
 
                         <div className="bg-parchment/70 p-2.5 rounded-xl border border-ink/5 text-xs text-ink/75 italic line-clamp-2">
@@ -267,9 +259,9 @@ export default function FollowUpDashboard() {
                           </a>
                         )}
 
-                        {v.phone && (
+                        {telHref(v.phone) && (
                           <a
-                            href={`tel:${v.phone}`}
+                            href={telHref(v.phone)}
                             className="bg-parchment hover:bg-ink/5 border border-ink/15 text-ink text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors"
                           >
                             <Phone size={13} /> Call
@@ -318,10 +310,9 @@ export default function FollowUpDashboard() {
             ) : absentees.length > 0 ? (
               <div className="divide-y divide-ink/5">
                 {absentees.map((m) => {
-                  const phoneNum = cleanPhone(m.phone);
                   const churchName = church?.name || 'our church';
                   const careMsg = `Good day ${m.full_name}, Pastor and the church family at ${churchName} missed you in service today! Praying you are doing well. Please let us know if there is anything we can uphold you in prayer for.`;
-                  const waUrl = phoneNum ? `https://wa.me/${phoneNum}?text=${encodeURIComponent(careMsg)}` : null;
+                  const waUrl = waHref(m.phone, careMsg);
 
                   return (
                     <div key={m.member_id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3">
@@ -349,9 +340,9 @@ export default function FollowUpDashboard() {
                           </a>
                         )}
 
-                        {m.phone ? (
+                        {telHref(m.phone) ? (
                           <a
-                            href={`tel:${m.phone}`}
+                            href={telHref(m.phone)}
                             className="bg-white border border-ink/15 text-ink text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
                           >
                             <Phone size={13} /> Call

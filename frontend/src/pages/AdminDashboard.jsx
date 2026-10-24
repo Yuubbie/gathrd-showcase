@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { cleanPhone } from '../lib/phone';
 import {
   Building2, Users, Calendar, ShieldCheck, Phone,
   MessageSquare, RefreshCw, Search, ShieldAlert,
@@ -130,14 +131,6 @@ export default function AdminDashboard() {
     } finally {
       setUpdatingId(null);
     }
-  }
-
-  function cleanPhone(raw) {
-    if (!raw) return '';
-    const digits = String(raw).replace(/\D/g, '');
-    if (digits.startsWith('0')) return `234${digits.slice(1)}`;
-    if (digits.startsWith('234')) return digits;
-    return `234${digits}`;
   }
 
   if (loading) {
