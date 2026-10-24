@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import ContactActions from '../components/ContactActions';
+import { PeopleTabs } from '../components/SectionTabs';
 
 const STATUS_LABELS = {
   first_timer: 'First Timer',
@@ -93,6 +94,7 @@ export default function VisitorLog() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
+        <PeopleTabs />
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Visitor Log</h1>
           <Link to="/visitors/check-in" className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">

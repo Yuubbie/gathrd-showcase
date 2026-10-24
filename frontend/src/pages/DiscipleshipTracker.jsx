@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import ContactActions from '../components/ContactActions';
+import { PeopleTabs } from '../components/SectionTabs';
 
 const STAGES = [
   ['salvation', 'Salvation'],
@@ -109,7 +110,8 @@ export default function DiscipleshipTracker() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
-        <h1 className="text-xl font-semibold">Discipleship Tracker</h1>
+        <PeopleTabs />
+        <h1 className="text-xl font-semibold">Converts</h1>
 
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5">
           {loading ? (

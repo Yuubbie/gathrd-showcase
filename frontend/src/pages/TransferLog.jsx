@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { GivingTabs } from '../components/SectionTabs';
 
 const FUNDS = [
   ['tithe', 'Tithe'],
@@ -95,6 +96,7 @@ export default function TransferLog() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
+        <GivingTabs />
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="font-display text-xl font-bold text-ink">Bank transfers</h1>

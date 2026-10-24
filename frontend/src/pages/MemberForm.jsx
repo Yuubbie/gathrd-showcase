@@ -42,6 +42,7 @@ export default function MemberForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showMore, setShowMore] = useState(!!id);
 
   useEffect(() => {
     async function loadContext() {
@@ -135,6 +136,28 @@ export default function MemberForm() {
               </div>
             )}
           </Field>
+          <Field label="Status" required>
+            <select required value={form.status} onChange={(e) => update('status', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
+              {STATUS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </Field>
+        </Section>
+
+        {!isEditing && (
+          <p className="text-xs text-ink/50">Name and phone are enough for now. You can add the rest later.</p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="text-sm text-signal font-semibold hover:text-signal-deep"
+        >
+          {showMore ? 'Hide extra details' : 'More details'}
+        </button>
+
+        {showMore && (
+          <>
+        <Section title="More about them">
           <Field label="Email">
             <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
           </Field>
@@ -184,11 +207,6 @@ export default function MemberForm() {
               {cellGroups.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Status" required>
-            <select required value={form.status} onChange={(e) => update('status', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
-              {STATUS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </Field>
           <Field label="Date joined">
             <input type="date" value={form.date_joined} onChange={(e) => update('date_joined', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
           </Field>
@@ -232,6 +250,8 @@ export default function MemberForm() {
               <input disabled={!medicalConsent} value={form.genotype} onChange={(e) => update('genotype', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base disabled:bg-ink/5 focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" placeholder="e.g. AA" />
             </Field>
           </Section>
+        )}
+          </>
         )}
 
         <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
