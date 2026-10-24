@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, QrCode, Users, Play, Square, Copy } from 'lucide-
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 const SERVICE_TYPES = [
   { id: 'sunday', label: 'Sunday', defaultName: 'Sunday Service' },
@@ -347,14 +348,11 @@ export default function ServiceAttendance() {
                             {m.last_seen ? `Last seen ${formatShortDate(m.last_seen)}` : 'Not seen yet'}
                           </p>
                         </div>
-                        {m.phone && (
-                          <a
-                            href={`tel:${m.phone}`}
-                            className="text-sm text-signal font-semibold hover:text-signal-deep shrink-0"
-                          >
-                            {m.phone}
-                          </a>
-                        )}
+                        <ContactActions
+                          phone={m.phone}
+                          name={m.full_name}
+                          message={`Good day ${m.full_name}, Pastor and the church family missed you in service. Praying you are doing well.`}
+                        />
                       </div>
                     ))}
                   </div>
@@ -416,10 +414,10 @@ export default function ServiceAttendance() {
                                 </p>
                                 <div className="space-y-1 max-h-64 overflow-y-auto">
                                   {detail.absent.map((a) => (
-                                    <p key={a.member_id} className="text-sm text-ink/70">
-                                      {a.full_name}
-                                      {a.phone ? <span className="text-ink/40"> · {a.phone}</span> : null}
-                                    </p>
+                                    <div key={a.member_id} className="flex items-center justify-between gap-2">
+                                      <p className="text-sm text-ink/70 min-w-0 truncate">{a.full_name}</p>
+                                      <ContactActions phone={a.phone} name={a.full_name} />
+                                    </div>
                                   ))}
                                 </div>
                               </div>

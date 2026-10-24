@@ -3,12 +3,21 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
 const SERVICE_NAMES = ['Sunday Morning', 'Sunday Evening', 'Midweek', 'Special Service'];
+const DENOMS = [1000, 500, 200, 100, 50];
 
 const STATUS_STYLES = {
   open: 'bg-amberflag/10 text-amberflag',
   confirmed: 'bg-sage-50 text-sage',
   discrepancy: 'bg-rose-50 text-rose',
 };
+
+function naira(n) {
+  return `₦${Number(n).toLocaleString()}`;
+}
+
+function denomTotal(counts) {
+  return DENOMS.reduce((sum, d) => sum + d * (Number(counts?.[d]) || 0), 0);
+}
 
 export default function CountingSheet() {
   const { profile } = useAuth();
@@ -18,6 +27,7 @@ export default function CountingSheet() {
   const [showNew, setShowNew] = useState(false);
   const [newForm, setNewForm] = useState({ service_name: SERVICE_NAMES[0], service_date: new Date().toISOString().slice(0, 10) });
   const [tallyInputs, setTallyInputs] = useState({});
+  const [denomCounts, setDenomCounts] = useState({});
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -147,18 +157,60 @@ export default function CountingSheet() {
                 )}
 
                 {!isLocked && (
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Your tally (₦)"
-                      value={tallyInputs[s.id] || ''}
-                      onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))}
-                      onWheel={(e) => e.target.blur()}
-                      className="flex-1 border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
-                    />
-                    <button onClick={() => submitTally(s.id)} className="text-sm bg-ink hover:bg-void text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
-                      Submit Count
+                  <div className="space-y-3">
+                    <div className="border border-ink/10 rounded-xl overflow-hidden text-xs">
+                      <div className="grid grid-cols-3 bg-ink/5 p-2 font-bold text-ink/70">
+                        <span>Denomination</span>
+                        <span>Note count</span>
+                        <span className="text-right">Subtotal</span>
+                      </div>
+                      {DENOMS.map((d) => {
+                        const count = Number(denomCounts[s.id]?.[d]) || 0;
+                        return (
+                          <div key={d} className="grid grid-cols-3 p-2 items-center border-t border-ink/5">
+                            <span>{naira(d)} notes</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={denomCounts[s.id]?.[d] ?? ''}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const next = { ...(denomCounts[s.id] || {}), [d]: e.target.value };
+                                setDenomCounts((c) => ({ ...c, [s.id]: next }));
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              className="w-20 border border-ink/10 rounded-md px-2 py-1 text-sm font-mono focus:border-signal outline-none"
+                            />
+                            <span className="text-right font-semibold">{naira(d * count)}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="grid grid-cols-3 p-2 bg-ink/5 font-bold border-t border-ink/5">
+                        <span>Cash total</span>
+                        <span />
+                        <span className="text-right text-signal">{naira(denomTotal(denomCounts[s.id]))}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTallyInputs((t) => ({ ...t, [s.id]: String(denomTotal(denomCounts[s.id])) }))}
+                      className="text-xs text-signal font-semibold hover:text-signal-deep"
+                    >
+                      Use cash total as my tally
                     </button>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Your tally (₦)"
+                        value={tallyInputs[s.id] || ''}
+                        onChange={(e) => setTallyInputs((t) => ({ ...t, [s.id]: e.target.value }))}
+                        onWheel={(e) => e.target.blur()}
+                        className="flex-1 border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+                      />
+                      <button onClick={() => submitTally(s.id)} className="text-sm bg-ink hover:bg-void text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
+                        Submit Count
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

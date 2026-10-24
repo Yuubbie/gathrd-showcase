@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 export default function CellGroupDetail() {
   const { id } = useParams();
@@ -134,8 +135,20 @@ export default function CellGroupDetail() {
         {absentees.length > 0 && (
           <div className="bg-amberflag/10 border border-amberflag/20 rounded-lg p-4">
             <p className="text-sm font-semibold text-amberflag mb-1">⚠ {absentees.length} member(s) absent 3+ recent meetings</p>
-            <ul className="text-xs text-amberflag space-y-0.5">
-              {absentees.map((a) => <li key={a.member_id}>{a.full_name} — {a.consecutive_absences} absences</li>)}
+            <ul className="text-xs text-amberflag space-y-1.5">
+              {absentees.map((a) => {
+                const member = members.find((m) => m.id === a.member_id);
+                return (
+                  <li key={a.member_id} className="flex items-center justify-between gap-2">
+                    <span>{a.full_name} — {a.consecutive_absences} absences</span>
+                    <ContactActions
+                      phone={member?.phone}
+                      name={a.full_name}
+                      message={`Good day ${a.full_name}, we missed you at cell meeting. Praying you are well.`}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -236,7 +249,10 @@ export default function CellGroupDetail() {
           ) : (
             <div className="divide-y">
               {members.map((m) => (
-                <div key={m.id} className="py-2 text-sm text-ink/70">{m.full_name}</div>
+                <div key={m.id} className="py-2 flex items-center justify-between gap-2">
+                  <span className="text-sm text-ink/70">{m.full_name}</span>
+                  <ContactActions phone={m.phone} name={m.full_name} />
+                </div>
               ))}
             </div>
           )}

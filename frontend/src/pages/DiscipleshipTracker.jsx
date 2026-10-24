@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 const STAGES = [
   ['salvation', 'Salvation'],
@@ -134,11 +135,14 @@ export default function DiscipleshipTracker() {
                           {r.visitors?.phone || 'No phone'} • Salvation: {r.salvation_date}
                         </p>
                       </div>
-                      {stalled && !isFinal && (
-                        <span className="text-xs text-rose font-semibold">
-                          ⚠ Stuck at this stage for {days} days
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <ContactActions phone={r.visitors?.phone} name={r.visitors?.full_name} />
+                        {stalled && !isFinal && (
+                          <span className="text-xs text-rose font-semibold">
+                            Stuck at this stage for {days} days
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Stage progress bar */}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import ContactActions from '../components/ContactActions';
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
@@ -128,6 +129,11 @@ export default function MemberForm() {
           </Field>
           <Field label="Phone (WhatsApp)">
             <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
+            {form.phone && (
+              <div className="mt-2">
+                <ContactActions phone={form.phone} name={form.full_name} />
+              </div>
+            )}
           </Field>
           <Field label="Email">
             <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
@@ -200,6 +206,11 @@ export default function MemberForm() {
           </Field>
           <Field label="Next of kin phone">
             <input type="tel" value={form.next_of_kin_phone} onChange={(e) => update('next_of_kin_phone', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
+            {form.next_of_kin_phone && (
+              <div className="mt-2">
+                <ContactActions phone={form.next_of_kin_phone} name={form.next_of_kin_name || 'Next of kin'} />
+              </div>
+            )}
           </Field>
         </Section>
 
