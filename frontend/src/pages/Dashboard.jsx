@@ -403,6 +403,21 @@ export default function Dashboard() {
 
       <OnboardingChecklist />
 
+      {!isMember && (
+        <Card className="p-6 md:p-8 bg-signal-gradient border-0 mb-6">
+          <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Sunday desk</p>
+          <h2 className="font-display text-xl font-bold text-white mb-4">What needs doing today?</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {canSeeChurchStats && <QuickAction to="/attendance" label="Start service / take attendance" />}
+            {canSeeChurchStats && <QuickAction to="/visitors/check-in" label="Check in a visitor" />}
+            {canSeeFinance && <QuickAction to="/giving/counting" label="Count the offering" />}
+            {canSeeChurchStats && <QuickAction to="/follow-up" label="Who needs a call" />}
+            {canSeeFinance && <QuickAction to="/giving/transfers" label="Verify bank transfers" />}
+            {canSeeChurchStats && <QuickAction to="/members/new" label="Add a member" />}
+          </div>
+        </Card>
+      )}
+
       {isMember && service && service.is_member && (
         <Card className="p-5 mb-6">
           {service.already_checked_in ? (
@@ -590,19 +605,24 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* FIX: none of these actions apply to a plain member (add member,
-          check in visitor, send announcement, record gift are all
-          staff-only routes) — showing them just leads to a bounce off
-          ProtectedRoute. Hidden entirely for that role instead. */}
-      {!isMember && (
-        <Card className="p-6 md:p-8 bg-signal-gradient border-0">
-          <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Getting things done</p>
-          <h2 className="font-display text-xl font-bold text-white mb-4">What would you like to do?</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <QuickAction to="/members/new" label="Add a new member" />
-            <QuickAction to="/visitors/check-in" label="Check in a visitor" />
-            <QuickAction to="/announcements" label="Send an announcement" />
-            {canSeeFinance && <QuickAction to="/giving" label="Record a gift" />}
+      {canSeeChurchStats && (
+        <Card className="p-5">
+          <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
+          <h2 className="font-display font-bold text-ink text-sm mb-1">Invite someone to help</h2>
+          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. Usher handles attendance; finance handles the count.</p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/team/invite?role=church_admin"
+              className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
+            >
+              Invite Head Usher
+            </Link>
+            <Link
+              to="/team/invite?role=finance_admin"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+            >
+              Invite Finance
+            </Link>
           </div>
         </Card>
       )}

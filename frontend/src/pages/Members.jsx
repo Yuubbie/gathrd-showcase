@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import ContactActions from '../components/ContactActions';
+import { PeopleTabs } from '../components/SectionTabs';
 
 const STATUS_LABELS = {
   active: 'Active',
@@ -98,6 +99,7 @@ export default function Members() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
+        <PeopleTabs />
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Members</h1>
           <div className="flex gap-2">

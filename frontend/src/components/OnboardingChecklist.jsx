@@ -14,11 +14,12 @@ export default function OnboardingChecklist() {
     async function check() {
       if (!profile?.church_id) return;
 
-      const [{ data: churchData }, { count: deptCount }, { count: cellCount }, { count: memberCount }] = await Promise.all([
-        supabase.from('churches').select('logo_url, paystack_subaccount_code, onboarding_dismissed').eq('id', profile.church_id).single(),
+      const [{ data: churchData }, { count: deptCount }, { count: cellCount }, { count: memberCount }, { count: bankCount }] = await Promise.all([
+        supabase.from('churches').select('logo_url, onboarding_dismissed').eq('id', profile.church_id).single(),
         supabase.from('departments').select('id', { count: 'exact', head: true }).eq('church_id', profile.church_id).is('deleted_at', null),
         supabase.from('cell_groups').select('id', { count: 'exact', head: true }).eq('church_id', profile.church_id).is('deleted_at', null),
         supabase.from('members').select('id', { count: 'exact', head: true }).eq('church_id', profile.church_id).is('deleted_at', null),
+        supabase.from('church_bank_accounts').select('id', { count: 'exact', head: true }).eq('church_id', profile.church_id),
       ]);
 
       setDismissed(!!churchData?.onboarding_dismissed);
@@ -27,7 +28,7 @@ export default function OnboardingChecklist() {
         department: (deptCount || 0) > 0,
         cellGroup: (cellCount || 0) > 0,
         member: (memberCount || 0) > 0,
-        giving: !!churchData?.paystack_subaccount_code,
+        giving: (bankCount || 0) > 0,
       });
     }
     check();
@@ -45,7 +46,7 @@ export default function OnboardingChecklist() {
     { label: 'Add your first department', done: steps.department, to: '/settings' },
     { label: 'Create your first cell group', done: steps.cellGroup, to: '/cell-groups' },
     { label: 'Add your first member', done: steps.member, to: '/members/new' },
-    { label: 'Activate online giving', done: steps.giving, to: '/giving/settings' },
+    { label: 'Add your church bank account', done: steps.giving, to: '/giving/bank-accounts' },
     { label: 'Watch the 3-minute walkthrough', done: videoWatched, to: null },
   ];
 

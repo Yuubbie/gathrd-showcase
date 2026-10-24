@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
-  Megaphone, Cake, UsersRound, ListChecks, Settings as SettingsIcon, Menu, X, LogOut,
-  CreditCard, Building2, BarChart3, CalendarDays, Calendar, Receipt,
+  LayoutDashboard, Users, UserPlus, Wallet, ClipboardCheck,
+  Megaphone, Cake, UsersRound, Settings as SettingsIcon, Menu, X, LogOut,
+  CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import WhatsAppButton from './WhatsAppButton';
 import InstallPrompt from './InstallPrompt';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
+const PRIMARY_NAV = [
+  { to: '/dashboard', label: 'Today', icon: LayoutDashboard, roles: null },
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+  { to: '/members', label: 'People', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'], prefixes: ['/members', '/visitors', '/follow-up', '/discipleship'] },
+  { to: '/give/me', label: 'Giving', icon: Wallet, roles: null, prefixes: ['/give', '/giving'] },
+  { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
+];
+
+const MORE_NAV = [
+  { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/roster', label: 'Roster', icon: CalendarDays, roles: null },
   { to: '/calendar', label: 'Calendar', icon: Calendar, roles: null },
-  { to: '/members', label: 'Members', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
-  { to: '/visitors', label: 'Visitor Log', icon: UserPlus, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/discipleship', label: 'Discipleship', icon: Sparkles, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/give/me', label: 'Give', icon: Wallet, roles: null },
-  { to: '/giving/transfers', label: 'Transfers', icon: Receipt, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin'] },
-  { to: '/giving', label: 'Cash log', icon: Wallet, roles: ['senior_pastor', 'assistant_pastor', 'finance_admin'] },
-  { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/milestones', label: 'Milestones', icon: Cake, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
-  { to: '/follow-up', label: 'Follow-Up', icon: ListChecks, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/branches', label: 'My Branches', icon: Building2, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'], hideForBranch: true },
   { to: '/district-dashboard', label: 'District Dashboard', icon: BarChart3, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'], hideForBranch: true },
   { to: '/billing', label: 'Billing', icon: CreditCard, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
@@ -41,26 +39,66 @@ const ROLE_LABELS = {
   member: 'Member',
 };
 
+function itemVisible(item, profile, hierarchyLevel) {
+  if (item.roles && !item.roles.includes(profile?.role)) return false;
+  if (item.hideForBranch && hierarchyLevel === 'branch') return false;
+  return true;
+}
+
+function itemActive(item, currentPath) {
+  const paths = item.prefixes || [item.to];
+  return paths.some((p) => currentPath === p || currentPath.startsWith(`${p}/`));
+}
+
+function NavLinkItem({ item, currentPath, onNavigate }) {
+  const active = itemActive(item, currentPath);
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.to}
+      onClick={onNavigate}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+        active ? 'bg-white/10 text-gold-light border-l-2 border-gold -ml-px pl-[11px]' : 'text-white/60 hover:text-white hover:bg-white/10 border-l-2 border-transparent'
+      }`}
+    >
+      <Icon size={18} strokeWidth={2} />
+      {item.label}
+    </Link>
+  );
+}
+
 function NavLinks({ profile, currentPath, onNavigate, hierarchyLevel }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const primary = PRIMARY_NAV.filter((item) => itemVisible(item, profile, hierarchyLevel));
+  const more = MORE_NAV.filter((item) => itemVisible(item, profile, hierarchyLevel));
+  const moreActive = more.some((item) => itemActive(item, currentPath));
+
   return (
     <nav className="flex-1 space-y-1 px-3">
-      {NAV_ITEMS.filter((item) => (!item.roles || item.roles.includes(profile?.role)) && !(item.hideForBranch && hierarchyLevel === 'branch')).map((item) => {
-        const active = currentPath === item.to;
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              active ? 'bg-white/10 text-gold-light border-l-2 border-gold -ml-px pl-[11px]' : 'text-white/60 hover:text-white hover:bg-white/10 border-l-2 border-transparent'
+      {primary.map((item) => (
+        <NavLinkItem key={item.to} item={item} currentPath={currentPath} onNavigate={onNavigate} />
+      ))}
+      {more.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              moreActive && !moreOpen ? 'bg-white/10 text-gold-light' : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Icon size={18} strokeWidth={2} />
-            {item.label}
-          </Link>
-        );
-      })}
+            <span>More</span>
+            <ChevronDown size={16} className={moreOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+          </button>
+          {moreOpen && (
+            <div className="mt-1 space-y-1 pl-1">
+              {more.map((item) => (
+                <NavLinkItem key={item.to} item={item} currentPath={currentPath} onNavigate={onNavigate} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

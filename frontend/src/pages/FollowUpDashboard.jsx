@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { cleanPhone, telHref, waHref } from '../lib/phone';
+import { PeopleTabs } from '../components/SectionTabs';
 import {
   MessageSquare, Phone, Send, AlertTriangle,
   Settings, CheckCircle2, RefreshCw, HeartHandshake
@@ -116,7 +117,7 @@ export default function FollowUpDashboard() {
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8 text-ink">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* Header */}
+        <PeopleTabs />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-ink/5 shadow-sm">
           <div>
             <div className="flex items-center gap-2">

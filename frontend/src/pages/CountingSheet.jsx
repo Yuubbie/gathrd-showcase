@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { GivingTabs } from '../components/SectionTabs';
 
 const SERVICE_NAMES = ['Sunday Morning', 'Sunday Evening', 'Midweek', 'Special Service'];
 const DENOMS = [1000, 500, 200, 100, 50];
@@ -99,8 +100,9 @@ export default function CountingSheet() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
+        <GivingTabs />
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Offering Counting Sheets</h1>
+          <h1 className="text-xl font-semibold">Count offering</h1>
           <button onClick={() => setShowNew((v) => !v)} className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold transition-colors">
             + New Session
           </button>

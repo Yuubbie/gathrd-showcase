@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Copy, Plus, Pencil, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabaseClient';
-import BackButton from '../components/BackButton';
+import { GivingTabs } from '../components/SectionTabs';
 
 const BANKS = [
   'Access Bank',
@@ -198,10 +198,10 @@ export default function BankAccounts() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
-        <BackButton />
+        <GivingTabs />
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold">Bank Transfer Details</h1>
+            <h1 className="text-xl font-semibold">Bank accounts</h1>
             <p className="text-ink/50 text-sm mt-1">
               Members see these on your giving page and can copy them to send an offering by bank transfer.
             </p>

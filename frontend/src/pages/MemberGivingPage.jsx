@@ -3,6 +3,7 @@ import { Copy, Check, Upload, CheckCircle2, History, Wallet } from 'lucide-react
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { GivingTabs } from '../components/SectionTabs';
 
 const FUNDS = [
   ['tithe', 'Tithe'],
@@ -145,6 +146,7 @@ export default function MemberGivingPage() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-xl mx-auto space-y-4">
+        <GivingTabs />
         <div>
           <h1 className="font-display text-xl font-bold text-ink">Give to {churchName}</h1>
           <p className="text-ink/50 text-sm mt-1">

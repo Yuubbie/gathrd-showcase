@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { GivingTabs } from '../components/SectionTabs';
 
 const CATEGORIES = [
   ['tithe', 'Tithe'],
@@ -122,8 +123,9 @@ export default function GivingLog() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-3xl mx-auto space-y-4">
+        <GivingTabs />
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-semibold">Giving</h1>
+          <h1 className="text-xl font-semibold">Cash log</h1>
           {/* FIX: added flex-wrap — this row had 5 buttons with no wrap
               allowed, which at a ~344px mobile width forced horizontal
               scroll on the whole page instead of the buttons just
