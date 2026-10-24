@@ -1,104 +1,74 @@
 import { useState, useEffect } from 'react';
-import { Download, Smartphone } from 'lucide-react';
+import { Download } from 'lucide-react';
 
-export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+function isStandalone() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+}
+
+export default function InstallPrompt({ offsetForSidebar = false }) {
+  const [installed, setInstalled] = useState(isStandalone);
+  const [canPrompt, setCanPrompt] = useState(() => Boolean(window.gathrdInstallEvent));
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-      setIsInstalled(true);
+    if (isStandalone()) {
+      setInstalled(true);
+      return undefined;
     }
 
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const onReady = () => setCanPrompt(Boolean(window.gathrdInstallEvent));
+    const onInstalled = () => {
+      setInstalled(true);
+      setCanPrompt(false);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    });
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('gathrd-install-ready', onReady);
+    window.addEventListener('gathrd-installed', onInstalled);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('gathrd-install-ready', onReady);
+      window.removeEventListener('gathrd-installed', onInstalled);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
   }, []);
 
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-      }
-      setDeferredPrompt(null);
-    } else {
-      alert("To install Gathrd: On Chrome or Edge, click the Install icon in your address bar. On iPhone Safari, tap Share then 'Add to Home Screen'.");
+  async function handleInstall() {
+    const event = window.gathrdInstallEvent;
+    if (event) {
+      event.prompt();
+      await event.userChoice;
+      window.gathrdInstallEvent = null;
+      setCanPrompt(false);
+      return;
     }
-  };
 
-  if (isInstalled) return null;
+    const isiOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    window.alert(
+      isiOS
+        ? 'On iPhone: tap Share, then Add to Home Screen.'
+        : 'Tap Install when Chrome or Edge asks. If it does not, use the install icon in the address bar.'
+    );
+  }
+
+  if (installed) return null;
 
   return (
     <div
+      className={`fixed z-30 print:hidden ${offsetForSidebar ? 'md:left-[17rem]' : ''}`}
       style={{
-        position: 'fixed',
-        bottom: '24px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 9999,
+        left: 'max(0.75rem, env(safe-area-inset-left))',
+        bottom: 'max(0.75rem, env(safe-area-inset-bottom))',
       }}
     >
       <button
         type="button"
-        onClick={handleInstallClick}
-        style={{
-          backgroundColor: '#15111F',
-          color: '#FFFFFF',
-          padding: '8px 16px',
-          borderRadius: '9999px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
-          border: '1.5px solid #E5C07B',
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
-        }}
+        onClick={handleInstall}
+        className="flex items-center gap-1.5 rounded-full border border-[#E5C07B] bg-[#15111F] px-3 py-2 text-xs font-semibold text-white shadow-lg"
       >
-        <div
-          style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(229, 192, 123, 0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Smartphone size={14} color="#E5C07B" />
-        </div>
-        <div style={{ textAlign: 'left' }}>
-          <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, lineHeight: 1.1 }}>Install Gathrd</p>
-          <p style={{ margin: 0, fontSize: '9px', opacity: 0.7 }}>Add to Home Screen</p>
-        </div>
-        <div
-          style={{
-            backgroundColor: '#E5C07B',
-            color: '#15111F',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '4px 10px',
-            borderRadius: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            marginLeft: '4px',
-          }}
-        >
-          <Download size={12} /> Install
-        </div>
+        <Download size={13} color="#E5C07B" />
+        {canPrompt ? 'Install app' : 'Install Gathrd'}
       </button>
     </div>
   );
