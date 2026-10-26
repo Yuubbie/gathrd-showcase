@@ -1,13 +1,9 @@
-﻿// src/components/NotificationBell.jsx
-//
-// Bell icon + unread badge, with a dropdown panel listing recent
-// in-app notifications. Uses the same Tailwind tokens as the rest
-// of Gathrd (gold, gold-light, parchment, void) to match AppShell.jsx.
-
-import { useEffect, useState, useRef, useCallback } from 'react';
+﻿import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+
+const READ_KEY = 'gathrd_announcement_reads';
 
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -19,6 +15,19 @@ function timeAgo(dateString) {
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
   return new Date(dateString).toLocaleDateString();
+}
+
+function loadReadIds() {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveReadIds(ids) {
+  localStorage.setItem(READ_KEY, JSON.stringify(ids));
 }
 
 export default function NotificationBell() {
@@ -33,12 +42,25 @@ export default function NotificationBell() {
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
+    const readIds = loadReadIds();
     const { data, error } = await supabase
-      .from('notifications')
-      .select('id, title, body, is_read, created_at, source_type')
-      .order('created_at', { ascending: false })
+      .from('announcements')
+      .select('id, title, body, sent_at, is_emergency')
+      .not('sent_at', 'is', null)
+      .is('deleted_at', null)
+      .order('sent_at', { ascending: false })
       .limit(20);
-    if (!error && data) setNotifications(data);
+    if (!error && data) {
+      setNotifications(
+        data.map((a) => ({
+          id: a.id,
+          title: a.is_emergency ? `Urgent: ${a.title}` : a.title,
+          body: a.body,
+          created_at: a.sent_at,
+          is_read: readIds.includes(a.id),
+        }))
+      );
+    }
     setLoading(false);
   }, []);
 
@@ -61,14 +83,12 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
-  // Recompute panel position on resize/orientation change while open,
-  // so rotating a phone or resizing a window doesn't leave it stranded.
   useEffect(() => {
     if (!open) return;
     function reposition() {
       if (!buttonRef.current) return;
       const rect = buttonRef.current.getBoundingClientRect();
-      const panelWidth = 320; // matches w-80
+      const panelWidth = 320;
       const margin = 12;
       let left = rect.left;
       if (left + panelWidth + margin > window.innerWidth) {
@@ -85,10 +105,9 @@ export default function NotificationBell() {
   function toggleOpen() {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const panelWidth = 320; // matches w-80
+      const panelWidth = 320;
       const margin = 12;
       let left = rect.left;
-      // Clamp so the panel never runs off the right edge on narrow/mobile screens
       if (left + panelWidth + margin > window.innerWidth) {
         left = window.innerWidth - panelWidth - margin;
       }
@@ -98,16 +117,16 @@ export default function NotificationBell() {
     setOpen((v) => !v);
   }
 
-  async function markAsRead(id) {
+  function markAsRead(id) {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const next = Array.from(new Set([...loadReadIds(), id]));
+    saveReadIds(next);
   }
 
-  async function markAllRead() {
-    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
-    if (unreadIds.length === 0) return;
+  function markAllRead() {
+    const ids = notifications.map((n) => n.id);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    saveReadIds(Array.from(new Set([...loadReadIds(), ...ids])));
   }
 
   return (
@@ -150,7 +169,7 @@ export default function NotificationBell() {
               <div className="px-6 py-8 text-center text-sm text-void/50">Loading…</div>
             ) : notifications.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-void/50">
-                Nothing here yet. Announcements and updates from your church will show up here.
+                Nothing here yet. When your church sends an announcement, it will show up here.
               </div>
             ) : (
               notifications.map((n) => (

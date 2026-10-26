@@ -138,7 +138,7 @@ export default function AppShell({ children }) {
                 <SettingsIcon size={14} /> Church Settings
               </Link>
               <Link to="/team/invite" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                <UserPlus size={14} /> Invite Staff
+                <UserPlus size={14} /> Invite someone
               </Link>
             </>
           )}
@@ -199,7 +199,7 @@ export default function AppShell({ children }) {
                     <SettingsIcon size={14} /> Church Settings
                   </Link>
                   <Link to="/team/invite" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                    <UserPlus size={14} /> Invite Staff
+                    <UserPlus size={14} /> Invite someone
                   </Link>
                 </>
               )}

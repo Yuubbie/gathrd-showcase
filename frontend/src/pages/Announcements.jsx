@@ -66,7 +66,7 @@ export default function Announcements() {
     setError('');
     setSaving(true);
 
-    const { error } = await supabase.from('announcements').insert({
+    const { data: created, error } = await supabase.from('announcements').insert({
       church_id: profile.church_id,
       title: form.title,
       body: form.body,
@@ -76,16 +76,21 @@ export default function Announcements() {
       send_via_whatsapp: form.send_via_whatsapp,
       is_emergency: form.is_emergency,
       scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : new Date().toISOString(),
-    });
+    }).select('id').single();
 
     setSaving(false);
     if (error) {
       setError(error.message);
       return;
     }
+    const sendImmediately = !form.scheduled_at;
     setForm(emptyForm);
     setShowForm(false);
-    load();
+    if (created?.id && sendImmediately) {
+      await sendNow(created.id);
+    } else {
+      load();
+    }
   }
 
   async function sendNow(id) {
@@ -176,7 +181,7 @@ export default function Announcements() {
               Mark as emergency broadcast
             </label>
             <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
-              {saving ? 'Saving…' : 'Create Announcement'}
+              {saving ? 'Sending…' : form.scheduled_at ? 'Schedule announcement' : 'Send to everyone'}
             </button>
           </form>
         )}

@@ -72,6 +72,7 @@ export default function Dashboard() {
   const [birthdaysThisWeek, setBirthdaysThisWeek] = useState([]);
   const [cellMeetingsThisWeek, setCellMeetingsThisWeek] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [churchNotices, setChurchNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null); // FIX (High): surfaced load errors instead of silent zeros
   // Open service the member can check in to from this dashboard.
@@ -155,7 +156,7 @@ export default function Dashboard() {
           canSeeFinance
             ? supabase.from('giving_records').select('id, amount, category, given_at, status').eq('church_id', profile.church_id).eq('status', 'success').is('deleted_at', null).order('given_at', { ascending: false }).limit(3)
             : Promise.resolve({ data: [] }),
-          supabase.from('announcements').select('id, title, sent_at').eq('church_id', profile.church_id).not('sent_at', 'is', null).order('sent_at', { ascending: false }).limit(3),
+          supabase.from('announcements').select('id, title, body, sent_at').eq('church_id', profile.church_id).not('sent_at', 'is', null).is('deleted_at', null).order('sent_at', { ascending: false }).limit(5),
           // FIX: personal giving/attendance for a plain member. RLS
           // (member_read_own_giving / member_read_own_attendance) already
           // scopes these to only the caller's own records via their
@@ -260,10 +261,10 @@ export default function Dashboard() {
         });
         if (!cancelled && requestIdRef.current === thisRequestId) setCellMeetingsThisWeek(withReportStatus);
 
+        setChurchNotices(recentAnnouncementsRes.data || []);
         const feed = [
           ...(recentVisitorsRes.data || []).map((v) => ({ id: `av-${v.id}`, text: `${v.full_name} checked in as a visitor`, at: v.created_at, to: '/visitors' })),
           ...(recentGivingRes.data || []).map((g) => ({ id: `ag-${g.id}`, text: `₦${Number(g.amount).toLocaleString()} received (${g.category})`, at: g.given_at, to: '/giving' })),
-          ...(recentAnnouncementsRes.data || []).map((a) => ({ id: `aa-${a.id}`, text: `Announcement sent: "${a.title}"`, at: a.sent_at, to: '/announcements' })),
         ].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6);
         if (!cancelled && requestIdRef.current === thisRequestId) setActivity(feed);
       } catch (err) {
@@ -591,6 +592,21 @@ export default function Dashboard() {
         </div>
       )}
 
+      {!loading && churchNotices.length > 0 && (
+        <Card className="p-5 mb-6">
+          <h2 className="font-display font-bold text-ink text-sm mb-3">From your church</h2>
+          <div className="divide-y divide-ink/5">
+            {churchNotices.map((a) => (
+              <div key={a.id} className="py-2.5">
+                <p className="text-sm font-semibold text-ink">{a.title}</p>
+                <p className="text-sm text-ink/60 mt-0.5">{a.body}</p>
+                <p className="text-xs text-ink/30 mt-1">{timeAgo(a.sent_at)}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {!loading && activity.length > 0 && (
         <Card className="p-5 mb-6">
           <h2 className="font-display font-bold text-ink text-sm mb-3">Recent Activity</h2>
@@ -612,8 +628,14 @@ export default function Dashboard() {
           <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. Usher handles attendance; finance handles the count.</p>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/team/invite?role=church_admin"
+              to="/team/invite?role=member"
               className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
+            >
+              Invite Member
+            </Link>
+            <Link
+              to="/team/invite?role=church_admin"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
               Invite Head Usher
             </Link>

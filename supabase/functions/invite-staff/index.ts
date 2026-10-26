@@ -72,6 +72,17 @@ serve(async (req) => {
       );
     }
 
+    const allowedRoles = [
+      'senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin',
+      'department_head', 'cell_leader', 'childrens_teacher', 'member',
+    ];
+    if (!allowedRoles.includes(role)) {
+      return new Response(
+        JSON.stringify({ error: 'That role is not allowed.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (role === 'senior_pastor' && callerProfile.role !== 'senior_pastor') {
       return new Response(
         JSON.stringify({ error: 'Only a Senior Pastor can invite another Senior Pastor.' }),
@@ -96,11 +107,51 @@ serve(async (req) => {
       redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
     });
 
+    async function linkMemberRow(userId: string) {
+      const { data: existingMember } = await adminClient
+        .from('members')
+        .select('id, profile_id')
+        .eq('church_id', callerProfile.church_id)
+        .ilike('email', email)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (existingMember && !existingMember.profile_id) {
+        await adminClient.from('members').update({ profile_id: userId }).eq('id', existingMember.id);
+      } else if (!existingMember) {
+        await adminClient.from('members').insert({
+          church_id: callerProfile.church_id,
+          profile_id: userId,
+          full_name,
+          email,
+          status: 'active',
+          source: 'admin_added',
+        });
+      }
+    }
+
     if (inviteError) {
       const alreadyExists = inviteError.message?.toLowerCase().includes('already') ||
         inviteError.code === 'email_exists';
 
       if (alreadyExists) {
+        const { data: existingByEmail } = await adminClient.auth.admin.getUserByEmail(email);
+        const existingUser = existingByEmail?.user;
+
+        if (!existingUser) {
+          return new Response(
+            JSON.stringify({ error: 'This email already has an account, but we could not find it to link to your church.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        await adminClient
+          .from('profiles')
+          .update({ church_id: callerProfile.church_id, role, full_name })
+          .eq('id', existingUser.id);
+
+        await linkMemberRow(existingUser.id);
+
         const { error: resendError } = await adminClient.auth.resetPasswordForEmail(email, {
           redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
         });
@@ -117,7 +168,7 @@ serve(async (req) => {
             success: true,
             resent: true,
             invited_email: email,
-            message: 'This person already has an account — a fresh access link was sent instead.',
+            message: 'They already had an account. We linked them to this church and sent a fresh login link.',
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -143,8 +194,14 @@ serve(async (req) => {
       );
     }
 
+    await linkMemberRow(newUserId);
+
     return new Response(
-      JSON.stringify({ success: true, invited_email: email }),
+      JSON.stringify({
+        success: true,
+        invited_email: email,
+        message: `Invite sent to ${email}. They open the email, set a password, and join this church.`,
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

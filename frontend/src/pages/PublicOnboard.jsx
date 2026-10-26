@@ -29,6 +29,7 @@ export default function PublicOnboard() {
     state_of_origin: '',
     lga: '',
     occupation: '',
+    age_group: 'adult',
   });
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function PublicOnboard() {
       p_state_of_origin: form.state_of_origin || null,
       p_lga: form.lga || null,
       p_occupation: form.occupation || null,
+      p_age_group: form.age_group || 'adult',
     });
 
     setSubmitting(false);
@@ -141,6 +143,31 @@ export default function PublicOnboard() {
           />
         </Field>
 
+        <Field label="Adult or child" required>
+          <select
+            required
+            value={form.age_group}
+            onChange={(e) => update('age_group', e.target.value)}
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+          >
+            <option value="adult">Adult</option>
+            <option value="child">Child</option>
+          </select>
+        </Field>
+
+        <Field label="Gender" required>
+          <select
+            required
+            value={form.gender}
+            onChange={(e) => update('gender', e.target.value)}
+            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+          >
+            <option value="">Select…</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </Field>
+
         <Field label="Phone number (WhatsApp)">
           <input
             type="tel"
@@ -167,18 +194,6 @@ export default function PublicOnboard() {
             onChange={(e) => update('date_of_birth', e.target.value)}
             className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
-        </Field>
-
-        <Field label="Gender">
-          <select
-            value={form.gender}
-            onChange={(e) => update('gender', e.target.value)}
-            className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
-          >
-            <option value="">Select…</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
         </Field>
 
         <Field label="Marital status">

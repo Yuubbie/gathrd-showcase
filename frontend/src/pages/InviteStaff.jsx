@@ -3,21 +3,23 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 const ROLE_OPTIONS = [
-  ['senior_pastor', 'Senior Pastor'],
-  ['assistant_pastor', 'Assistant Pastor'],
+  ['member', 'Member'],
   ['church_admin', 'Church Admin (Head Usher)'],
   ['finance_admin', 'Finance Admin'],
+  ['assistant_pastor', 'Assistant Pastor'],
+  ['senior_pastor', 'Senior Pastor'],
   ['department_head', 'Department Head'],
   ['cell_leader', 'Cell Leader'],
   ['childrens_teacher', "Children's Teacher"],
-  ['member', 'Member'],
 ];
 
 const ALLOWED_ROLES = ROLE_OPTIONS.map(([v]) => v);
 
 const SHORTCUTS = [
+  { role: 'member', label: 'Member', hint: 'Login to see giving and attendance' },
   { role: 'church_admin', label: 'Head Usher', hint: 'Attendance and visitor check-in' },
   { role: 'finance_admin', label: 'Finance', hint: 'Count offering and verify transfers' },
+  { role: 'assistant_pastor', label: 'Assistant Pastor', hint: 'Same tools as you, this church' },
 ];
 
 export default function InviteStaff() {
@@ -25,13 +27,13 @@ export default function InviteStaff() {
   const roleFromUrl = searchParams.get('role');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState(ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'church_admin');
+  const [role, setRole] = useState(ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'member');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
   function pickRole(nextRole) {
     setRole(nextRole);
-    setSearchParams(nextRole === 'church_admin' ? {} : { role: nextRole }, { replace: true });
+    setSearchParams(nextRole === 'member' ? {} : { role: nextRole }, { replace: true });
   }
 
   async function handleSubmit(e) {
@@ -60,11 +62,11 @@ export default function InviteStaff() {
       } else {
         setMessage({
           type: 'success',
-          text: result.message || `Invite sent to ${email}. They'll get an email to set up their login.`,
+          text: result.message || `Invite sent to ${email}. They open the email, set a password, and land in your church. You do not share a login.`,
         });
         setEmail('');
         setFullName('');
-        pickRole('church_admin');
+        pickRole('member');
       }
     } catch {
       setMessage({ type: 'error', text: 'Could not reach the server. Check your connection and try again.' });
@@ -73,17 +75,19 @@ export default function InviteStaff() {
     setSubmitting(false);
   }
 
+  const roleLabel = ROLE_OPTIONS.find(([v]) => v === role)?.[1] || role;
+
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-lg mx-auto space-y-4">
         <div>
-          <h1 className="text-xl font-semibold">Invite Staff</h1>
+          <h1 className="text-xl font-semibold">Invite someone</h1>
           <p className="text-ink/50 text-sm mt-1">
-            Add pastors, admins, cell leaders, and other staff to your church. They'll get an email to set their own password — no need to share a login.
+            Type their name and email. They get a link, set their own password, and join this church. One form for members, ushers, finance, and pastors.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {SHORTCUTS.map((s) => (
             <button
               key={s.role}
@@ -130,7 +134,7 @@ export default function InviteStaff() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-ink/80 mb-1.5">Role</label>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">What they can do</label>
             <select
               value={role}
               onChange={(e) => pickRole(e.target.value)}
@@ -145,8 +149,14 @@ export default function InviteStaff() {
             disabled={submitting}
             className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50"
           >
-            {submitting ? 'Sending invite…' : 'Send Invite'}
+            {submitting ? 'Sending invite…' : `Send ${roleLabel} invite`}
           </button>
+
+          <ol className="text-xs text-ink/50 space-y-1 list-decimal list-inside">
+            <li>They get an email from Gathrd.</li>
+            <li>They tap the link and choose a password.</li>
+            <li>They log in and see this church — not a new one.</li>
+          </ol>
         </form>
       </div>
     </div>
