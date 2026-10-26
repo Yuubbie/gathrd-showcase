@@ -28,7 +28,7 @@ export default function Members() {
     setLoading(true);
     let query = supabase
       .from('members')
-      .select('id, full_name, phone, email, status, cell_group_id, date_joined, source')
+      .select('id, full_name, phone, email, status, cell_group_id, date_joined, source, gender, age_group')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -120,11 +120,26 @@ export default function Members() {
           </div>
         </div>
 
+        {showInvite && (
+          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+            <p className="text-sm font-semibold text-ink">Give them a login (recommended)</p>
+            <p className="text-sm text-ink/60">
+              Name + email. They get a link, set a password, and join this church as a member.
+            </p>
+            <Link
+              to="/team/invite?role=member"
+              className="inline-flex text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
+            >
+              Invite with email
+            </Link>
+          </div>
+        )}
+
         {showInvite && onboardingUrl && (
           <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+            <p className="text-sm font-semibold text-ink">Or share a QR (no login)</p>
             <p className="text-sm text-ink/60">
-              Share this link or QR code — anyone who opens it can register
-              themselves as a member, no login needed.
+              Anyone who opens this can add themselves to the roster. They will not have a login until you invite them.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               <img
@@ -153,26 +168,9 @@ export default function Members() {
         )}
 
         {showInvite && claimUrl && (
-          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
-            <p className="text-sm text-ink/60">
-              Already-registered members use this link to set up a login and
-              see their own giving and attendance history.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <input
-                readOnly
-                value={claimUrl}
-                onClick={(e) => e.target.select()}
-                className="flex-1 min-w-[200px] border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment"
-              />
-              <button
-                onClick={() => navigator.clipboard.writeText(claimUrl)}
-                className="text-sm text-signal font-semibold hover:text-signal-deep"
-              >
-                Copy link
-              </button>
-            </div>
-          </div>
+          <p className="text-xs text-ink/40">
+            Already on the roster with an email? They can also set a login at {claimUrl}
+          </p>
         )}
 
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
@@ -218,7 +216,7 @@ export default function Members() {
                   <div>
                     <p className="font-medium text-sm">{m.full_name}</p>
                     <p className="text-ink/50 text-xs">
-                      {m.phone || m.email || 'No contact info'}
+                      {[m.age_group === 'child' ? 'Child' : 'Adult', m.gender === 'male' ? 'Male' : m.gender === 'female' ? 'Female' : null, m.phone || m.email || 'No contact'].filter(Boolean).join(' · ')}
                       {m.source === 'self_onboarded' && (
                         <span className="ml-2 text-signal">• self-registered</span>
                       )}

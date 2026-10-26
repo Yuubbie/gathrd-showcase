@@ -27,6 +27,7 @@ const emptyForm = {
   occupation: '', cell_group_id: '', status: 'active', date_joined: '',
   photo_url: '', wedding_anniversary: '', blood_group: '', genotype: '',
   born_again_date: '', next_of_kin_name: '', next_of_kin_phone: '',
+  age_group: 'adult',
 };
 
 export default function MemberForm() {
@@ -94,6 +95,8 @@ export default function MemberForm() {
       wedding_anniversary: form.wedding_anniversary || null,
       born_again_date: form.born_again_date || null,
       date_joined: form.date_joined || new Date().toISOString().slice(0, 10),
+      age_group: form.age_group === 'child' ? 'child' : 'adult',
+      gender: form.gender || null,
       // Never persist medical fields unless both the church has enabled
       // it AND this admin confirmed consent was obtained from the member.
       blood_group: medicalEnabled && medicalConsent ? form.blood_group : null,
@@ -136,6 +139,19 @@ export default function MemberForm() {
               </div>
             )}
           </Field>
+          <Field label="Adult or child" required>
+            <select required value={form.age_group || 'adult'} onChange={(e) => update('age_group', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
+              <option value="adult">Adult</option>
+              <option value="child">Child</option>
+            </select>
+          </Field>
+          <Field label="Gender" required>
+            <select required value={form.gender} onChange={(e) => update('gender', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </Field>
           <Field label="Status" required>
             <select required value={form.status} onChange={(e) => update('status', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
               {STATUS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -144,7 +160,7 @@ export default function MemberForm() {
         </Section>
 
         {!isEditing && (
-          <p className="text-xs text-ink/50">Name and phone are enough for now. You can add the rest later.</p>
+          <p className="text-xs text-ink/50">Name, adult or child, and gender are required. Phone and the rest can wait.</p>
         )}
 
         <button
@@ -163,13 +179,6 @@ export default function MemberForm() {
           </Field>
           <Field label="Date of birth">
             <input type="date" value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
-          </Field>
-          <Field label="Gender">
-            <select value={form.gender} onChange={(e) => update('gender', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
-              <option value="">Select…</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
           </Field>
           <Field label="Marital status">
             <select value={form.marital_status} onChange={(e) => update('marital_status', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
