@@ -108,26 +108,55 @@ serve(async (req) => {
     });
 
     async function linkMemberRow(userId: string) {
-      const { data: existingMember } = await adminClient
-        .from('members')
-        .select('id, profile_id')
-        .eq('church_id', callerProfile.church_id)
-        .ilike('email', email)
-        .is('deleted_at', null)
-        .maybeSingle();
+      const normalizedEmail = String(email || '').trim();
+      const normalizedName = String(full_name || '').trim();
+      let existingMember = null;
 
-      if (existingMember && !existingMember.profile_id) {
-        await adminClient.from('members').update({ profile_id: userId }).eq('id', existingMember.id);
-      } else if (!existingMember) {
-        await adminClient.from('members').insert({
-          church_id: callerProfile.church_id,
-          profile_id: userId,
-          full_name,
-          email,
-          status: 'active',
-          source: 'admin_added',
-        });
+      if (normalizedEmail) {
+        const { data } = await adminClient
+          .from('members')
+          .select('id, profile_id, email')
+          .eq('church_id', callerProfile.church_id)
+          .ilike('email', normalizedEmail)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        existingMember = data;
       }
+
+      if (!existingMember && normalizedName) {
+        const { data } = await adminClient
+          .from('members')
+          .select('id, profile_id, email')
+          .eq('church_id', callerProfile.church_id)
+          .ilike('full_name', normalizedName)
+          .is('profile_id', null)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        existingMember = data;
+      }
+
+      if (existingMember) {
+        const patch: Record<string, string> = {};
+        if (!existingMember.profile_id) patch.profile_id = userId;
+        if (!existingMember.email && normalizedEmail) patch.email = normalizedEmail;
+        if (Object.keys(patch).length > 0) {
+          await adminClient.from('members').update(patch).eq('id', existingMember.id);
+        }
+        return;
+      }
+
+      await adminClient.from('members').insert({
+        church_id: callerProfile.church_id,
+        profile_id: userId,
+        full_name: normalizedName || full_name,
+        email: normalizedEmail || email,
+        status: 'active',
+        source: 'admin_added',
+      });
     }
 
     if (inviteError) {
