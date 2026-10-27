@@ -42,6 +42,7 @@ export default function MemberForm() {
   const [medicalConsent, setMedicalConsent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState('');
   const [showMore, setShowMore] = useState(!!id);
 
@@ -116,6 +117,26 @@ export default function MemberForm() {
     navigate('/members');
   }
 
+  async function handleRemove() {
+    if (!isEditing) return;
+    const ok = window.confirm(
+      `Remove ${form.full_name || 'this person'} from the member list? They will no longer show in People. You can invite them again later if needed.`
+    );
+    if (!ok) return;
+    setError('');
+    setRemoving(true);
+    const { error } = await supabase
+      .from('members')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    setRemoving(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    navigate('/members');
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/50">Loading…</div>;
   }
@@ -138,6 +159,10 @@ export default function MemberForm() {
                 <ContactActions phone={form.phone} name={form.full_name} />
               </div>
             )}
+          </Field>
+          <Field label="Email">
+            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
+            <p className="text-xs text-ink/40 mt-1">If you will invite them to log in, put the same email here so they do not appear twice.</p>
           </Field>
           <Field label="Adult or child" required>
             <select required value={form.age_group || 'adult'} onChange={(e) => update('age_group', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
@@ -174,9 +199,6 @@ export default function MemberForm() {
         {showMore && (
           <>
         <Section title="More about them">
-          <Field label="Email">
-            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
-          </Field>
           <Field label="Date of birth">
             <input type="date" value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors" />
           </Field>
@@ -263,9 +285,19 @@ export default function MemberForm() {
           </>
         )}
 
-        <button type="submit" disabled={saving} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
+        <button type="submit" disabled={saving || removing} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
           {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Member'}
         </button>
+        {isEditing && (
+          <button
+            type="button"
+            disabled={saving || removing}
+            onClick={handleRemove}
+            className="w-full text-sm text-rose font-semibold py-2 hover:underline disabled:opacity-50"
+          >
+            {removing ? 'Removing…' : 'Remove from church'}
+          </button>
+        )}
       </form>
     </div>
   );
