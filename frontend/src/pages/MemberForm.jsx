@@ -122,7 +122,7 @@ export default function MemberForm() {
       setError(error.message);
       return;
     }
-    navigate(fromChildren ? '/children' : '/members');
+    navigate(fromChildren || payload.age_group === 'child' ? '/children' : '/members');
   }
 
   async function handleRemove() {
