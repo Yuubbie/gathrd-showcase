@@ -625,7 +625,7 @@ export default function Dashboard() {
         <Card className="p-5">
           <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
           <h2 className="font-display font-bold text-ink text-sm mb-1">Invite someone to help</h2>
-          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. Invite an Admin, Finance, a Head of Department, or a Children's Teacher.</p>
+          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. An Admin can start and end attendance. Invite Finance, a Head of Department, or a Children's Teacher too.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/team/invite?role=member"
