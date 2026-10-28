@@ -24,16 +24,27 @@ export default function Children() {
   const load = useCallback(async () => {
     if (!profile?.church_id) return;
     setLoading(true);
+
+    const { data: roster } = await supabase
+      .from('members')
+      .select('id, full_name, phone, gender, status')
+      .eq('age_group', 'child')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .order('full_name');
+    setChildren(roster || []);
+
     const { data, error } = await supabase.rpc('get_children_desk');
     if (error || !data?.ok) {
-      setChildren([]);
       setTeachers([]);
       setService(null);
       setAttendance({});
       setLoading(false);
       return;
     }
-    setChildren(data.children || []);
+    if ((!roster || roster.length === 0) && Array.isArray(data.children)) {
+      setChildren(data.children);
+    }
     setTeachers(data.teachers || []);
     setService(data.service && data.service.open ? data.service : null);
     const map = {};
@@ -147,7 +158,7 @@ export default function Children() {
           />
 
           {filtered.length === 0 ? (
-            <p className="text-ink/40 text-sm py-6 text-center">No children yet. Add a child, or mark Adult or child when you add a member.</p>
+            <p className="text-ink/40 text-sm py-6 text-center">No children yet. People marked Child on the member list should appear here.</p>
           ) : (
             <div className="divide-y">
               {filtered.map((c) => {
