@@ -18,7 +18,7 @@ const ALLOWED_ROLES = ROLE_OPTIONS.map(([v]) => v);
 
 const SHORTCUTS = [
   { role: 'member', label: 'Member', hint: 'Login to see giving and attendance' },
-  { role: 'church_admin', label: 'Admin', hint: 'People you assign to run the desk' },
+  { role: 'church_admin', label: 'Admin', hint: 'Run the Sunday desk, including start and end attendance' },
   { role: 'finance_admin', label: 'Finance', hint: 'Count offering and verify transfers' },
   { role: 'department_head', label: 'Head of Department', hint: 'Lead one department' },
   { role: 'childrens_teacher', label: "Children's Teacher", hint: 'Children list and their attendance' },

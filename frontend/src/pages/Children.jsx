@@ -137,7 +137,7 @@ export default function Children() {
             <p className="text-sm font-semibold text-ink">{presentCount} here</p>
           </div>
         ) : (
-          <p className="text-sm text-ink/50">When a pastor starts a service, you can mark children present here.</p>
+          <p className="text-sm text-ink/50">When a pastor or Admin starts a service on Attendance, you can mark children present here.</p>
         )}
 
         {message && <p className="text-sm text-rose">{message}</p>}
