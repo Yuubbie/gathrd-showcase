@@ -64,10 +64,17 @@ serve(async (req) => {
       );
     }
 
-    const allowedInviterRoles = ['senior_pastor', 'assistant_pastor', 'church_admin'];
+    const allowedInviterRoles = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'];
     if (!allowedInviterRoles.includes(callerProfile.role)) {
       return new Response(
         JSON.stringify({ error: 'You do not have permission to invite staff.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (callerProfile.role === 'childrens_teacher' && role !== 'childrens_teacher') {
+      return new Response(
+        JSON.stringify({ error: 'Children\'s teachers can only invite other teachers.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

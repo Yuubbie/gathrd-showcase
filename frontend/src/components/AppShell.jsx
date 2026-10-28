@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Wallet, ClipboardCheck,
-  Megaphone, Cake, UsersRound, Settings as SettingsIcon, Menu, X, LogOut,
+  Megaphone, Cake, UsersRound, Settings as SettingsIcon, Menu, X, LogOut, Baby,
   CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,7 @@ const PRIMARY_NAV = [
   { to: '/dashboard', label: 'Today', icon: LayoutDashboard, roles: null },
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   { to: '/members', label: 'People', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'], prefixes: ['/members', '/visitors', '/follow-up', '/discipleship'] },
+  { to: '/children', label: 'Children', icon: Baby, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'] },
   { to: '/give/me', label: 'Giving', icon: Wallet, roles: null, prefixes: ['/give', '/giving'] },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
 ];
@@ -31,9 +32,9 @@ const MORE_NAV = [
 const ROLE_LABELS = {
   senior_pastor: 'Senior Pastor',
   assistant_pastor: 'Assistant Pastor',
-  church_admin: 'Church Admin',
-  finance_admin: 'Finance Admin',
-  department_head: 'Department Head',
+  church_admin: 'Admin',
+  finance_admin: 'Finance',
+  department_head: 'Head of Department',
   cell_leader: 'Cell Leader',
   childrens_teacher: "Children's Teacher",
   member: 'Member',
@@ -132,11 +133,13 @@ export default function AppShell({ children }) {
         </div>
         <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} />
         <div className="p-3 mt-auto space-y-2">
-          {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+          {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role) && (
             <>
-              <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                <SettingsIcon size={14} /> Church Settings
-              </Link>
+              {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+                <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                  <SettingsIcon size={14} /> Church Settings
+                </Link>
+              )}
               <Link to="/team/invite" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
                 <UserPlus size={14} /> Invite someone
               </Link>
@@ -193,11 +196,13 @@ export default function AppShell({ children }) {
             </div>
             <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
             <div className="p-3 mt-auto space-y-2">
-              {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+              {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role) && (
                 <>
-                  <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                    <SettingsIcon size={14} /> Church Settings
-                  </Link>
+                  {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+                    <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                      <SettingsIcon size={14} /> Church Settings
+                    </Link>
+                  )}
                   <Link to="/team/invite" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
                     <UserPlus size={14} /> Invite someone
                   </Link>

@@ -1,39 +1,47 @@
 ﻿import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 const ROLE_OPTIONS = [
   ['member', 'Member'],
-  ['church_admin', 'Church Admin (Head Usher)'],
-  ['finance_admin', 'Finance Admin'],
+  ['church_admin', 'Admin'],
+  ['finance_admin', 'Finance'],
+  ['department_head', 'Head of Department'],
+  ['childrens_teacher', "Children's Teacher"],
+  ['cell_leader', 'Cell Leader'],
   ['assistant_pastor', 'Assistant Pastor'],
   ['senior_pastor', 'Senior Pastor'],
-  ['department_head', 'Department Head'],
-  ['cell_leader', 'Cell Leader'],
-  ['childrens_teacher', "Children's Teacher"],
 ];
 
 const ALLOWED_ROLES = ROLE_OPTIONS.map(([v]) => v);
 
 const SHORTCUTS = [
   { role: 'member', label: 'Member', hint: 'Login to see giving and attendance' },
-  { role: 'church_admin', label: 'Head Usher', hint: 'Attendance and visitor check-in' },
+  { role: 'church_admin', label: 'Admin', hint: 'People you assign to run the desk' },
   { role: 'finance_admin', label: 'Finance', hint: 'Count offering and verify transfers' },
-  { role: 'assistant_pastor', label: 'Assistant Pastor', hint: 'Same tools as you, this church' },
+  { role: 'department_head', label: 'Head of Department', hint: 'Lead one department' },
+  { role: 'childrens_teacher', label: "Children's Teacher", hint: 'Children list and their attendance' },
 ];
 
 export default function InviteStaff() {
+  const { profile } = useAuth();
+  const isTeacher = profile?.role === 'childrens_teacher';
+  const visibleRoles = isTeacher ? ROLE_OPTIONS.filter(([v]) => v === 'childrens_teacher') : ROLE_OPTIONS;
+  const visibleShortcuts = isTeacher ? SHORTCUTS.filter((s) => s.role === 'childrens_teacher') : SHORTCUTS;
   const [searchParams, setSearchParams] = useSearchParams();
   const roleFromUrl = searchParams.get('role');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState(ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'member');
+  const defaultRole = isTeacher ? 'childrens_teacher' : (ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'member');
+  const [role, setRole] = useState(defaultRole);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
   function pickRole(nextRole) {
-    setRole(nextRole);
-    setSearchParams(nextRole === 'member' ? {} : { role: nextRole }, { replace: true });
+    const next = isTeacher ? 'childrens_teacher' : nextRole;
+    setRole(next);
+    setSearchParams(next === 'member' ? {} : { role: next }, { replace: true });
   }
 
   async function handleSubmit(e) {
@@ -66,7 +74,7 @@ export default function InviteStaff() {
         });
         setEmail('');
         setFullName('');
-        pickRole('member');
+        pickRole(isTeacher ? 'childrens_teacher' : 'member');
       }
     } catch {
       setMessage({ type: 'error', text: 'Could not reach the server. Check your connection and try again.' });
@@ -88,7 +96,7 @@ export default function InviteStaff() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {SHORTCUTS.map((s) => (
+          {visibleShortcuts.map((s) => (
             <button
               key={s.role}
               type="button"
@@ -140,7 +148,7 @@ export default function InviteStaff() {
               onChange={(e) => pickRole(e.target.value)}
               className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             >
-              {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {visibleRoles.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
 

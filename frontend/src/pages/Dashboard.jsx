@@ -8,8 +8,8 @@ import OnboardingChecklist from '../components/OnboardingChecklist';
 
 const ROLE_LABELS = {
   senior_pastor: 'Senior Pastor', assistant_pastor: 'Assistant Pastor',
-  church_admin: 'Church Admin', finance_admin: 'Finance Admin',
-  department_head: 'Department Head', cell_leader: 'Cell Group Leader',
+  church_admin: 'Admin', finance_admin: 'Finance',
+  department_head: 'Head of Department', cell_leader: 'Cell Group Leader',
   childrens_teacher: "Children's Ministry Teacher", member: 'Church Member',
 };
 
@@ -625,7 +625,7 @@ export default function Dashboard() {
         <Card className="p-5">
           <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
           <h2 className="font-display font-bold text-ink text-sm mb-1">Invite someone to help</h2>
-          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. Usher handles attendance; finance handles the count.</p>
+          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. Invite an Admin, Finance, a Head of Department, or a Children's Teacher.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/team/invite?role=member"
@@ -637,13 +637,25 @@ export default function Dashboard() {
               to="/team/invite?role=church_admin"
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
-              Invite Head Usher
+              Invite Admin
             </Link>
             <Link
               to="/team/invite?role=finance_admin"
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
               Invite Finance
+            </Link>
+            <Link
+              to="/team/invite?role=department_head"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+            >
+              Invite Head of Department
+            </Link>
+            <Link
+              to="/team/invite?role=childrens_teacher"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+            >
+              Invite Children's Teacher
             </Link>
           </div>
         </Card>
