@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import ContactActions from '../components/ContactActions';
@@ -35,8 +35,10 @@ export default function MemberForm() {
   const isEditing = !!id;
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromChildren = searchParams.get('from') === 'children' || profile?.role === 'childrens_teacher';
 
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ ...emptyForm, age_group: fromChildren ? 'child' : 'adult' });
   const [cellGroups, setCellGroups] = useState([]);
   const [medicalEnabled, setMedicalEnabled] = useState(false);
   const [medicalConsent, setMedicalConsent] = useState(false);
@@ -79,6 +81,12 @@ export default function MemberForm() {
     loadContext();
   }, [profile, id, isEditing]);
 
+  useEffect(() => {
+    if (fromChildren && !isEditing) {
+      setForm((f) => (f.age_group === 'child' ? f : { ...f, age_group: 'child' }));
+    }
+  }, [fromChildren, isEditing]);
+
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
@@ -96,7 +104,7 @@ export default function MemberForm() {
       wedding_anniversary: form.wedding_anniversary || null,
       born_again_date: form.born_again_date || null,
       date_joined: form.date_joined || new Date().toISOString().slice(0, 10),
-      age_group: form.age_group === 'child' ? 'child' : 'adult',
+      age_group: profile?.role === 'childrens_teacher' ? 'child' : (form.age_group === 'child' ? 'child' : 'adult'),
       gender: form.gender || null,
       // Never persist medical fields unless both the church has enabled
       // it AND this admin confirmed consent was obtained from the member.
@@ -114,7 +122,7 @@ export default function MemberForm() {
       setError(error.message);
       return;
     }
-    navigate('/members');
+    navigate(fromChildren ? '/children' : '/members');
   }
 
   async function handleRemove() {
@@ -134,7 +142,7 @@ export default function MemberForm() {
       setError(error.message);
       return;
     }
-    navigate('/members');
+    navigate(fromChildren ? '/children' : '/members');
   }
 
   if (loading) {
@@ -144,7 +152,7 @@ export default function MemberForm() {
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <form onSubmit={handleSubmit} className="max-w-lg mx-auto bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 space-y-4">
-        <h1 className="text-xl font-semibold">{isEditing ? 'Edit Member' : 'Add Member'}</h1>
+        <h1 className="text-xl font-semibold">{isEditing ? (fromChildren ? 'Edit child' : 'Edit Member') : (fromChildren ? 'Add child' : 'Add Member')}</h1>
 
         {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
 
@@ -165,7 +173,13 @@ export default function MemberForm() {
             <p className="text-xs text-ink/40 mt-1">If you will invite them to log in, put the same email here so they do not appear twice.</p>
           </Field>
           <Field label="Adult or child" required>
-            <select required value={form.age_group || 'adult'} onChange={(e) => update('age_group', e.target.value)} className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors">
+            <select
+              required
+              disabled={profile?.role === 'childrens_teacher'}
+              value={profile?.role === 'childrens_teacher' ? 'child' : (form.age_group || 'adult')}
+              onChange={(e) => update('age_group', e.target.value)}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors disabled:bg-ink/5"
+            >
               <option value="adult">Adult</option>
               <option value="child">Child</option>
             </select>

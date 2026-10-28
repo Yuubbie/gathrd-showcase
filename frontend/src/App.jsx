@@ -40,6 +40,7 @@ import ClaimAccount from './pages/ClaimAccount';
 import AdminDashboard from './pages/AdminDashboard';
 import MemberGivingPage from './pages/MemberGivingPage';
 import TransferLog from './pages/TransferLog';
+import Children from './pages/Children';
 
 function CheckEmail() {
   return (
@@ -134,7 +135,7 @@ export default function App() {
           <Route
             path="/members/new"
             element={
-              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher']}>
                 <MemberForm />
               </ProtectedRoute>
             }
@@ -142,8 +143,16 @@ export default function App() {
           <Route
             path="/members/:id/edit"
             element={
-              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher']}>
                 <MemberForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/children"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher']}>
+                <Children />
               </ProtectedRoute>
             }
           />
@@ -278,7 +287,7 @@ export default function App() {
           <Route
             path="/team/invite"
             element={
-              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher']}>
                 <InviteStaff />
               </ProtectedRoute>
             }

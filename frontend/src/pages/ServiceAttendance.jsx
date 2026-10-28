@@ -49,6 +49,7 @@ export default function ServiceAttendance() {
   const [openId, setOpenId] = useState(null);
   const [details, setDetails] = useState({});
   const [reportLoading, setReportLoading] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   useEffect(() => {
     async function loadSlug() {
@@ -138,6 +139,20 @@ export default function ServiceAttendance() {
   useEffect(() => {
     if (!loading && !service && profile?.church_id) loadReports();
   }, [loading, service, profile, loadReports]);
+
+  async function handleRemoveService(sessionId, serviceName) {
+    if (!window.confirm(`Remove "${serviceName}" from history? This cannot be undone.`)) return;
+    setRemovingId(sessionId);
+    setMessage('');
+    const { data, error } = await supabase.rpc('delete_service_session', { p_session_id: sessionId });
+    setRemovingId(null);
+    if (error || !data || data.status !== 'deleted') {
+      setMessage('Could not remove that service. Please try again.');
+      return;
+    }
+    setHistory((prev) => prev.filter((h) => h.session_id !== sessionId));
+    if (openId === sessionId) setOpenId(null);
+  }
 
   async function toggleSession(sessionId) {
     if (openId === sessionId) {
@@ -391,7 +406,15 @@ export default function ServiceAttendance() {
                         </div>
                       </button>
                       {openId === h.session_id && (
-                        <div className="pb-3">
+                        <div className="pb-3 space-y-3">
+                          <button
+                            type="button"
+                            disabled={removingId === h.session_id}
+                            onClick={() => handleRemoveService(h.session_id, h.service_name)}
+                            className="text-xs text-rose font-semibold hover:underline disabled:opacity-50"
+                          >
+                            {removingId === h.session_id ? 'Removing…' : 'Remove from history'}
+                          </button>
                           {!detail ? (
                             <p className="text-ink/40 text-sm">Loading…</p>
                           ) : (
