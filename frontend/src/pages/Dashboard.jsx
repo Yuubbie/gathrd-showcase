@@ -657,6 +657,20 @@ export default function Dashboard() {
             >
               Invite Children's Teacher
             </Link>
+            <Link
+              to="/team/invite?role=assistant_pastor"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+            >
+              Invite Assistant Pastor
+            </Link>
+            {profile?.role === 'senior_pastor' && (
+              <Link
+                to="/team/invite?role=senior_pastor"
+                className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+              >
+                Invite Senior Pastor
+              </Link>
+            )}
           </div>
         </Card>
       )}
