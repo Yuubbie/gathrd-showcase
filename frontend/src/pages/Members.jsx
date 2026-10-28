@@ -23,6 +23,11 @@ export default function Members() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [onboardingSlug, setOnboardingSlug] = useState(null);
+  const [ageFilter, setAgeFilter] = useState('');
+  const [movingId, setMovingId] = useState(null);
+  const [moveMessage, setMoveMessage] = useState('');
+
+  const canMoveAge = ['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role);
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -33,12 +38,37 @@ export default function Members() {
       .order('created_at', { ascending: false });
 
     if (statusFilter) query = query.eq('status', statusFilter);
+    if (ageFilter) query = query.eq('age_group', ageFilter);
     if (search) query = query.ilike('full_name', `%${search}%`);
 
     const { data, error } = await query;
     if (!error) setMembers(data || []);
     setLoading(false);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, ageFilter]);
+
+  async function handleMoveToChildren(member, e) {
+    e.stopPropagation();
+    if (!canMoveAge || member.age_group === 'child' || movingId) return;
+    const ok = window.confirm(`Move ${member.full_name} to Children? They stay on People, and also show on the Children page.`);
+    if (!ok) return;
+    setMoveMessage('');
+    setMovingId(member.id);
+    const { error } = await supabase
+      .from('members')
+      .update({ age_group: 'child' })
+      .eq('id', member.id);
+    setMovingId(null);
+    if (error) {
+      setMoveMessage(`Could not move ${member.full_name}. Please try again.`);
+      return;
+    }
+    setMembers((list) =>
+      list
+        .map((m) => (m.id === member.id ? { ...m, age_group: 'child' } : m))
+        .filter((m) => !ageFilter || m.age_group === ageFilter)
+    );
+    setMoveMessage(`${member.full_name} is now on Children.`);
+  }
 
   useEffect(() => {
     loadMembers();
@@ -191,6 +221,15 @@ export default function Members() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+            <select
+              value={ageFilter}
+              onChange={(e) => setAgeFilter(e.target.value)}
+              className="border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
+            >
+              <option value="">Adults and children</option>
+              <option value="adult">Adults</option>
+              <option value="child">Children</option>
+            </select>
             <button
               onClick={exportCsv}
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
@@ -198,6 +237,8 @@ export default function Members() {
               Export CSV
             </button>
           </div>
+
+          {moveMessage && <p className="text-sm text-sage">{moveMessage}</p>}
 
           {loading ? (
             <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
@@ -224,6 +265,16 @@ export default function Members() {
                   </div>
                   <div className="flex items-center gap-2">
                     <ContactActions phone={m.phone} name={m.full_name} stopClick />
+                    {canMoveAge && m.age_group !== 'child' && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleMoveToChildren(m, e)}
+                        disabled={movingId === m.id}
+                        className="text-xs text-signal font-semibold disabled:opacity-50"
+                      >
+                        {movingId === m.id ? 'Moving…' : 'To Children'}
+                      </button>
+                    )}
                     <span className="text-xs text-ink/40">
                       {STATUS_LABELS[m.status] || m.status}
                     </span>
