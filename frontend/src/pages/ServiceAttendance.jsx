@@ -91,6 +91,7 @@ export default function ServiceAttendance() {
           .select('id, full_name')
           .eq('church_id', profile.church_id)
           .eq('status', 'active')
+          .neq('age_group', 'child')
           .is('deleted_at', null)
           .order('full_name'),
         supabase

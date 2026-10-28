@@ -23,7 +23,6 @@ export default function Members() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [onboardingSlug, setOnboardingSlug] = useState(null);
-  const [ageFilter, setAgeFilter] = useState('');
   const [movingId, setMovingId] = useState(null);
   const [moveMessage, setMoveMessage] = useState('');
 
@@ -34,22 +33,22 @@ export default function Members() {
     let query = supabase
       .from('members')
       .select('id, full_name, phone, email, status, cell_group_id, date_joined, source, gender, age_group')
+      .neq('age_group', 'child')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (statusFilter) query = query.eq('status', statusFilter);
-    if (ageFilter) query = query.eq('age_group', ageFilter);
     if (search) query = query.ilike('full_name', `%${search}%`);
 
     const { data, error } = await query;
     if (!error) setMembers(data || []);
     setLoading(false);
-  }, [search, statusFilter, ageFilter]);
+  }, [search, statusFilter]);
 
   async function handleMoveToChildren(member, e) {
     e.stopPropagation();
     if (!canMoveAge || member.age_group === 'child' || movingId) return;
-    const ok = window.confirm(`Move ${member.full_name} to Children? They stay on People, and also show on the Children page.`);
+    const ok = window.confirm(`Move ${member.full_name} to Children? They will leave People and only show on the Children page.`);
     if (!ok) return;
     setMoveMessage('');
     setMovingId(member.id);
@@ -62,12 +61,8 @@ export default function Members() {
       setMoveMessage(`Could not move ${member.full_name}. Please try again.`);
       return;
     }
-    setMembers((list) =>
-      list
-        .map((m) => (m.id === member.id ? { ...m, age_group: 'child' } : m))
-        .filter((m) => !ageFilter || m.age_group === ageFilter)
-    );
-    setMoveMessage(`${member.full_name} is now on Children.`);
+    setMembers((list) => list.filter((m) => m.id !== member.id));
+    setMoveMessage(`${member.full_name} is now only on Children.`);
   }
 
   useEffect(() => {
@@ -221,15 +216,6 @@ export default function Members() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <select
-              value={ageFilter}
-              onChange={(e) => setAgeFilter(e.target.value)}
-              className="border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-white focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
-            >
-              <option value="">Adults and children</option>
-              <option value="adult">Adults</option>
-              <option value="child">Children</option>
-            </select>
             <button
               onClick={exportCsv}
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment transition-colors"
@@ -257,7 +243,7 @@ export default function Members() {
                   <div>
                     <p className="font-medium text-sm">{m.full_name}</p>
                     <p className="text-ink/50 text-xs">
-                      {[m.age_group === 'child' ? 'Child' : 'Adult', m.gender === 'male' ? 'Male' : m.gender === 'female' ? 'Female' : null, m.phone || m.email || 'No contact'].filter(Boolean).join(' · ')}
+                      {[m.gender === 'male' ? 'Male' : m.gender === 'female' ? 'Female' : null, m.phone || m.email || 'No contact'].filter(Boolean).join(' · ')}
                       {m.source === 'self_onboarded' && (
                         <span className="ml-2 text-signal">• self-registered</span>
                       )}
