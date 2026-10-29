@@ -109,6 +109,38 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    async function findAuthUserByEmail(lookupEmail: string) {
+      const normalized = String(lookupEmail || '').trim().toLowerCase();
+      if (!normalized) return null;
+
+      const res = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(normalized)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+          },
+        }
+      );
+      if (res.ok) {
+        const body = await res.json();
+        const users = body.users || [];
+        const match = users.find((u) => String(u.email || '').toLowerCase() === normalized);
+        if (match) return match;
+      }
+
+      let page = 1;
+      while (page <= 10) {
+        const { data } = await adminClient.auth.admin.listUsers({ page, perPage: 200 });
+        const users = data?.users || [];
+        const match = users.find((u) => String(u.email || '').toLowerCase() === normalized);
+        if (match) return match;
+        if (users.length < 200) break;
+        page += 1;
+      }
+      return null;
+    }
+
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name, role, church_id: callerProfile.church_id },
       redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
@@ -189,8 +221,7 @@ serve(async (req) => {
         inviteError.code === 'email_exists';
 
       if (alreadyExists) {
-        const { data: existingByEmail } = await adminClient.auth.admin.getUserByEmail(email);
-        const existingUser = existingByEmail?.user;
+        const existingUser = await findAuthUserByEmail(email);
 
         if (!existingUser) {
           return new Response(
