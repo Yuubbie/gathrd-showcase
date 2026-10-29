@@ -41,6 +41,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import MemberGivingPage from './pages/MemberGivingPage';
 import TransferLog from './pages/TransferLog';
 import Children from './pages/Children';
+import Seo from './components/Seo';
 
 function CheckEmail() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Seo />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/demo" element={<Demo />} />

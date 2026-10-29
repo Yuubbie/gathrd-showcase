@@ -6,14 +6,6 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <!-- FIX: Google Fonts <link> tags removed — fonts are now self-hosted
-         via @fontsource (see index.css). This removes a full DNS + TLS +
-         download round-trip to fonts.googleapis.com/fonts.gstatic.com on
-         every visit, which measured ~2.5s combined under throttled Slow 4G
-         testing. Same font files, same weights, just served from Vercel
-         alongside everything else instead of a third-party CDN. -->
-
-    <!-- PWA: installability -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#A9791E" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -21,7 +13,109 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Gathrd" />
 
-    <title>Gathrd — Church Operating System</title>
+    <title>Gathrd — Church Management Software for Nigerian Churches</title>
+    <meta name="description" content="Gathrd is the church operating system for Nigeria. Track Sunday attendance, members, tithes and offering, visitors, and cell groups. Start a free trial." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://gathrd.com.ng/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Gathrd" />
+    <meta property="og:title" content="Gathrd — Church Management Software for Nigerian Churches" />
+    <meta property="og:description" content="Run Sunday check-in, member records, giving, visitor follow-up, and cell groups from one dashboard built for churches in Nigeria." />
+    <meta property="og:url" content="https://gathrd.com.ng/" />
+    <meta property="og:image" content="https://gathrd.com.ng/logo.png" />
+    <meta property="og:locale" content="en_NG" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Gathrd — Church Management Software for Nigerian Churches" />
+    <meta name="twitter:description" content="Run Sunday check-in, member records, giving, visitor follow-up, and cell groups from one dashboard built for churches in Nigeria." />
+    <meta name="twitter:image" content="https://gathrd.com.ng/logo.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://gathrd.com.ng/#organization",
+            "name": "Gathrd",
+            "url": "https://gathrd.com.ng/",
+            "logo": "https://gathrd.com.ng/logo.png",
+            "description": "Church operating system for Nigerian churches.",
+            "areaServed": "NG"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://gathrd.com.ng/#software",
+            "name": "Gathrd",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "url": "https://gathrd.com.ng/",
+            "description": "Church management software for Nigerian churches. Attendance, members, giving, visitors, and cell groups.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "NGN",
+              "description": "Free trial, then monthly plans in Naira"
+            },
+            "publisher": { "@id": "https://gathrd.com.ng/#organization" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://gathrd.com.ng/#website",
+            "url": "https://gathrd.com.ng/",
+            "name": "Gathrd",
+            "publisher": { "@id": "https://gathrd.com.ng/#organization" }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://gathrd.com.ng/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Gathrd?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Gathrd is church management software for Nigerian churches. One dashboard for Sunday attendance, members, giving, visitors, announcements, and cell groups."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Gathrd work for churches in Nigeria?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Pricing is in Naira. Members give by bank transfer to your church account. Pastors, Admin, finance, teachers, and cell leaders each get the right login."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can we track Sunday attendance?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Start a service, mark adults present, and keep children on the Children page. Members can also check in with a QR code or a 6-digit code."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does giving work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Add your church bank accounts. Members send tithe and offering, then upload a receipt. Finance verifies transfers."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is there a free trial?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. 30 days, no credit card. Start from the signup page. Cancel anytime."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
