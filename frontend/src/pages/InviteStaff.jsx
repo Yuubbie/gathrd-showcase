@@ -22,13 +22,20 @@ const SHORTCUTS = [
   { role: 'finance_admin', label: 'Finance', hint: 'Count offering and verify transfers' },
   { role: 'department_head', label: 'Head of Department', hint: 'Lead one department' },
   { role: 'childrens_teacher', label: "Children's Teacher", hint: 'Children list and their attendance' },
+  { role: 'assistant_pastor', label: 'Assistant Pastor', hint: 'Same desk as you, one church' },
+  { role: 'senior_pastor', label: 'Senior Pastor', hint: 'Full access, same as you' },
 ];
 
 export default function InviteStaff() {
   const { profile } = useAuth();
   const isTeacher = profile?.role === 'childrens_teacher';
-  const visibleRoles = isTeacher ? ROLE_OPTIONS.filter(([v]) => v === 'childrens_teacher') : ROLE_OPTIONS;
-  const visibleShortcuts = isTeacher ? SHORTCUTS.filter((s) => s.role === 'childrens_teacher') : SHORTCUTS;
+  const canInviteSenior = profile?.role === 'senior_pastor';
+  const visibleRoles = isTeacher
+    ? ROLE_OPTIONS.filter(([v]) => v === 'childrens_teacher')
+    : ROLE_OPTIONS.filter(([v]) => v !== 'senior_pastor' || canInviteSenior);
+  const visibleShortcuts = isTeacher
+    ? SHORTCUTS.filter((s) => s.role === 'childrens_teacher')
+    : SHORTCUTS.filter((s) => s.role !== 'senior_pastor' || canInviteSenior);
   const [searchParams, setSearchParams] = useSearchParams();
   const roleFromUrl = searchParams.get('role');
   const [email, setEmail] = useState('');
@@ -91,7 +98,7 @@ export default function InviteStaff() {
         <div>
           <h1 className="text-xl font-semibold">Invite someone</h1>
           <p className="text-ink/50 text-sm mt-1">
-            Type their name and email. They get a link, set their own password, and join this church. One form for members, ushers, finance, and pastors.
+            Type their name and email. They get a link, set their own password, and join this church. One form for members, Admin, teachers, and pastors.
           </p>
         </div>
 

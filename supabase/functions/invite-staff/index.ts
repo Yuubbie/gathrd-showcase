@@ -109,8 +109,40 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    async function findAuthUserByEmail(lookupEmail: string) {
+      const normalized = String(lookupEmail || '').trim().toLowerCase();
+      if (!normalized) return null;
+
+      const res = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?email=${encodeURIComponent(normalized)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+          },
+        }
+      );
+      if (res.ok) {
+        const body = await res.json();
+        const users = body.users || [];
+        const match = users.find((u) => String(u.email || '').toLowerCase() === normalized);
+        if (match) return match;
+      }
+
+      let page = 1;
+      while (page <= 10) {
+        const { data } = await adminClient.auth.admin.listUsers({ page, perPage: 200 });
+        const users = data?.users || [];
+        const match = users.find((u) => String(u.email || '').toLowerCase() === normalized);
+        if (match) return match;
+        if (users.length < 200) break;
+        page += 1;
+      }
+      return null;
+    }
+
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { full_name, role },
+      data: { full_name, role, church_id: callerProfile.church_id },
       redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
     });
 
@@ -166,13 +198,53 @@ serve(async (req) => {
       });
     }
 
+    async function attachToChurch(userId: string) {
+      const { data, error } = await adminClient.rpc('attach_invited_profile', {
+        p_user_id: userId,
+        p_church_id: callerProfile.church_id,
+        p_role: role,
+        p_full_name: full_name,
+      });
+      const rpcOk = !error && (data === true || data?.ok === true || data?.ok === 'true');
+      if (!rpcOk) {
+        const { data: existingProfile } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+        let fallbackError = error?.message || (data && data.error) || null;
+        if (existingProfile) {
+          const { error: updateError } = await adminClient
+            .from('profiles')
+            .update({ church_id: callerProfile.church_id, role, full_name })
+            .eq('id', userId);
+          if (updateError) fallbackError = updateError.message;
+          else fallbackError = null;
+        } else {
+          const { error: insertError } = await adminClient
+            .from('profiles')
+            .insert({
+              id: userId,
+              church_id: callerProfile.church_id,
+              role,
+              full_name: full_name || 'New User',
+            });
+          if (insertError) fallbackError = insertError.message;
+          else fallbackError = null;
+        }
+        if (fallbackError) return { ok: false, error: fallbackError };
+      }
+      await linkMemberRow(userId);
+      return { ok: true };
+    }
+
     if (inviteError) {
       const alreadyExists = inviteError.message?.toLowerCase().includes('already') ||
         inviteError.code === 'email_exists';
 
       if (alreadyExists) {
-        const { data: existingByEmail } = await adminClient.auth.admin.getUserByEmail(email);
-        const existingUser = existingByEmail?.user;
+        const existingUser = await findAuthUserByEmail(email);
 
         if (!existingUser) {
           return new Response(
@@ -181,12 +253,13 @@ serve(async (req) => {
           );
         }
 
-        await adminClient
-          .from('profiles')
-          .update({ church_id: callerProfile.church_id, role, full_name })
-          .eq('id', existingUser.id);
-
-        await linkMemberRow(existingUser.id);
+        const attached = await attachToChurch(existingUser.id);
+        if (!attached.ok) {
+          return new Response(
+            JSON.stringify({ error: 'This person already has an account, but linking them to your church failed. Contact support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         const { error: resendError } = await adminClient.auth.resetPasswordForEmail(email, {
           redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://gathrd.com.ng'}/set-password`,
@@ -217,20 +290,13 @@ serve(async (req) => {
     }
 
     const newUserId = inviteData.user.id;
-
-    const { error: updateError } = await adminClient
-      .from('profiles')
-      .update({ church_id: callerProfile.church_id })
-      .eq('id', newUserId);
-
-    if (updateError) {
+    const attached = await attachToChurch(newUserId);
+    if (!attached.ok) {
       return new Response(
         JSON.stringify({ error: 'Invite was sent, but linking them to your church failed. Contact support.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    await linkMemberRow(newUserId);
 
     return new Response(
       JSON.stringify({
