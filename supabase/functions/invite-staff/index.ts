@@ -205,12 +205,35 @@ serve(async (req) => {
         p_role: role,
         p_full_name: full_name,
       });
-      if (error || !data?.ok) {
-        const { error: updateError } = await adminClient
+      const rpcOk = !error && (data === true || data?.ok === true || data?.ok === 'true');
+      if (!rpcOk) {
+        const { data: existingProfile } = await adminClient
           .from('profiles')
-          .update({ church_id: callerProfile.church_id, role, full_name })
-          .eq('id', userId);
-        if (updateError) return { ok: false, error: updateError.message };
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+        let fallbackError = error?.message || (data && data.error) || null;
+        if (existingProfile) {
+          const { error: updateError } = await adminClient
+            .from('profiles')
+            .update({ church_id: callerProfile.church_id, role, full_name })
+            .eq('id', userId);
+          if (updateError) fallbackError = updateError.message;
+          else fallbackError = null;
+        } else {
+          const { error: insertError } = await adminClient
+            .from('profiles')
+            .insert({
+              id: userId,
+              church_id: callerProfile.church_id,
+              role,
+              full_name: full_name || 'New User',
+            });
+          if (insertError) fallbackError = insertError.message;
+          else fallbackError = null;
+        }
+        if (fallbackError) return { ok: false, error: fallbackError };
       }
       await linkMemberRow(userId);
       return { ok: true };
