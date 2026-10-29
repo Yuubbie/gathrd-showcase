@@ -1,0 +1,34 @@
+User-agent: *
+Allow: /
+Allow: /demo
+Allow: /login
+Allow: /signup
+
+Disallow: /dashboard
+Disallow: /members
+Disallow: /attendance
+Disallow: /giving
+Disallow: /give/
+Disallow: /join/
+Disallow: /checkin/
+Disallow: /claim/
+Disallow: /set-password
+Disallow: /team/
+Disallow: /settings
+Disallow: /billing
+Disallow: /children
+Disallow: /visitors
+Disallow: /cell-groups
+Disallow: /announcements
+Disallow: /milestones
+Disallow: /follow-up
+Disallow: /roster
+Disallow: /calendar
+Disallow: /admin
+Disallow: /unauthorized
+Disallow: /check-email
+Disallow: /branch-signup/
+Disallow: /district-dashboard
+Disallow: /branches
+
+Sitemap: https://gathrd.com.ng/sitemap.xml

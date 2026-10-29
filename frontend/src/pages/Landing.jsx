@@ -195,6 +195,35 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="px-4 py-16 md:px-10 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-display text-3xl font-bold text-ink text-center">Church management software questions</h2>
+          <p className="text-ink/50 text-center mt-2">Straight answers for pastors and church admins in Nigeria.</p>
+          <dl className="mt-8 space-y-4">
+            <div className="rounded-xl border border-ink/5 bg-parchment p-4">
+              <dt className="font-display font-bold text-ink">What is Gathrd?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Gathrd is church management software for Nigerian churches. One dashboard for Sunday attendance, members, giving, visitors, announcements, and cell groups.</dd>
+            </div>
+            <div className="rounded-xl border border-ink/5 bg-parchment p-4">
+              <dt className="font-display font-bold text-ink">Does Gathrd work for churches in Nigeria?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Yes. Pricing is in Naira. Members give by bank transfer to your church account. Pastors, Admin, finance, teachers, and cell leaders each get the right login.</dd>
+            </div>
+            <div className="rounded-xl border border-ink/5 bg-parchment p-4">
+              <dt className="font-display font-bold text-ink">Can we track Sunday attendance?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Yes. Start a service, mark adults present, and keep children on the Children page. Members can also check in with a QR code or a 6-digit code.</dd>
+            </div>
+            <div className="rounded-xl border border-ink/5 bg-parchment p-4">
+              <dt className="font-display font-bold text-ink">How does giving work?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Add your church bank accounts. Members send tithe and offering, then upload a receipt. Finance verifies transfers. No public card checkout on the member Give page.</dd>
+            </div>
+            <div className="rounded-xl border border-ink/5 bg-parchment p-4">
+              <dt className="font-display font-bold text-ink">Is there a free trial?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Yes. {TRIAL_DAYS} days, no credit card. Start from the signup page. Cancel anytime.</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="px-4 py-16 md:px-10">
         <div className="max-w-4xl mx-auto bg-signal-gradient rounded-2xl p-8 md:p-12 text-center">
