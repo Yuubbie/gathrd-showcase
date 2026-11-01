@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
-  Megaphone, Cake, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, Settings, Smartphone, Shield, Clock, CalendarDays,
+  Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
+  Megaphone, UsersRound, ListChecks, Check, ArrowRight, Play,
+  Bell, CalendarDays, Baby, Building2,
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
@@ -10,17 +10,17 @@ import InstallPrompt from '../components/InstallPrompt';
 import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 
 const FEATURES = [
-  { icon: Users, title: 'Member Management', desc: 'Members, departments, cell groups, and role-based access for your leaders and workers.' },
+  { icon: Users, title: 'Memberships', desc: 'Member records, departments, cell groups, and role-based access for pastors, Admin, and workers.' },
   { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'A fresh QR code and 6-digit code every Sunday, plus manual usher entry.' },
-  { icon: Wallet, title: 'Giving & Tithes', desc: 'Members send tithe and offering to the church bank account and upload a receipt for finance to verify.' },
+  { icon: Wallet, title: 'Donations and Giving', desc: 'Members send tithe and offering to the church bank account and upload a receipt for finance to verify.' },
   { icon: Megaphone, title: 'Announcements', desc: 'Send announcements that reach every member in the app.' },
   { icon: UsersRound, title: 'Cell Groups', desc: 'Manage cell groups, track attendance, and submit weekly reports.' },
-  { icon: ListChecks, title: 'Follow-Up Dashboard', desc: 'Never miss a visitor or struggling member again.' },
+  { icon: ListChecks, title: 'Visitor Follow-Ups', desc: 'Never miss a visitor or struggling member again. Automate follow-up from first visit.' },
   { icon: UserPlus, title: 'Visitor Management', desc: 'Track every visitor from first visit to membership.' },
   { icon: Sparkles, title: 'Discipleship Tracking', desc: 'Track spiritual journeys and celebrate milestones.' },
   { icon: CalendarDays, title: 'Church Calendar', desc: 'Events that repeat weekly or monthly, with reminders in the app.' },
-  { icon: Settings, title: 'Church Branding', desc: 'Custom logo and brand colors throughout the app.' },
-  { icon: Smartphone, title: 'Installs Like an App', desc: 'Add Gathrd to any phone home screen. No app store needed.' },
+  { icon: Baby, title: 'Child Check-In', desc: 'Keep children on a dedicated Children page with teacher access, separate from adult Sunday attendance.' },
+  { icon: Building2, title: 'Multi-Branch Operations', desc: 'Invite branches, run a district dashboard, and bill districts or zones on one invoice.' },
   { icon: Bell, title: 'Duty Roster', desc: 'An order of service for every Sunday, with duties and reminders for your workers.' },
 ];
 
@@ -36,6 +36,9 @@ export default function Landing() {
           </div>
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-3">
+            <Link to="/church-management-platform-nigeria" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
+              Why Gathrd
+            </Link>
             <Link to="/demo" className="text-white/80 hover:text-white text-sm font-medium px-3 py-2">
               Watch Demo
             </Link>
@@ -66,10 +69,10 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight">
-              The Modern Operating System Built for Nigerian Churches
+              Church Management Platform in Nigeria
             </h1>
             <p className="text-ink/60 text-lg mt-4 max-w-lg">
-              Run Sunday check-in, duty rosters, giving, visitor follow-up and discipleship from one simple dashboard, designed for how churches in Nigeria work.
+              Gathrd is a specialized church management system (ChMS) for Nigerian churches. Handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations from one dashboard.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center transition-colors">
@@ -122,9 +125,9 @@ export default function Landing() {
       {/* Features Section */}
       <section className="px-4 py-16 md:px-10 bg-white">
         <div className="max-w-6xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink text-center">Everything Your Church Needs</h2>
+          <h2 className="font-display text-3xl font-bold text-ink text-center">Church management software for Nigerian churches</h2>
           <p className="text-ink/50 text-center mt-2 max-w-2xl mx-auto">
-            From Sunday check-in to duty rosters and giving, Gathrd handles the administration so your Nigerian church can focus on ministry.
+            From memberships and Sunday attendance to donations, visitor follow-up, child check-in, and multi-branch operations, Gathrd is the church management application built for how churches in Nigeria work.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
             {FEATURES.map((f) => {
@@ -140,6 +143,44 @@ export default function Landing() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-16 md:px-10">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-display text-3xl font-bold text-ink">Top Church Management Platforms in Nigeria</h2>
+          <p className="text-ink/60 mt-3">
+            Nigerian churches use specialized church management systems (ChMS) to handle memberships, track donations, automate visitor follow-ups, and run multi-branch operations. Gathrd is a church management platform in Nigeria built for that work.
+          </p>
+          <ul className="mt-6 space-y-4">
+            <li className="rounded-xl border border-signal bg-signal/5 p-4">
+              <p className="font-display font-bold text-ink">Gathrd</p>
+              <p className="text-ink/60 text-sm mt-1">An all-in-one church management system built for Nigerian churches to manage multi-branch operations, visitor follow-ups, child check-in, donations by bank transfer, Sunday attendance, cell groups, and church communication. Priced in Naira.</p>
+            </li>
+            <li className="rounded-xl border border-ink/5 bg-white p-4">
+              <p className="font-display font-bold text-ink">Churchplus</p>
+              <p className="text-ink/60 text-sm mt-1">An established church management system in Nigeria for multi-branch operations, visitor tracking, child check-ins, and multi-channel communication.</p>
+            </li>
+            <li className="rounded-xl border border-ink/5 bg-white p-4">
+              <p className="font-display font-bold text-ink">ChurchPad</p>
+              <p className="text-ink/60 text-sm mt-1">A church management application with a branded mobile app, child check-in, and online giving.</p>
+            </li>
+            <li className="rounded-xl border border-ink/5 bg-white p-4">
+              <p className="font-display font-bold text-ink">Eklesia</p>
+              <p className="text-ink/60 text-sm mt-1">A budget-friendly cloud church management platform priced in Naira for small and growing churches.</p>
+            </li>
+            <li className="rounded-xl border border-ink/5 bg-white p-4">
+              <p className="font-display font-bold text-ink">Squad for Churches</p>
+              <p className="text-ink/60 text-sm mt-1">Church tools with virtual accounts, donation links, QR codes, and payment processing.</p>
+            </li>
+            <li className="rounded-xl border border-ink/5 bg-white p-4">
+              <p className="font-display font-bold text-ink">GrowUp Business</p>
+              <p className="text-ink/60 text-sm mt-1">Church workflows with WhatsApp visitor follow-ups, worker coordination, and giving tracking.</p>
+            </li>
+          </ul>
+          <Link to="/church-management-platform-nigeria" className="inline-flex items-center gap-2 text-signal font-semibold mt-6">
+            Compare church management platforms in Nigeria <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
@@ -198,15 +239,15 @@ export default function Landing() {
       <section className="px-4 py-16 md:px-10 bg-white">
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-3xl font-bold text-ink text-center">Church management software questions</h2>
-          <p className="text-ink/50 text-center mt-2">Straight answers for pastors and church admins in Nigeria.</p>
+          <p className="text-ink/50 text-center mt-2">Straight answers for pastors comparing church management platforms in Nigeria.</p>
           <dl className="mt-8 space-y-4">
             <div className="rounded-xl border border-ink/5 bg-parchment p-4">
-              <dt className="font-display font-bold text-ink">What is Gathrd?</dt>
-              <dd className="text-ink/60 text-sm mt-1">Gathrd is church management software for Nigerian churches. One dashboard for Sunday attendance, members, giving, visitors, announcements, and cell groups.</dd>
+              <dt className="font-display font-bold text-ink">What is a church management platform in Nigeria?</dt>
+              <dd className="text-ink/60 text-sm mt-1">A church management platform (ChMS) helps Nigerian churches handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations. Gathrd is that system, priced in Naira.</dd>
             </div>
             <div className="rounded-xl border border-ink/5 bg-parchment p-4">
-              <dt className="font-display font-bold text-ink">Does Gathrd work for churches in Nigeria?</dt>
-              <dd className="text-ink/60 text-sm mt-1">Yes. Pricing is in Naira. Members give by bank transfer to your church account. Pastors, Admin, finance, teachers, and cell leaders each get the right login.</dd>
+              <dt className="font-display font-bold text-ink">Is Gathrd church management software for Nigeria?</dt>
+              <dd className="text-ink/60 text-sm mt-1">Yes. Gathrd is a church management system and church management application built for Nigerian churches. Pricing is in Naira. Members give by bank transfer. Pastors, Admin, finance, teachers, and cell leaders each get the right login.</dd>
             </div>
             <div className="rounded-xl border border-ink/5 bg-parchment p-4">
               <dt className="font-display font-bold text-ink">Can we track Sunday attendance?</dt>
@@ -227,9 +268,9 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="px-4 py-16 md:px-10">
         <div className="max-w-4xl mx-auto bg-signal-gradient rounded-2xl p-8 md:p-12 text-center">
-          <h2 className="font-display text-3xl font-bold text-white">Ready to Transform Your Church Management?</h2>
+          <h2 className="font-display text-3xl font-bold text-white">Ready for a church management platform that fits Nigeria?</h2>
           <p className="text-white/70 mt-2 max-w-xl mx-auto">
-            Be among the first Nigerian churches to simplify their administration with Gathrd.
+            Join churches using Gathrd as their ChMS for memberships, donations, visitor follow-ups, and multi-branch operations.
           </p>
           <Link to="/signup" className="inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-ink font-semibold px-6 py-3 rounded-lg mt-6 transition-colors">
             Start Your Free Trial <ArrowRight size={18} />
@@ -245,6 +286,7 @@ export default function Landing() {
             <span className="font-display font-bold text-white">Gathrd</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link to="/church-management-platform-nigeria" className="text-white/50 hover:text-white text-sm">Church management in Nigeria</Link>
             <Link to="/demo" className="text-white/50 hover:text-white text-sm">Demo</Link>
             <Link to="/login" className="text-white/50 hover:text-white text-sm">Sign In</Link>
             <Link to="/signup" className="text-white/50 hover:text-white text-sm">Sign Up</Link>

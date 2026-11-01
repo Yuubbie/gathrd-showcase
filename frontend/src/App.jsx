@@ -42,6 +42,7 @@ import MemberGivingPage from './pages/MemberGivingPage';
 import TransferLog from './pages/TransferLog';
 import Children from './pages/Children';
 import Seo from './components/Seo';
+import ChurchManagementNigeria from './pages/ChurchManagementNigeria';
 
 function CheckEmail() {
   return (
@@ -68,6 +69,7 @@ export default function App() {
         <Seo />
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/church-management-platform-nigeria" element={<ChurchManagementNigeria />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/branches" element={<Branches />} />
           <Route path="/branch-signup/:token" element={<BranchSignup />} />
