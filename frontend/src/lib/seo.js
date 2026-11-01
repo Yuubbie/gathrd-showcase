@@ -1,37 +1,53 @@
 export const SITE_URL = 'https://gathrd.com.ng';
 export const SITE_NAME = 'Gathrd';
+export const OG_IMAGE = `${SITE_URL}/logo.png`;
+
+export const PRIMARY_KEYWORDS =
+  'church management platform in Nigeria, church management software Nigeria, church management system, ChMS Nigeria, church management application, best church management software in Nigeria';
 
 export const DEFAULT_SEO = {
-  title: 'Gathrd — Church Operating System for Nigerian Churches',
+  title: 'Gathrd | Church Management Platform in Nigeria (ChMS)',
   description:
-    'Gathrd is church management software for Nigerian churches. Run Sunday attendance, member records, giving, visitor follow-up, and cell groups from one dashboard.',
+    'Gathrd is a church management platform in Nigeria. Run memberships, donations, visitor follow-ups, child check-in, and multi-branch operations in one church management system (ChMS).',
   path: '/',
+  keywords: PRIMARY_KEYWORDS,
   noIndex: true,
 };
 
 export const PAGE_SEO = {
   '/': {
-    title: 'Gathrd — Church Management Software for Nigerian Churches',
+    title: 'Gathrd | Church Management Platform in Nigeria (ChMS)',
     description:
-      'Gathrd is the church operating system for Nigeria. Track Sunday attendance, members, tithes and offering, visitors, and cell groups. Start a free trial.',
+      'Gathrd is a church management platform in Nigeria. Track memberships, donations, visitor follow-ups, child check-in, cell groups, and multi-branch operations. Start a free Naira trial.',
     path: '/',
+    keywords: PRIMARY_KEYWORDS,
   },
   '/demo': {
-    title: 'Watch the Gathrd Demo — Church Operating System',
+    title: 'Watch the Gathrd Demo | Church Management Software in Nigeria',
     description:
-      'See how Nigerian churches run Sunday check-in, duty roster, giving, and follow-up in Gathrd. Watch the live demo, then start a free trial.',
+      'See a church management system built for Nigerian churches: Sunday check-in, duty roster, giving, visitor follow-up, and multi-branch operations. Then start a free trial.',
     path: '/demo',
+    keywords: PRIMARY_KEYWORDS,
   },
   '/login': {
-    title: 'Sign in to Gathrd',
-    description: 'Sign in to your church dashboard on Gathrd. Manage attendance, people, giving, and Sunday operations.',
+    title: 'Sign in to Gathrd | Church Management System Nigeria',
+    description: 'Sign in to your Gathrd church management platform. Manage attendance, people, giving, and Sunday operations.',
     path: '/login',
+    keywords: PRIMARY_KEYWORDS,
   },
   '/signup': {
-    title: 'Start a Free Gathrd Trial for Your Church',
+    title: 'Start a Free Gathrd Trial | Church Management Platform Nigeria',
     description:
-      'Create your church on Gathrd. 30-day free trial. No credit card. Built for pastors and admins in Nigeria.',
+      'Create your church on Gathrd, a church management platform in Nigeria. 30-day free trial, priced in Naira, no credit card.',
     path: '/signup',
+    keywords: PRIMARY_KEYWORDS,
+  },
+  '/church-management-platform-nigeria': {
+    title: 'Church Management Platform in Nigeria | Gathrd ChMS',
+    description:
+      'Compare top church management platforms in Nigeria. Gathrd is a ChMS for memberships, donations, visitor follow-ups, child check-in, and multi-branch churches. Priced in Naira.',
+    path: '/church-management-platform-nigeria',
+    keywords: PRIMARY_KEYWORDS,
   },
 };
 

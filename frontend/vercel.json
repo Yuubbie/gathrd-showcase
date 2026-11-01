@@ -1,5 +1,13 @@
 {
+  "redirects": [
+    {
+      "source": "/church-management-platform-nigeria.html",
+      "destination": "/church-management-platform-nigeria",
+      "permanent": true
+    }
+  ],
   "rewrites": [
+    { "source": "/church-management-platform-nigeria", "destination": "/church-management-platform-nigeria.html" },
     { "source": "/((?!api/|.*\\..*).*)", "destination": "/index.html" }
   ]
 }

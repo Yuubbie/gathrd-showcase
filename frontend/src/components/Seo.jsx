@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { PAGE_SEO, DEFAULT_SEO, SITE_NAME, absoluteUrl } from '../lib/seo';
+import { PAGE_SEO, DEFAULT_SEO, SITE_NAME, OG_IMAGE, PRIMARY_KEYWORDS, absoluteUrl } from '../lib/seo';
 
 function upsertMeta(selector, attrs) {
   let el = document.head.querySelector(selector);
@@ -30,10 +30,12 @@ export default function Seo() {
     const url = absoluteUrl(page.path || pathname);
     const title = page.title || DEFAULT_SEO.title;
     const description = page.description || DEFAULT_SEO.description;
+    const keywords = page.keywords || PRIMARY_KEYWORDS;
 
     document.title = title;
 
     upsertMeta('meta[name="description"]', { name: 'description', content: description });
+    upsertMeta('meta[name="keywords"]', { name: 'keywords', content: keywords });
     upsertMeta('meta[name="robots"]', {
       name: 'robots',
       content: noIndex ? 'noindex, nofollow' : 'index, follow',
@@ -45,8 +47,12 @@ export default function Seo() {
     upsertMeta('meta[property="og:url"]', { property: 'og:url', content: url });
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' });
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: SITE_NAME });
+    upsertMeta('meta[property="og:image"]', { property: 'og:image', content: OG_IMAGE });
+    upsertMeta('meta[property="og:locale"]', { property: 'og:locale', content: 'en_NG' });
+    upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' });
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title });
     upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: description });
+    upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: OG_IMAGE });
   }, [pathname]);
 
   return null;
