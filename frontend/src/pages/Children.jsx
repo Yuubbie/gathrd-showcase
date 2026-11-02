@@ -8,6 +8,25 @@ import ContactActions from '../components/ContactActions';
 const CARD =
   'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
 
+function formatServiceLabel(s) {
+  if (!s) return '';
+  const date = new Date(`${s.service_date}T00:00:00`).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  return `${date} — ${s.service_name}${s.open ? ' (open)' : ''}`;
+}
+
+function parseNames(raw) {
+  return [...new Set(
+    raw
+      .split(/[\n,;]+/)
+      .map((n) => n.trim())
+      .filter(Boolean)
+  )];
+}
+
 export default function Children() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +37,16 @@ export default function Children() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState('');
+  const [okMessage, setOkMessage] = useState('');
+
+  const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const [pastServices, setPastServices] = useState([]);
+  const [pastSessionId, setPastSessionId] = useState('');
+  const [pastNames, setPastNames] = useState('');
+  const [recording, setRecording] = useState(false);
 
   const canInvite = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role);
 
@@ -59,6 +88,49 @@ export default function Children() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    async function loadServices() {
+      const { data, error } = await supabase.rpc('list_recent_services', { p_limit: 14 });
+      if (error || !data?.ok) {
+        setPastServices([]);
+        return;
+      }
+      const list = data.services || [];
+      setPastServices(list);
+      setPastSessionId((current) => {
+        if (current && list.some((s) => s.session_id === current)) return current;
+        return list[0]?.session_id || '';
+      });
+    }
+    loadServices();
+  }, [profile?.church_id]);
+
+  async function handleAddChild(e) {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name || adding) return;
+    setAdding(true);
+    setMessage('');
+    setOkMessage('');
+    const { data, error } = await supabase.rpc('add_child_member', {
+      p_full_name: name,
+      p_gender: newGender || null,
+    });
+    setAdding(false);
+    if (error || !data?.ok) {
+      setMessage(data?.status === 'invalid_name' ? 'Enter the child\'s name.' : 'Could not add that child. Please try again.');
+      return;
+    }
+    setNewName('');
+    setNewGender('');
+    if (data.status === 'exists') {
+      setOkMessage(`${data.full_name} is already on the children list.`);
+    } else {
+      setOkMessage(`${data.full_name} was added.`);
+    }
+    await load();
+  }
+
   async function handleCheckIn(child) {
     if (!service || attendance[child.id]) return;
     setMessage('');
@@ -95,6 +167,35 @@ export default function Children() {
     }
   }
 
+  async function handleRecordPast(e) {
+    e.preventDefault();
+    const names = parseNames(pastNames);
+    if (!pastSessionId || names.length === 0 || recording) return;
+    setRecording(true);
+    setMessage('');
+    setOkMessage('');
+    const { data, error } = await supabase.rpc('record_children_for_session', {
+      p_session_id: pastSessionId,
+      p_names: names,
+    });
+    setRecording(false);
+    if (error || !data?.ok) {
+      setMessage(
+        data?.status === 'too_many'
+          ? 'Please paste 100 names or fewer at a time.'
+          : 'Could not record those names. Please try again.'
+      );
+      return;
+    }
+    const parts = [];
+    if (data.checked_in) parts.push(`${data.checked_in} marked present`);
+    if (data.created) parts.push(`${data.created} added to the children list`);
+    if (data.already_checked_in) parts.push(`${data.already_checked_in} already on that service`);
+    setOkMessage(parts.join('. ') + '.');
+    setPastNames('');
+    await load();
+  }
+
   const filtered = children.filter((c) => c.full_name.toLowerCase().includes(search.toLowerCase()));
   const presentCount = Object.keys(attendance).length;
 
@@ -121,9 +222,9 @@ export default function Children() {
             )}
             <Link
               to="/members/new?from=children"
-              className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
-              + Add child
+              Full form
             </Link>
           </div>
         </div>
@@ -137,10 +238,76 @@ export default function Children() {
             <p className="text-sm font-semibold text-ink">{presentCount} here</p>
           </div>
         ) : (
-          <p className="text-sm text-ink/50">When a pastor or Admin starts a service on Attendance, you can mark children present here.</p>
+          <p className="text-sm text-ink/50">When a pastor or Admin starts a service on Attendance, you can mark children present here. You can still add a child, or record names from a past service below.</p>
         )}
 
         {message && <p className="text-sm text-rose">{message}</p>}
+        {okMessage && <p className="text-sm text-sage">{okMessage}</p>}
+
+        <form onSubmit={handleAddChild} className={`${CARD} p-4 space-y-3`}>
+          <p className="text-sm font-semibold text-ink">Add a child</p>
+          <p className="text-xs text-ink/50">Name is enough. They stay on this church's children list, not the adult People list.</p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Child's full name"
+              className="flex-1 border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none"
+            />
+            <select
+              value={newGender}
+              onChange={(e) => setNewGender(e.target.value)}
+              className="sm:w-32 border border-ink/10 rounded-lg px-3 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none bg-white"
+            >
+              <option value="">Boy / Girl</option>
+              <option value="male">Boy</option>
+              <option value="female">Girl</option>
+            </select>
+            <button
+              type="submit"
+              disabled={adding || !newName.trim()}
+              className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold disabled:opacity-50"
+            >
+              {adding ? 'Adding…' : '+ Add'}
+            </button>
+          </div>
+        </form>
+
+        <form onSubmit={handleRecordPast} className={`${CARD} p-4 space-y-3`}>
+          <p className="text-sm font-semibold text-ink">Record names from a past service</p>
+          <p className="text-xs text-ink/50">Paste yesterday's handwritten list. Each name is added as a child of this church and marked present on the service you pick.</p>
+          {pastServices.length === 0 ? (
+            <p className="text-sm text-ink/50">No services yet. A pastor or Admin needs to start one on Attendance first.</p>
+          ) : (
+            <>
+              <select
+                value={pastSessionId}
+                onChange={(e) => setPastSessionId(e.target.value)}
+                className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none bg-white"
+              >
+                {pastServices.map((s) => (
+                  <option key={s.session_id} value={s.session_id}>
+                    {formatServiceLabel(s)}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                value={pastNames}
+                onChange={(e) => setPastNames(e.target.value)}
+                rows={5}
+                placeholder={'One name per line, for example:\nAda Okafor\nChinedu Bello'}
+                className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none"
+              />
+              <button
+                type="submit"
+                disabled={recording || !pastSessionId || parseNames(pastNames).length === 0}
+                className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold disabled:opacity-50"
+              >
+                {recording ? 'Recording…' : 'Mark present'}
+              </button>
+            </>
+          )}
+        </form>
 
         {teachers.length > 0 && (
           <div className={`${CARD} p-4`}>
@@ -158,7 +325,7 @@ export default function Children() {
           />
 
           {filtered.length === 0 ? (
-            <p className="text-ink/40 text-sm py-6 text-center">No children yet. People marked Child on the member list should appear here.</p>
+            <p className="text-ink/40 text-sm py-6 text-center">No children yet. Add a name above, or use Full form for extra details.</p>
           ) : (
             <div className="divide-y">
               {filtered.map((c) => {

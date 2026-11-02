@@ -410,6 +410,9 @@ export default function Dashboard() {
           <h2 className="font-display text-xl font-bold text-white mb-4">What needs doing today?</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             {canSeeChurchStats && <QuickAction to="/attendance" label="Start service / take attendance" />}
+            {(canSeeChurchStats || profile?.role === 'childrens_teacher') && (
+              <QuickAction to="/children" label="Children desk / mark present" />
+            )}
             {canSeeChurchStats && <QuickAction to="/visitors/check-in" label="Check in a visitor" />}
             {canSeeFinance && <QuickAction to="/giving/counting" label="Count the offering" />}
             {canSeeChurchStats && <QuickAction to="/follow-up" label="Who needs a call" />}

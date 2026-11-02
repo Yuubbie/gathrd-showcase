@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { CheckCircle2, Circle, QrCode, Users, Play, Square, Copy } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabaseClient';
@@ -25,10 +26,43 @@ function formatShortDate(dateStr) {
   });
 }
 
+function AttendanceRow({ person, record, onCheckIn, onUndo }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <button
+        type="button"
+        onClick={() => onCheckIn(person)}
+        disabled={!!record}
+        className="flex-1 flex items-center gap-3 py-2.5 px-1 text-left disabled:cursor-default"
+      >
+        {record ? (
+          <CheckCircle2 size={20} className="text-sage shrink-0" />
+        ) : (
+          <Circle size={20} className="text-ink/20 shrink-0" />
+        )}
+        <span className={`text-sm font-medium ${record ? 'text-ink/40' : 'text-ink'}`}>{person.full_name}</span>
+      </button>
+      {record && (
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-ink/40">{METHOD_LABELS[record.method] || record.method}</span>
+          <button
+            type="button"
+            onClick={() => onUndo(person)}
+            className="text-xs text-rose hover:text-rose/80 font-medium"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ServiceAttendance() {
   const { profile } = useAuth();
   const [service, setService] = useState(null); // the open service, or null
   const [members, setMembers] = useState([]);
+  const [children, setChildren] = useState([]);
   const [attendance, setAttendance] = useState({}); // member_id -> { method, at }
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -48,6 +82,7 @@ export default function ServiceAttendance() {
   const [missed, setMissed] = useState(null); // { sessions, members }
   const [openId, setOpenId] = useState(null);
   const [details, setDetails] = useState({});
+  const [childDetails, setChildDetails] = useState({});
   const [reportLoading, setReportLoading] = useState(false);
   const [removingId, setRemovingId] = useState(null);
 
@@ -79,19 +114,28 @@ export default function ServiceAttendance() {
       if (!svc?.open) {
         setService(null);
         setAttendance({});
+        setChildren([]);
         setLoading(false);
         return;
       }
 
       setService(svc);
 
-      const [{ data: memberRows }, { data: attendanceRows }] = await Promise.all([
+      const [{ data: memberRows }, { data: childRows }, { data: attendanceRows }] = await Promise.all([
         supabase
           .from('members')
           .select('id, full_name')
           .eq('church_id', profile.church_id)
           .eq('status', 'active')
           .neq('age_group', 'child')
+          .is('deleted_at', null)
+          .order('full_name'),
+        supabase
+          .from('members')
+          .select('id, full_name, gender')
+          .eq('church_id', profile.church_id)
+          .eq('status', 'active')
+          .eq('age_group', 'child')
           .is('deleted_at', null)
           .order('full_name'),
         supabase
@@ -102,6 +146,7 @@ export default function ServiceAttendance() {
       ]);
 
       setMembers(memberRows || []);
+      setChildren(childRows || []);
       const map = {};
       for (const a of attendanceRows || []) {
         map[a.member_id] = { method: a.check_in_method, at: a.checked_in_at };
@@ -132,6 +177,7 @@ export default function ServiceAttendance() {
     setHistory(Array.isArray(hist.data) ? hist.data : []);
     setMissed(miss.data && !miss.error ? miss.data : null);
     setDetails({});
+    setChildDetails({});
     setOpenId(null);
     setReportLoading(false);
   }, []);
@@ -166,6 +212,13 @@ export default function ServiceAttendance() {
       if (!error && data && data.status === 'ok') {
         setDetails((prev) => ({ ...prev, [sessionId]: data }));
       }
+    }
+    if (!childDetails[sessionId]) {
+      const { data, error } = await supabase.rpc('get_session_children_attendance', { p_session_id: sessionId });
+      setChildDetails((prev) => ({
+        ...prev,
+        [sessionId]: !error && data?.ok ? data : { ok: true, present: [], roster: [] },
+      }));
     }
   }
 
@@ -206,6 +259,43 @@ export default function ServiceAttendance() {
     }
     setShowQr(false);
     await load();
+  }
+
+  async function handleChildCheckIn(child) {
+    if (!service || attendance[child.id]) return;
+    setMessage('');
+    setAttendance((prev) => ({ ...prev, [child.id]: { method: 'manual', at: new Date().toISOString() } }));
+    const { data, error } = await supabase.rpc('teacher_check_in', { p_member_id: child.id });
+    const ok = !error && data && (data.status === 'checked_in' || data.status === 'already_checked_in');
+    if (!ok) {
+      setAttendance((prev) => {
+        const next = { ...prev };
+        delete next[child.id];
+        return next;
+      });
+      setMessage(
+        data?.status === 'closed'
+          ? 'This service has ended.'
+          : `Could not check in ${child.full_name}. Please try again.`
+      );
+    }
+  }
+
+  async function handleChildUndo(child) {
+    if (!service) return;
+    if (!window.confirm(`Remove the check-in for ${child.full_name}?`)) return;
+    setMessage('');
+    const previous = attendance[child.id];
+    setAttendance((prev) => {
+      const next = { ...prev };
+      delete next[child.id];
+      return next;
+    });
+    const { data, error } = await supabase.rpc('teacher_undo_check_in', { p_member_id: child.id });
+    if (error || !data || (data.status !== 'undone' && data.status !== 'not_found')) {
+      setAttendance((prev) => ({ ...prev, [child.id]: previous }));
+      setMessage(`Could not remove the check-in for ${child.full_name}. Please try again.`);
+    }
   }
 
   async function handleCheckIn(member) {
@@ -272,8 +362,11 @@ export default function ServiceAttendance() {
     }
   }
 
-  const filteredMembers = members.filter((m) => m.full_name.toLowerCase().includes(search.toLowerCase()));
-  const checkedInCount = Object.keys(attendance).length;
+  const q = search.toLowerCase();
+  const filteredMembers = members.filter((m) => m.full_name.toLowerCase().includes(q));
+  const filteredChildren = children.filter((c) => c.full_name.toLowerCase().includes(q));
+  const adultPresent = members.filter((m) => attendance[m.id]).length;
+  const childPresent = children.filter((c) => attendance[c.id]).length;
   const selfCount = Object.values(attendance).filter((a) => a.method === 'qr_self' || a.method === 'dashboard').length;
   const manualCount = Object.values(attendance).filter((a) => a.method === 'manual').length;
 
@@ -340,6 +433,16 @@ export default function ServiceAttendance() {
 
           {message && <p className="text-sm text-rose text-center">{message}</p>}
 
+          <div className={`${CARD} p-6 space-y-2`}>
+            <h2 className="font-display font-bold text-ink">Children</h2>
+            <p className="text-ink/50 text-sm">
+              Children are listed separately from adults. Teachers can add a child, mark them present while a service is open, or paste yesterday's names onto a past service.
+            </p>
+            <Link to="/children" className="inline-block text-sm text-signal font-semibold hover:text-signal-deep">
+              Open children desk
+            </Link>
+          </div>
+
           <div className={`${CARD} p-6 space-y-3`}>
             <h2 className="font-display font-bold text-ink">Needs a call</h2>
             {reportLoading && !missed ? (
@@ -388,6 +491,15 @@ export default function ServiceAttendance() {
                 {history.map((h) => {
                   const pct = h.total > 0 ? Math.round((h.present / h.total) * 100) : 0;
                   const detail = details[h.session_id];
+                  const kids = childDetails[h.session_id];
+                  const kidsPresent = kids?.present || [];
+                  const childIdSet = new Set([
+                    ...kidsPresent.map((p) => p.member_id),
+                    ...(kids?.roster || []).map((r) => r.member_id),
+                  ]);
+                  const kidsAbsent = (kids?.roster || []).filter((r) => !kidsPresent.some((p) => p.member_id === r.member_id));
+                  const adultPresentList = (detail?.present || []).filter((p) => !childIdSet.has(p.member_id));
+                  const adultAbsentList = (detail?.absent || []).filter((a) => !childIdSet.has(a.member_id));
                   return (
                     <div key={h.session_id} className="py-1">
                       <button
@@ -419,31 +531,71 @@ export default function ServiceAttendance() {
                           {!detail ? (
                             <p className="text-ink/40 text-sm">Loading…</p>
                           ) : (
-                            <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-4">
                               <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-sage mb-1">
-                                  Present ({detail.present.length})
-                                </p>
-                                <div className="space-y-1 max-h-64 overflow-y-auto">
-                                  {detail.present.map((p) => (
-                                    <p key={p.member_id} className="text-sm text-ink/70">
-                                      {p.full_name}
+                                <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">Adults</p>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-sage mb-1">
+                                      Present ({adultPresentList.length})
                                     </p>
-                                  ))}
+                                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                                      {adultPresentList.map((p) => (
+                                        <p key={p.member_id} className="text-sm text-ink/70">
+                                          {p.full_name}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-rose mb-1">
+                                      Absent ({adultAbsentList.length})
+                                    </p>
+                                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                                      {adultAbsentList.map((a) => (
+                                        <div key={a.member_id} className="flex items-center justify-between gap-2">
+                                          <p className="text-sm text-ink/70 min-w-0 truncate">{a.full_name}</p>
+                                          <ContactActions phone={a.phone} name={a.full_name} />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-rose mb-1">
-                                  Absent ({detail.absent.length})
-                                </p>
-                                <div className="space-y-1 max-h-64 overflow-y-auto">
-                                  {detail.absent.map((a) => (
-                                    <div key={a.member_id} className="flex items-center justify-between gap-2">
-                                      <p className="text-sm text-ink/70 min-w-0 truncate">{a.full_name}</p>
-                                      <ContactActions phone={a.phone} name={a.full_name} />
+                              <div className="border-t border-ink/5 pt-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">Children</p>
+                                {!kids ? (
+                                  <p className="text-ink/40 text-sm">Loading children…</p>
+                                ) : kidsPresent.length === 0 && kidsAbsent.length === 0 ? (
+                                  <p className="text-ink/50 text-sm">No children on the list for this service.</p>
+                                ) : (
+                                  <div className="grid sm:grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-sage mb-1">
+                                        Present ({kidsPresent.length})
+                                      </p>
+                                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                                        {kidsPresent.map((p) => (
+                                          <p key={p.member_id} className="text-sm text-ink/70">
+                                            {p.full_name}
+                                          </p>
+                                        ))}
+                                      </div>
                                     </div>
-                                  ))}
-                                </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-rose mb-1">
+                                        Absent ({kidsAbsent.length})
+                                      </p>
+                                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                                        {kidsAbsent.map((a) => (
+                                          <p key={a.member_id} className="text-sm text-ink/70">
+                                            {a.full_name}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -537,10 +689,14 @@ export default function ServiceAttendance() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className={`${CARD} p-4 text-center`}>
-            <p className="font-display text-2xl font-bold text-ink">{checkedInCount}</p>
-            <p className="text-ink/50 text-xs mt-0.5">Checked In</p>
+            <p className="font-display text-2xl font-bold text-ink">{adultPresent}</p>
+            <p className="text-ink/50 text-xs mt-0.5">Adults here</p>
+          </div>
+          <div className={`${CARD} p-4 text-center`}>
+            <p className="font-display text-2xl font-bold text-ink">{childPresent}</p>
+            <p className="text-ink/50 text-xs mt-0.5">Children here</p>
           </div>
           <div className="bg-signal-50 rounded-2xl p-4 text-center">
             <p className="font-display text-2xl font-bold text-signal-deep">{selfCount}</p>
@@ -562,42 +718,44 @@ export default function ServiceAttendance() {
             className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
           />
 
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Adults</p>
           {filteredMembers.length === 0 ? (
-            <p className="text-ink/40 text-sm py-6 text-center">No members found.</p>
+            <p className="text-ink/40 text-sm py-4 text-center">No adults found.</p>
           ) : (
-            <div className="divide-y max-h-[60vh] overflow-y-auto">
-              {filteredMembers.map((m) => {
-                const record = attendance[m.id];
-                return (
-                  <div key={m.id} className="flex items-center justify-between py-1">
-                    <button
-                      type="button"
-                      onClick={() => handleCheckIn(m)}
-                      disabled={!!record}
-                      className="flex-1 flex items-center gap-3 py-2.5 px-1 text-left disabled:cursor-default"
-                    >
-                      {record ? (
-                        <CheckCircle2 size={20} className="text-sage shrink-0" />
-                      ) : (
-                        <Circle size={20} className="text-ink/20 shrink-0" />
-                      )}
-                      <span className={`text-sm font-medium ${record ? 'text-ink/40' : 'text-ink'}`}>{m.full_name}</span>
-                    </button>
-                    {record && (
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-ink/40">{METHOD_LABELS[record.method] || record.method}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleUndo(m)}
-                          className="text-xs text-rose hover:text-rose/80 font-medium"
-                        >
-                          Undo
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="divide-y max-h-[40vh] overflow-y-auto">
+              {filteredMembers.map((m) => (
+                <AttendanceRow
+                  key={m.id}
+                  person={m}
+                  record={attendance[m.id]}
+                  onCheckIn={handleCheckIn}
+                  onUndo={handleUndo}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={`${CARD} p-5 space-y-3`}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Children</p>
+            <Link to="/children" className="text-xs text-signal font-semibold hover:text-signal-deep">
+              Open children desk
+            </Link>
+          </div>
+          {filteredChildren.length === 0 ? (
+            <p className="text-ink/40 text-sm py-4 text-center">No children on the list yet. Add them on the children desk.</p>
+          ) : (
+            <div className="divide-y max-h-[40vh] overflow-y-auto">
+              {filteredChildren.map((c) => (
+                <AttendanceRow
+                  key={c.id}
+                  person={c}
+                  record={attendance[c.id]}
+                  onCheckIn={handleChildCheckIn}
+                  onUndo={handleChildUndo}
+                />
+              ))}
             </div>
           )}
         </div>
