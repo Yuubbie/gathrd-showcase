@@ -505,11 +505,13 @@ export default function ServiceAttendance() {
                       <button
                         type="button"
                         onClick={() => toggleSession(h.session_id)}
-                        className="w-full flex items-center justify-between gap-3 py-2.5 text-left"
+                        className={`w-full flex items-center justify-between gap-3 py-2.5 px-2 -mx-2 rounded-lg text-left ${
+                          openId === h.session_id ? 'bg-signal/5' : 'hover:bg-ink/5'
+                        }`}
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-ink">{formatShortDate(h.service_date)}</p>
-                          <p className="text-xs text-ink/40">{h.service_name}</p>
+                          <p className="text-xs text-ink/40">{h.service_name} · tap to view adults and children</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-semibold text-ink">
