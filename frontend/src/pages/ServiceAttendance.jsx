@@ -176,15 +176,23 @@ export default function ServiceAttendance() {
       supabase.rpc('get_missed_services', { p_last: 3 }),
       supabase.rpc('list_recent_services', { p_limit: 14 }),
     ]);
-    setHistory(Array.isArray(hist.data) ? hist.data : []);
+    const historyRows = Array.isArray(hist.data) ? hist.data : [];
+    setHistory(historyRows);
     const counts = {};
     for (const s of recent.data?.ok ? (recent.data.services || []) : []) {
       counts[s.session_id] = s;
     }
     setServiceCounts(counts);
+    const childMap = {};
+    await Promise.all(
+      historyRows.map(async (h) => {
+        const { data, error } = await supabase.rpc('get_session_children_attendance', { p_session_id: h.session_id });
+        childMap[h.session_id] = !error && data?.ok ? data : { ok: true, present: [], roster: [] };
+      })
+    );
+    setChildDetails(childMap);
     setMissed(miss.data && !miss.error ? miss.data : null);
     setDetails({});
-    setChildDetails({});
     setOpenId(null);
     setReportLoading(false);
   }, []);
@@ -497,10 +505,6 @@ export default function ServiceAttendance() {
               <div className="divide-y divide-ink/5">
                 {history.map((h) => {
                   const counts = serviceCounts[h.session_id] || {};
-                  const adultsPresent = counts.adults_present ?? h.present;
-                  const adultsAbsent = counts.adults_absent ?? Math.max(0, (h.total || 0) - (h.present || 0));
-                  const kidsPresentCount = counts.children_present ?? 0;
-                  const kidsAbsentCount = counts.children_absent ?? 0;
                   const detail = details[h.session_id];
                   const kids = childDetails[h.session_id];
                   const kidsPresent = kids?.present || [];
@@ -509,6 +513,12 @@ export default function ServiceAttendance() {
                     ...(kids?.roster || []).map((r) => r.member_id),
                   ]);
                   const kidsAbsent = (kids?.roster || []).filter((r) => !kidsPresent.some((p) => p.member_id === r.member_id));
+                  const kidsPresentCount = kids ? kidsPresent.length : (counts.children_present ?? 0);
+                  const kidsAbsentCount = kids ? kidsAbsent.length : (counts.children_absent ?? 0);
+                  const kidsTotal = kidsPresentCount + kidsAbsentCount;
+                  const adultsPresent = counts.adults_present ?? h.present ?? 0;
+                  const adultsAbsent = counts.adults_absent ?? Math.max(0, (h.total || 0) - (h.present || 0));
+                  const adultsTotal = adultsPresent + adultsAbsent;
                   const adultPresentList = (detail?.present || []).filter((p) => !childIdSet.has(p.member_id));
                   const adultAbsentList = (detail?.absent || []).filter((a) => !childIdSet.has(a.member_id));
                   return (
@@ -523,8 +533,8 @@ export default function ServiceAttendance() {
                         <p className="text-sm font-medium text-ink">{formatShortDate(h.service_date)}</p>
                         <p className="text-xs text-ink/40">{h.service_name} · tap to view</p>
                         <div className="mt-2 grid grid-cols-2 gap-2">
-                          <p className="text-xs text-ink/70">Adults {adultsPresent} present · {adultsAbsent} absent</p>
-                          <p className="text-xs text-ink/70">Children {kidsPresentCount} present · {kidsAbsentCount} absent</p>
+                          <p className="text-xs text-ink/70">Adults {adultsPresent} of {adultsTotal} · {adultsAbsent} absent</p>
+                          <p className="text-xs text-ink/70">Children {kidsPresentCount} of {kidsTotal} · {kidsAbsentCount} absent</p>
                         </div>
                       </button>
                       {openId === h.session_id && (

@@ -329,15 +329,27 @@ begin
     ), '[]'::jsonb),
     'roster', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'member_id', m.id,
-        'full_name', m.full_name,
-        'gender', m.gender
-      ) order by m.full_name)
-      from public.members m
-      where m.church_id = v_church
-        and m.age_group = 'child'
-        and m.status = 'active'
-        and m.deleted_at is null
+        'member_id', x.id,
+        'full_name', x.full_name,
+        'gender', x.gender
+      ) order by x.full_name)
+      from (
+        select m.id, m.full_name, m.gender
+          from public.members m
+         where m.church_id = v_church
+           and m.age_group = 'child'
+           and m.status = 'active'
+           and m.deleted_at is null
+        union
+        select m.id, m.full_name, m.gender
+          from public.attendance_records a
+          join public.members m on m.id = a.member_id
+         where a.service_session_id = v_session
+           and a.deleted_at is null
+           and m.church_id = v_church
+           and m.age_group = 'child'
+           and m.deleted_at is null
+      ) x
     ), '[]'::jsonb)
   );
 end;

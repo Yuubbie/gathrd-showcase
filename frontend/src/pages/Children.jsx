@@ -27,6 +27,32 @@ function parseNames(raw) {
   )];
 }
 
+function childRecordForSession(present, roster, extraChildren) {
+  const presentKids = present || [];
+  const presentIds = new Set(presentKids.map((p) => p.member_id));
+  const seen = new Set(presentIds);
+  const absentKids = [];
+  for (const row of [...(roster || []), ...(extraChildren || [])]) {
+    const id = row.member_id || row.id;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    absentKids.push({
+      member_id: id,
+      id,
+      full_name: row.full_name,
+      gender: row.gender,
+    });
+  }
+  return {
+    presentKids,
+    presentIds,
+    absentKids,
+    presentCount: presentKids.length,
+    absentCount: absentKids.length,
+    totalCount: presentKids.length + absentKids.length,
+  };
+}
+
 export default function Children() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -344,10 +370,15 @@ export default function Children() {
               <div className="space-y-2">
                 {pastServices.map((s) => {
                   const selected = s.session_id === pastSessionId;
-                  const adultsPresent = s.adults_present || 0;
-                  const adultsAbsent = s.adults_absent || 0;
-                  const kidsPresent = s.children_present || 0;
-                  const kidsAbsent = s.children_absent || 0;
+                  const adultsPresent = s.adults_present ?? 0;
+                  const adultsAbsent = s.adults_absent ?? 0;
+                  const selectedKids = selected
+                    ? childRecordForSession(pastRecord.present, pastRecord.roster, children)
+                    : null;
+                  const kidsPresent = selectedKids ? selectedKids.presentCount : (s.children_present ?? 0);
+                  const kidsAbsent = selectedKids ? selectedKids.absentCount : (s.children_absent ?? 0);
+                  const kidsTotal = kidsPresent + kidsAbsent;
+                  const adultsTotal = adultsPresent + adultsAbsent;
                   return (
                     <button
                       key={s.session_id}
@@ -362,11 +393,11 @@ export default function Children() {
                       </p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults · {adultsTotal}</p>
                           <p className="text-sm text-ink">{adultsPresent} present · {adultsAbsent} absent</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children · {kidsTotal}</p>
                           <p className="text-sm text-ink">{kidsPresent} present · {kidsAbsent} absent</p>
                         </div>
                       </div>
@@ -378,26 +409,30 @@ export default function Children() {
               {pastSessionId && (
                 <div className="rounded-xl border border-ink/10 bg-parchment/60 p-3 space-y-3">
                   {(() => {
-                    const presentIds = new Set((pastRecord.present || []).map((p) => p.member_id));
-                    const presentKids = pastRecord.present || [];
-                    const absentKids = (pastRecord.roster || []).filter((r) => !presentIds.has(r.member_id));
+                    const { presentKids, presentIds, absentKids, presentCount, absentCount, totalCount } = childRecordForSession(
+                      pastRecord.present,
+                      pastRecord.roster,
+                      children
+                    );
                     const selectedService = pastServices.find((s) => s.session_id === pastSessionId);
+                    const adultsPresent = selectedService?.adults_present ?? 0;
+                    const adultsAbsent = selectedService?.adults_absent ?? 0;
                     return (
                       <>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="rounded-lg bg-white p-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults · {adultsPresent + adultsAbsent}</p>
                             <p className="text-sm font-semibold text-ink mt-0.5">
-                              {selectedService?.adults_present || 0} present
+                              {adultsPresent} present
                             </p>
-                            <p className="text-xs text-ink/50">{selectedService?.adults_absent || 0} not in church</p>
+                            <p className="text-xs text-ink/50">{adultsAbsent} not in church</p>
                           </div>
                           <div className="rounded-lg bg-white p-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children · {totalCount}</p>
                             <p className="text-sm font-semibold text-ink mt-0.5">
-                              {presentKids.length} present
+                              {presentCount} present
                             </p>
-                            <p className="text-xs text-ink/50">{absentKids.length} not in church</p>
+                            <p className="text-xs text-ink/50">{absentCount} not in church</p>
                           </div>
                         </div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Children on this service</p>
