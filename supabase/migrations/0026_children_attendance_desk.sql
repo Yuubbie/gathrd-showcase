@@ -95,6 +95,31 @@ begin
         'service_date', s.service_date,
         'ended_at', s.ended_at,
         'open', s.ended_at is null,
+        'adults_present', (
+          select count(*)::int
+            from public.attendance_records a
+            join public.members m on m.id = a.member_id
+           where a.service_session_id = s.id
+             and a.deleted_at is null
+             and m.church_id = v_church
+             and coalesce(m.age_group, 'adult') <> 'child'
+             and m.deleted_at is null
+        ),
+        'adults_absent', (
+          select count(*)::int
+            from public.members m
+           where m.church_id = v_church
+             and coalesce(m.age_group, 'adult') <> 'child'
+             and m.status = 'active'
+             and m.deleted_at is null
+             and not exists (
+               select 1
+                 from public.attendance_records a
+                where a.service_session_id = s.id
+                  and a.member_id = m.id
+                  and a.deleted_at is null
+             )
+        ),
         'children_present', (
           select count(*)::int
             from public.attendance_records a
@@ -104,6 +129,21 @@ begin
              and m.church_id = v_church
              and m.age_group = 'child'
              and m.deleted_at is null
+        ),
+        'children_absent', (
+          select count(*)::int
+            from public.members m
+           where m.church_id = v_church
+             and m.age_group = 'child'
+             and m.status = 'active'
+             and m.deleted_at is null
+             and not exists (
+               select 1
+                 from public.attendance_records a
+                where a.service_session_id = s.id
+                  and a.member_id = m.id
+                  and a.deleted_at is null
+             )
         )
       ) order by s.service_date desc, s.ended_at desc nulls first)
       from (
@@ -303,7 +343,145 @@ begin
 end;
 $$;
 
+create or replace function public.check_in_child_for_session(
+  p_session_id uuid,
+  p_member_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role public.church_role;
+  v_church uuid;
+  v_session uuid;
+  v_when timestamptz;
+  v_age text;
+  v_existing uuid;
+begin
+  if auth.uid() is null then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  v_role := public.current_role();
+  v_church := public.current_church_id();
+  if v_church is null or v_role not in ('senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher') then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  if p_session_id is null or p_member_id is null then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+
+  select id, coalesce(ended_at, created_at, now())
+    into v_session, v_when
+    from public.service_sessions
+   where id = p_session_id
+     and church_id = v_church
+     and deleted_at is null;
+
+  if v_session is null then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+
+  select age_group into v_age
+    from public.members
+   where id = p_member_id
+     and church_id = v_church
+     and deleted_at is null;
+
+  if v_age is null then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+  if v_age is distinct from 'child' then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  select id into v_existing
+    from public.attendance_records
+   where service_session_id = v_session
+     and member_id = p_member_id
+     and deleted_at is null
+   limit 1;
+
+  if v_existing is not null then
+    return jsonb_build_object('status', 'already_checked_in');
+  end if;
+
+  insert into public.attendance_records (
+    church_id, service_session_id, member_id, check_in_method, checked_in_at
+  ) values (
+    v_church, v_session, p_member_id, 'manual', v_when
+  );
+
+  return jsonb_build_object('status', 'checked_in');
+end;
+$$;
+
+create or replace function public.undo_child_for_session(
+  p_session_id uuid,
+  p_member_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role public.church_role;
+  v_church uuid;
+  v_session uuid;
+  v_updated int;
+begin
+  if auth.uid() is null then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  v_role := public.current_role();
+  v_church := public.current_church_id();
+  if v_church is null or v_role not in ('senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher') then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  select id into v_session
+    from public.service_sessions
+   where id = p_session_id
+     and church_id = v_church
+     and deleted_at is null;
+
+  if v_session is null then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+
+  if not exists (
+    select 1 from public.members
+     where id = p_member_id
+       and church_id = v_church
+       and age_group = 'child'
+       and deleted_at is null
+  ) then
+    return jsonb_build_object('status', 'not_allowed');
+  end if;
+
+  update public.attendance_records
+     set deleted_at = now()
+   where service_session_id = v_session
+     and member_id = p_member_id
+     and deleted_at is null;
+
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+
+  return jsonb_build_object('status', 'undone');
+end;
+$$;
+
 grant execute on function public.add_child_member(text, text) to authenticated;
 grant execute on function public.list_recent_services(int) to authenticated;
 grant execute on function public.record_children_for_session(uuid, text[]) to authenticated;
 grant execute on function public.get_session_children_attendance(uuid) to authenticated;
+grant execute on function public.check_in_child_for_session(uuid, uuid) to authenticated;
+grant execute on function public.undo_child_for_session(uuid, uuid) to authenticated;
