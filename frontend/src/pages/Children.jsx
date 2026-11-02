@@ -47,6 +47,8 @@ export default function Children() {
   const [pastSessionId, setPastSessionId] = useState('');
   const [pastNames, setPastNames] = useState('');
   const [recording, setRecording] = useState(false);
+  const [pastPresent, setPastPresent] = useState([]);
+  const [pastPresentLoading, setPastPresentLoading] = useState(false);
 
   const canInvite = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role);
 
@@ -88,22 +90,39 @@ export default function Children() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    async function loadServices() {
-      const { data, error } = await supabase.rpc('list_recent_services', { p_limit: 14 });
-      if (error || !data?.ok) {
-        setPastServices([]);
-        return;
-      }
-      const list = data.services || [];
-      setPastServices(list);
-      setPastSessionId((current) => {
-        if (current && list.some((s) => s.session_id === current)) return current;
-        return list[0]?.session_id || '';
-      });
+  const loadServices = useCallback(async () => {
+    const { data, error } = await supabase.rpc('list_recent_services', { p_limit: 14 });
+    if (error || !data?.ok) {
+      setPastServices([]);
+      return [];
     }
+    const list = data.services || [];
+    setPastServices(list);
+    setPastSessionId((current) => {
+      if (current && list.some((s) => s.session_id === current)) return current;
+      return list[0]?.session_id || '';
+    });
+    return list;
+  }, []);
+
+  useEffect(() => {
     loadServices();
-  }, [profile?.church_id]);
+  }, [loadServices, profile?.church_id]);
+
+  const loadPastPresent = useCallback(async (sessionId) => {
+    if (!sessionId) {
+      setPastPresent([]);
+      return;
+    }
+    setPastPresentLoading(true);
+    const { data, error } = await supabase.rpc('get_session_children_attendance', { p_session_id: sessionId });
+    setPastPresent(!error && data?.ok ? (data.present || []) : []);
+    setPastPresentLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadPastPresent(pastSessionId);
+  }, [pastSessionId, loadPastPresent]);
 
   async function handleAddChild(e) {
     e.preventDefault();
@@ -193,7 +212,7 @@ export default function Children() {
     if (data.already_checked_in) parts.push(`${data.already_checked_in} already on that service`);
     setOkMessage(parts.join('. ') + '.');
     setPastNames('');
-    await load();
+    await Promise.all([load(), loadServices(), loadPastPresent(pastSessionId)]);
   }
 
   const filtered = children.filter((c) => c.full_name.toLowerCase().includes(search.toLowerCase()));
@@ -274,23 +293,63 @@ export default function Children() {
         </form>
 
         <form onSubmit={handleRecordPast} className={`${CARD} p-4 space-y-3`}>
-          <p className="text-sm font-semibold text-ink">Record names from a past service</p>
-          <p className="text-xs text-ink/50">Paste yesterday's handwritten list. Each name is added as a child of this church and marked present on the service you pick.</p>
+          <p className="text-sm font-semibold text-ink">Past services</p>
+          <p className="text-xs text-ink/50">Tap a service to see who was marked present. Paste yesterday's names, then tap Mark present.</p>
           {pastServices.length === 0 ? (
             <p className="text-sm text-ink/50">No services yet. A pastor or Admin needs to start one on Attendance first.</p>
           ) : (
             <>
-              <select
-                value={pastSessionId}
-                onChange={(e) => setPastSessionId(e.target.value)}
-                className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none bg-white"
-              >
-                {pastServices.map((s) => (
-                  <option key={s.session_id} value={s.session_id}>
-                    {formatServiceLabel(s)}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                {pastServices.map((s) => {
+                  const selected = s.session_id === pastSessionId;
+                  return (
+                    <button
+                      key={s.session_id}
+                      type="button"
+                      onClick={() => setPastSessionId(s.session_id)}
+                      className={`w-full text-left rounded-xl border px-3.5 py-3 transition-colors ${
+                        selected ? 'border-signal bg-signal/5' : 'border-ink/10 hover:border-ink/20 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={`text-sm font-semibold ${selected ? 'text-signal-deep' : 'text-ink'}`}>
+                            {formatServiceLabel(s)}
+                          </p>
+                          <p className="text-xs text-ink/50 mt-0.5">
+                            {s.open ? 'Service still open' : 'Tap to view this record'}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-ink shrink-0">
+                          {s.children_present || 0} child{(s.children_present || 0) === 1 ? '' : 'ren'}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {pastSessionId && (
+                <div className="rounded-xl border border-ink/10 bg-parchment/60 p-3 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+                    Children on this service ({pastPresent.length})
+                  </p>
+                  {pastPresentLoading ? (
+                    <p className="text-sm text-ink/40">Loading…</p>
+                  ) : pastPresent.length === 0 ? (
+                    <p className="text-sm text-ink/50">No children marked present yet. Paste names below.</p>
+                  ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {pastPresent.map((p) => (
+                        <p key={p.member_id} className="text-sm text-ink/80">
+                          {p.full_name}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <textarea
                 value={pastNames}
                 onChange={(e) => setPastNames(e.target.value)}

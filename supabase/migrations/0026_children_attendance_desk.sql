@@ -94,7 +94,17 @@ begin
         'service_name', s.service_name,
         'service_date', s.service_date,
         'ended_at', s.ended_at,
-        'open', s.ended_at is null
+        'open', s.ended_at is null,
+        'children_present', (
+          select count(*)::int
+            from public.attendance_records a
+            join public.members m on m.id = a.member_id
+           where a.service_session_id = s.id
+             and a.deleted_at is null
+             and m.church_id = v_church
+             and m.age_group = 'child'
+             and m.deleted_at is null
+        )
       ) order by s.service_date desc, s.ended_at desc nulls first)
       from (
         select *
