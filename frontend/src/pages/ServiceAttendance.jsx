@@ -79,6 +79,7 @@ export default function ServiceAttendance() {
 
   // Attendance reports (shown when no service is open)
   const [history, setHistory] = useState([]);
+  const [serviceCounts, setServiceCounts] = useState({});
   const [missed, setMissed] = useState(null); // { sessions, members }
   const [openId, setOpenId] = useState(null);
   const [details, setDetails] = useState({});
@@ -170,11 +171,17 @@ export default function ServiceAttendance() {
 
   const loadReports = useCallback(async () => {
     setReportLoading(true);
-    const [hist, miss] = await Promise.all([
+    const [hist, miss, recent] = await Promise.all([
       supabase.rpc('get_attendance_history', { p_limit: 12 }),
       supabase.rpc('get_missed_services', { p_last: 3 }),
+      supabase.rpc('list_recent_services', { p_limit: 14 }),
     ]);
     setHistory(Array.isArray(hist.data) ? hist.data : []);
+    const counts = {};
+    for (const s of recent.data?.ok ? (recent.data.services || []) : []) {
+      counts[s.session_id] = s;
+    }
+    setServiceCounts(counts);
     setMissed(miss.data && !miss.error ? miss.data : null);
     setDetails({});
     setChildDetails({});
@@ -489,7 +496,11 @@ export default function ServiceAttendance() {
             ) : (
               <div className="divide-y divide-ink/5">
                 {history.map((h) => {
-                  const pct = h.total > 0 ? Math.round((h.present / h.total) * 100) : 0;
+                  const counts = serviceCounts[h.session_id] || {};
+                  const adultsPresent = counts.adults_present ?? h.present;
+                  const adultsAbsent = counts.adults_absent ?? Math.max(0, (h.total || 0) - (h.present || 0));
+                  const kidsPresentCount = counts.children_present ?? 0;
+                  const kidsAbsentCount = counts.children_absent ?? 0;
                   const detail = details[h.session_id];
                   const kids = childDetails[h.session_id];
                   const kidsPresent = kids?.present || [];
@@ -505,19 +516,15 @@ export default function ServiceAttendance() {
                       <button
                         type="button"
                         onClick={() => toggleSession(h.session_id)}
-                        className={`w-full flex items-center justify-between gap-3 py-2.5 px-2 -mx-2 rounded-lg text-left ${
+                        className={`w-full text-left py-2.5 px-2 -mx-2 rounded-lg ${
                           openId === h.session_id ? 'bg-signal/5' : 'hover:bg-ink/5'
                         }`}
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-ink">{formatShortDate(h.service_date)}</p>
-                          <p className="text-xs text-ink/40">{h.service_name} · tap to view adults and children</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-semibold text-ink">
-                            {h.present} of {h.total}
-                          </p>
-                          <p className="text-xs text-ink/40">{pct}% attended</p>
+                        <p className="text-sm font-medium text-ink">{formatShortDate(h.service_date)}</p>
+                        <p className="text-xs text-ink/40">{h.service_name} · tap to view</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <p className="text-xs text-ink/70">Adults {adultsPresent} present · {adultsAbsent} absent</p>
+                          <p className="text-xs text-ink/70">Children {kidsPresentCount} present · {kidsAbsentCount} absent</p>
                         </div>
                       </button>
                       {openId === h.session_id && (

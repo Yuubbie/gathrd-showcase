@@ -47,7 +47,7 @@ export default function Children() {
   const [pastSessionId, setPastSessionId] = useState('');
   const [pastNames, setPastNames] = useState('');
   const [recording, setRecording] = useState(false);
-  const [pastPresent, setPastPresent] = useState([]);
+  const [pastRecord, setPastRecord] = useState({ present: [], roster: [] });
   const [pastPresentLoading, setPastPresentLoading] = useState(false);
 
   const canInvite = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role);
@@ -111,12 +111,12 @@ export default function Children() {
 
   const loadPastPresent = useCallback(async (sessionId) => {
     if (!sessionId) {
-      setPastPresent([]);
+      setPastRecord({ present: [], roster: [] });
       return;
     }
     setPastPresentLoading(true);
     const { data, error } = await supabase.rpc('get_session_children_attendance', { p_session_id: sessionId });
-    setPastPresent(!error && data?.ok ? (data.present || []) : []);
+    setPastRecord(!error && data?.ok ? { present: data.present || [], roster: data.roster || [] } : { present: [], roster: [] });
     setPastPresentLoading(false);
   }, []);
 
@@ -215,6 +215,48 @@ export default function Children() {
     await Promise.all([load(), loadServices(), loadPastPresent(pastSessionId)]);
   }
 
+  async function handlePastCheckIn(child) {
+    if (!pastSessionId) return;
+    setMessage('');
+    setPastRecord((prev) => ({
+      ...prev,
+      present: prev.present.some((p) => p.member_id === child.id)
+        ? prev.present
+        : [...prev.present, { member_id: child.id, full_name: child.full_name, gender: child.gender, method: 'manual' }],
+    }));
+    const { data, error } = await supabase.rpc('check_in_child_for_session', {
+      p_session_id: pastSessionId,
+      p_member_id: child.id,
+    });
+    const ok = !error && data && (data.status === 'checked_in' || data.status === 'already_checked_in');
+    if (!ok) {
+      await loadPastPresent(pastSessionId);
+      setMessage(`Could not check in ${child.full_name}. Please try again.`);
+      return;
+    }
+    await loadServices();
+  }
+
+  async function handlePastUndo(child) {
+    if (!pastSessionId) return;
+    if (!window.confirm(`Remove the check-in for ${child.full_name}?`)) return;
+    setMessage('');
+    setPastRecord((prev) => ({
+      ...prev,
+      present: prev.present.filter((p) => p.member_id !== child.id),
+    }));
+    const { data, error } = await supabase.rpc('undo_child_for_session', {
+      p_session_id: pastSessionId,
+      p_member_id: child.id,
+    });
+    if (error || !data || (data.status !== 'undone' && data.status !== 'not_found')) {
+      await loadPastPresent(pastSessionId);
+      setMessage(`Could not remove the check-in for ${child.full_name}. Please try again.`);
+      return;
+    }
+    await loadServices();
+  }
+
   const filtered = children.filter((c) => c.full_name.toLowerCase().includes(search.toLowerCase()));
   const presentCount = Object.keys(attendance).length;
 
@@ -294,7 +336,7 @@ export default function Children() {
 
         <form onSubmit={handleRecordPast} className={`${CARD} p-4 space-y-3`}>
           <p className="text-sm font-semibold text-ink">Past services</p>
-          <p className="text-xs text-ink/50">Tap a service to see who was marked present. Paste yesterday's names, then tap Mark present.</p>
+          <p className="text-xs text-ink/50">Tap a service to open its record. Adults and children are listed separately, including who was not in church. Tap a child to mark them present.</p>
           {pastServices.length === 0 ? (
             <p className="text-sm text-ink/50">No services yet. A pastor or Admin needs to start one on Attendance first.</p>
           ) : (
@@ -302,6 +344,10 @@ export default function Children() {
               <div className="space-y-2">
                 {pastServices.map((s) => {
                   const selected = s.session_id === pastSessionId;
+                  const adultsPresent = s.adults_present || 0;
+                  const adultsAbsent = s.adults_absent || 0;
+                  const kidsPresent = s.children_present || 0;
+                  const kidsAbsent = s.children_absent || 0;
                   return (
                     <button
                       key={s.session_id}
@@ -311,18 +357,18 @@ export default function Children() {
                         selected ? 'border-signal bg-signal/5' : 'border-ink/10 hover:border-ink/20 bg-white'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className={`text-sm font-semibold ${selected ? 'text-signal-deep' : 'text-ink'}`}>
-                            {formatServiceLabel(s)}
-                          </p>
-                          <p className="text-xs text-ink/50 mt-0.5">
-                            {s.open ? 'Service still open' : 'Tap to view this record'}
-                          </p>
+                      <p className={`text-sm font-semibold ${selected ? 'text-signal-deep' : 'text-ink'}`}>
+                        {formatServiceLabel(s)}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults</p>
+                          <p className="text-sm text-ink">{adultsPresent} present · {adultsAbsent} absent</p>
                         </div>
-                        <p className="text-sm font-semibold text-ink shrink-0">
-                          {s.children_present || 0} child{(s.children_present || 0) === 1 ? '' : 'ren'}
-                        </p>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children</p>
+                          <p className="text-sm text-ink">{kidsPresent} present · {kidsAbsent} absent</p>
+                        </div>
                       </div>
                     </button>
                   );
@@ -330,31 +376,71 @@ export default function Children() {
               </div>
 
               {pastSessionId && (
-                <div className="rounded-xl border border-ink/10 bg-parchment/60 p-3 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">
-                    Children on this service ({pastPresent.length})
-                  </p>
-                  {pastPresentLoading ? (
-                    <p className="text-sm text-ink/40">Loading…</p>
-                  ) : pastPresent.length === 0 ? (
-                    <p className="text-sm text-ink/50">No children marked present yet. Paste names below.</p>
-                  ) : (
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {pastPresent.map((p) => (
-                        <p key={p.member_id} className="text-sm text-ink/80">
-                          {p.full_name}
-                        </p>
-                      ))}
-                    </div>
-                  )}
+                <div className="rounded-xl border border-ink/10 bg-parchment/60 p-3 space-y-3">
+                  {(() => {
+                    const presentIds = new Set((pastRecord.present || []).map((p) => p.member_id));
+                    const presentKids = pastRecord.present || [];
+                    const absentKids = (pastRecord.roster || []).filter((r) => !presentIds.has(r.member_id));
+                    const selectedService = pastServices.find((s) => s.session_id === pastSessionId);
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg bg-white p-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Adults</p>
+                            <p className="text-sm font-semibold text-ink mt-0.5">
+                              {selectedService?.adults_present || 0} present
+                            </p>
+                            <p className="text-xs text-ink/50">{selectedService?.adults_absent || 0} not in church</p>
+                          </div>
+                          <div className="rounded-lg bg-white p-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">Children</p>
+                            <p className="text-sm font-semibold text-ink mt-0.5">
+                              {presentKids.length} present
+                            </p>
+                            <p className="text-xs text-ink/50">{absentKids.length} not in church</p>
+                          </div>
+                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40">Children on this service</p>
+                        {pastPresentLoading ? (
+                          <p className="text-sm text-ink/40">Loading…</p>
+                        ) : (pastRecord.roster || []).length === 0 && presentKids.length === 0 ? (
+                          <p className="text-sm text-ink/50">No children on the list yet. Add a child above, or paste names below.</p>
+                        ) : (
+                          <div className="divide-y max-h-64 overflow-y-auto">
+                            {[...presentKids.map((p) => ({ id: p.member_id, full_name: p.full_name, gender: p.gender })), ...absentKids.map((a) => ({ id: a.member_id, full_name: a.full_name, gender: a.gender }))].map((c) => {
+                              const here = presentIds.has(c.id);
+                              return (
+                                <div key={c.id} className="flex items-center justify-between py-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePastCheckIn(c)}
+                                    disabled={here}
+                                    className="flex-1 flex items-center gap-3 py-2 px-1 text-left disabled:cursor-default"
+                                  >
+                                    {here ? <CheckCircle2 size={18} className="text-sage shrink-0" /> : <Circle size={18} className="text-ink/20 shrink-0" />}
+                                    <span className={`text-sm font-medium ${here ? 'text-ink/40' : 'text-ink'}`}>{c.full_name}</span>
+                                  </button>
+                                  {here && (
+                                    <button type="button" onClick={() => handlePastUndo(c)} className="text-xs text-rose font-medium shrink-0">
+                                      Undo
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
               <textarea
                 value={pastNames}
                 onChange={(e) => setPastNames(e.target.value)}
-                rows={5}
-                placeholder={'One name per line, for example:\nAda Okafor\nChinedu Bello'}
+                rows={4}
+                placeholder={'Paste extra names, one per line:\nAda Okafor\nChinedu Bello'}
                 className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm focus:border-signal focus:ring-1 focus:ring-signal outline-none"
               />
               <button
@@ -362,7 +448,7 @@ export default function Children() {
                 disabled={recording || !pastSessionId || parseNames(pastNames).length === 0}
                 className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold disabled:opacity-50"
               >
-                {recording ? 'Recording…' : 'Mark present'}
+                {recording ? 'Recording…' : 'Add these names to this service'}
               </button>
             </>
           )}
