@@ -45,7 +45,7 @@ export const PAGE_SEO = {
   '/church-management-platform-nigeria': {
     title: 'Church Management Platform in Nigeria | Gathrd ChMS',
     description:
-      'Compare top church management platforms in Nigeria. Gathrd is a ChMS for memberships, donations, visitor follow-ups, child check-in, and multi-branch churches. Priced in Naira.',
+      'Gathrd is a church management platform in Nigeria. Run memberships, donations, visitor follow-ups, child check-in, and multi-branch operations in one ChMS. Priced in Naira.',
     path: '/church-management-platform-nigeria',
     keywords: PRIMARY_KEYWORDS,
   },

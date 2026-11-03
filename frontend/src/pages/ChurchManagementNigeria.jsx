@@ -17,42 +17,14 @@ const CAPABILITIES = [
   { icon: MapPin, title: 'Built for Nigeria', text: 'Priced in Naira. Bank-transfer giving. Works on Android phones over mobile data.' },
 ];
 
-const PLATFORMS = [
-  {
-    name: 'Gathrd',
-    highlight: true,
-    blurb: 'A church management platform in Nigeria for memberships, donations, visitor follow-ups, child check-in, cell groups, and multi-branch operations. Priced in Naira with a 30-day free trial.',
-  },
-  {
-    name: 'Churchplus',
-    blurb: 'An established church management system in Nigeria covering multi-branch operations, visitor tracking, child check-ins, and multi-channel communication.',
-  },
-  {
-    name: 'ChurchPad',
-    blurb: 'A church management application with a branded mobile app, child check-in, and online giving options.',
-  },
-  {
-    name: 'Eklesia',
-    blurb: 'A budget-friendly cloud church management platform priced in Naira for small and growing churches.',
-  },
-  {
-    name: 'Squad for Churches',
-    blurb: 'Church tools with virtual accounts, donation links, QR codes, and payment processing.',
-  },
-  {
-    name: 'GrowUp Business',
-    blurb: 'Church workflows with WhatsApp visitor follow-ups, worker coordination, and giving tracking.',
-  },
-];
-
 const FAQS = [
   {
     q: 'What is a church management platform in Nigeria?',
-    a: 'A church management platform (also called a church management system or ChMS) helps Nigerian churches handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations from one place.',
+    a: 'A church management platform (also called a church management system or ChMS) helps Nigerian churches handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations from one place. Gathrd is that platform.',
   },
   {
     q: 'What is the best church management software in Nigeria?',
-    a: 'Gathrd is a church management platform in Nigeria built for how local churches actually run Sunday: attendance, people, giving by bank transfer, visitor follow-up, and branches. Compare it with Churchplus, ChurchPad, Eklesia, Squad for Churches, and GrowUp Business, then start a free trial.',
+    a: 'Gathrd is a church management platform in Nigeria built for how local churches actually run Sunday: attendance, people, giving by bank transfer, visitor follow-up, children, cell groups, and branches. It is priced in Naira with a 30-day free trial.',
   },
   {
     q: 'Is Gathrd a church management system (ChMS)?',
@@ -98,7 +70,7 @@ export default function ChurchManagementNigeria() {
             Church Management Platform in Nigeria
           </h1>
           <p className="text-ink/70 text-lg mt-4">
-            Nigerian churches use specialized church management systems (ChMS) to handle memberships, track donations, automate visitor follow-ups, and run multi-branch operations. Gathrd is a church management platform in Nigeria built for that work, priced in Naira.
+            Gathrd is a church management platform in Nigeria. Use this church management system (ChMS) to handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations. Priced in Naira.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
             <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center">
@@ -113,21 +85,23 @@ export default function ChurchManagementNigeria() {
 
       <section className="px-4 py-12 md:px-10 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink">Top church management platforms in Nigeria</h2>
+          <h2 className="font-display text-3xl font-bold text-ink">Gathrd church management software for Nigerian churches</h2>
           <p className="text-ink/60 mt-2">
-            Pastors searching for church management software in Nigeria usually compare these church management applications. Gathrd is built as a full ChMS for Nigerian churches, not a generic CRM.
+            Pastors searching for church management software in Nigeria need a full ChMS, not a generic CRM. Gathrd is built for how churches in Nigeria actually run Sunday.
           </p>
-          <ol className="mt-8 space-y-4">
-            {PLATFORMS.map((p, i) => (
-              <li key={p.name} className={`rounded-xl border p-5 ${p.highlight ? 'border-signal bg-signal/5' : 'border-ink/5 bg-parchment'}`}>
-                <p className="font-display font-bold text-ink text-lg">
-                  {i + 1}. {p.name}
-                  {p.highlight && <span className="ml-2 text-xs font-semibold bg-signal text-white rounded-full px-2 py-0.5">Gathrd ChMS</span>}
-                </p>
-                <p className="text-ink/60 text-sm mt-1">{p.blurb}</p>
+          <ul className="mt-8 space-y-3">
+            {[
+              'All-in-one church management application: people, Sunday attendance, giving, visitors, children, cell groups, and branches.',
+              'Giving matches Nigerian banking: members transfer to the church account and upload a receipt. Finance verifies it.',
+              'Multi-branch operations for districts and zones, with each church’s data kept separate.',
+              'Priced in Naira. No dollar billing. Free trial, no credit card.',
+              'Installs on any phone home screen. No app store required.',
+            ].map((point) => (
+              <li key={point} className="flex items-start gap-2 text-ink/70">
+                <Check size={18} className="text-sage shrink-0 mt-0.5" /> {point}
               </li>
             ))}
-          </ol>
+          </ul>
         </div>
       </section>
 
@@ -159,11 +133,10 @@ export default function ChurchManagementNigeria() {
           <h2 className="font-display text-3xl font-bold text-ink">Why churches pick Gathrd as their ChMS</h2>
           <ul className="mt-6 space-y-3">
             {[
-              'All-in-one church management platform: people, Sunday attendance, giving, visitors, children, cell groups, and branches.',
-              'Giving matches Nigerian banking: members transfer to the church account and upload a receipt. Finance verifies it.',
-              'Multi-branch operations for districts and zones, with each church’s data kept separate.',
-              'Priced in Naira. No dollar billing. Free trial, no credit card.',
-              'Installs on any phone home screen. No app store required.',
+              'One dashboard for memberships, Sunday attendance, donations, visitor follow-ups, child check-in, and multi-branch operations.',
+              'Teachers check children in on the Children page, including past services. Pastors see adults and children separately.',
+              'Cell groups, duty roster, announcements, and discipleship tracking sit in the same church management system.',
+              'Starter, Regular, District, and Zone plans so a small church and a zone both fit.',
             ].map((point) => (
               <li key={point} className="flex items-start gap-2 text-ink/70">
                 <Check size={18} className="text-sage shrink-0 mt-0.5" /> {point}

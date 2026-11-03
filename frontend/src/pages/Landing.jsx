@@ -148,38 +148,18 @@ export default function Landing() {
 
       <section className="px-4 py-16 md:px-10">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink">Top Church Management Platforms in Nigeria</h2>
+          <h2 className="font-display text-3xl font-bold text-ink">Church management platform in Nigeria</h2>
           <p className="text-ink/60 mt-3">
-            Nigerian churches use specialized church management systems (ChMS) to handle memberships, track donations, automate visitor follow-ups, and run multi-branch operations. Gathrd is a church management platform in Nigeria built for that work.
+            Nigerian churches use a specialized church management system (ChMS) to handle memberships, track donations, automate visitor follow-ups, and run multi-branch operations. Gathrd is that church management platform, priced in Naira.
           </p>
           <ul className="mt-6 space-y-4">
             <li className="rounded-xl border border-signal bg-signal/5 p-4">
-              <p className="font-display font-bold text-ink">Gathrd</p>
-              <p className="text-ink/60 text-sm mt-1">An all-in-one church management system built for Nigerian churches to manage multi-branch operations, visitor follow-ups, child check-in, donations by bank transfer, Sunday attendance, cell groups, and church communication. Priced in Naira.</p>
-            </li>
-            <li className="rounded-xl border border-ink/5 bg-white p-4">
-              <p className="font-display font-bold text-ink">Churchplus</p>
-              <p className="text-ink/60 text-sm mt-1">An established church management system in Nigeria for multi-branch operations, visitor tracking, child check-ins, and multi-channel communication.</p>
-            </li>
-            <li className="rounded-xl border border-ink/5 bg-white p-4">
-              <p className="font-display font-bold text-ink">ChurchPad</p>
-              <p className="text-ink/60 text-sm mt-1">A church management application with a branded mobile app, child check-in, and online giving.</p>
-            </li>
-            <li className="rounded-xl border border-ink/5 bg-white p-4">
-              <p className="font-display font-bold text-ink">Eklesia</p>
-              <p className="text-ink/60 text-sm mt-1">A budget-friendly cloud church management platform priced in Naira for small and growing churches.</p>
-            </li>
-            <li className="rounded-xl border border-ink/5 bg-white p-4">
-              <p className="font-display font-bold text-ink">Squad for Churches</p>
-              <p className="text-ink/60 text-sm mt-1">Church tools with virtual accounts, donation links, QR codes, and payment processing.</p>
-            </li>
-            <li className="rounded-xl border border-ink/5 bg-white p-4">
-              <p className="font-display font-bold text-ink">GrowUp Business</p>
-              <p className="text-ink/60 text-sm mt-1">Church workflows with WhatsApp visitor follow-ups, worker coordination, and giving tracking.</p>
+              <p className="font-display font-bold text-ink">Gathrd ChMS</p>
+              <p className="text-ink/60 text-sm mt-1">An all-in-one church management system built for Nigerian churches to manage multi-branch operations, visitor follow-ups, child check-in, donations by bank transfer, Sunday attendance, cell groups, and church communication.</p>
             </li>
           </ul>
           <Link to="/church-management-platform-nigeria" className="inline-flex items-center gap-2 text-signal font-semibold mt-6">
-            Compare church management platforms in Nigeria <ArrowRight size={16} />
+            Church management software in Nigeria <ArrowRight size={16} />
           </Link>
         </div>
       </section>
