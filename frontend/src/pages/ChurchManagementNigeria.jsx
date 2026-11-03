@@ -19,16 +19,16 @@ const CAPABILITIES = [
 
 const FAQS = [
   {
-    q: 'What is a church management platform in Nigeria?',
-    a: 'A church management platform (also called a church management system or ChMS) helps Nigerian churches handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations from one place. Gathrd is that platform.',
+    q: 'What is a church management system in Nigeria?',
+    a: 'A church management system (ChMS) helps Nigerian churches handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations from one place. Gathrd is that church management system.',
   },
   {
-    q: 'What is the best church management software in Nigeria?',
-    a: 'Gathrd is a church management platform in Nigeria built for how local churches actually run Sunday: attendance, people, giving by bank transfer, visitor follow-up, children, cell groups, and branches. It is priced in Naira with a 30-day free trial.',
+    q: 'What is the best church management system in Nigeria?',
+    a: 'Gathrd is a church management system in Nigeria built for how local churches actually run Sunday: attendance, people, giving by bank transfer, visitor follow-up, children, cell groups, and branches. It is priced in Naira with a 30-day free trial.',
   },
   {
-    q: 'Is Gathrd a church management system (ChMS)?',
-    a: 'Yes. Gathrd is a specialized church management system (ChMS) and church management application for Nigerian churches. It covers memberships, donations, visitor follow-ups, child check-in, cell groups, announcements, and multi-branch operations.',
+    q: 'Is Gathrd a church management system?',
+    a: 'Yes. Gathrd is a specialized church management system (ChMS) for Nigerian churches. It covers memberships, donations, visitor follow-ups, child check-in, cell groups, announcements, and multi-branch operations.',
   },
   {
     q: 'How much does church management software cost in Nigeria?',
@@ -50,7 +50,7 @@ export default function ChurchManagementNigeria() {
       <nav className="bg-signal-gradient px-4 py-4 md:px-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="Gathrd church management platform logo" className="h-8 w-8" />
+            <img src="/logo-mark.png" alt="Gathrd church management system logo" className="h-8 w-8" />
             <span className="font-display font-bold text-white text-xl">Gathrd</span>
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
@@ -67,10 +67,10 @@ export default function ChurchManagementNigeria() {
         <div className="max-w-4xl mx-auto">
           <p className="text-signal font-semibold text-sm uppercase tracking-wide">Church management system (ChMS)</p>
           <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight mt-3">
-            Church Management Platform in Nigeria
+            Church Management System in Nigeria
           </h1>
           <p className="text-ink/70 text-lg mt-4">
-            Gathrd is a church management platform in Nigeria. Use this church management system (ChMS) to handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations. Priced in Naira.
+            Gathrd is a church management system in Nigeria. Use this ChMS to handle memberships, track donations, automate visitor follow-ups, run child check-in, and manage multi-branch operations. Priced in Naira.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
             <Link to="/signup" className="bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center">
@@ -85,9 +85,9 @@ export default function ChurchManagementNigeria() {
 
       <section className="px-4 py-12 md:px-10 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink">Gathrd church management software for Nigerian churches</h2>
+          <h2 className="font-display text-3xl font-bold text-ink">Gathrd church management system for Nigerian churches</h2>
           <p className="text-ink/60 mt-2">
-            Pastors searching for church management software in Nigeria need a full ChMS, not a generic CRM. Gathrd is built for how churches in Nigeria actually run Sunday.
+            Pastors searching for a church management system in Nigeria need a full ChMS, not a generic CRM. Gathrd is built for how churches in Nigeria actually run Sunday.
           </p>
           <ul className="mt-8 space-y-3">
             {[
@@ -144,14 +144,14 @@ export default function ChurchManagementNigeria() {
             ))}
           </ul>
           <Link to="/signup" className="inline-flex items-center gap-2 bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg mt-8">
-            Start your church management platform trial <ArrowRight size={18} />
+            Start your church management system trial <ArrowRight size={18} />
           </Link>
         </div>
       </section>
 
       <section className="px-4 py-12 md:px-10">
         <div className="max-w-3xl mx-auto">
-          <h2 className="font-display text-3xl font-bold text-ink text-center">Church management software questions</h2>
+          <h2 className="font-display text-3xl font-bold text-ink text-center">Church management system questions</h2>
           <dl className="mt-8 space-y-4">
             {FAQS.map((item) => (
               <div key={item.q} className="rounded-xl border border-ink/5 bg-white p-4">
@@ -174,11 +174,11 @@ export default function ChurchManagementNigeria() {
             <Link to="/demo" className="text-white/50 hover:text-white text-sm">Demo</Link>
             <Link to="/signup" className="text-white/50 hover:text-white text-sm">Sign Up</Link>
           </div>
-          <p className="text-white/50 text-sm">Church management platform in Nigeria</p>
+          <p className="text-white/50 text-sm">Church management system in Nigeria</p>
         </div>
       </footer>
 
-      <WhatsAppButton message="Hello Gathrd, I want a church management platform for our church in Nigeria." />
+      <WhatsAppButton message="Hello Gathrd, I want a church management system for our church in Nigeria." />
     </div>
   );
 }
