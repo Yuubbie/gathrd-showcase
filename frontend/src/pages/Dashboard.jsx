@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2, CalendarDays } from 'lucide-react';
+import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2, CalendarDays, HeartHandshake } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -67,7 +67,8 @@ export default function Dashboard() {
   // whose members row has been linked to their login via profile_id (see
   // claim-account Edge Function) — otherwise these correctly stay at 0,
   // since there's genuinely nothing to link yet.
-  const [myStats, setMyStats] = useState({ totalGiving: null, servicesAttended: null });
+  const [myStats, setMyStats] = useState({ totalGiving: null, servicesAttended: null, soulsWon: null });
+  const [evangelismStats, setEvangelismStats] = useState({ total: 0, pending: 0 });
   const [flags, setFlags] = useState([]);
   const [birthdaysThisWeek, setBirthdaysThisWeek] = useState([]);
   const [cellMeetingsThisWeek, setCellMeetingsThisWeek] = useState([]);
@@ -114,7 +115,7 @@ export default function Dashboard() {
           overdueTasksRes, discipleshipStallRes,
           membersListRes, cellGroupsRes,
           recentVisitorsRes, recentGivingRes, recentAnnouncementsRes,
-          myGivingRes, myAttendanceCountRes,
+          myGivingRes, myAttendanceCountRes, mySoulsRes, churchEvangelismRes,
         ] = await Promise.all([
           // FIX (Critical): church-wide counts now gated to the roles that
           // can actually see church-wide data. Ungated before, which meant
@@ -169,6 +170,10 @@ export default function Dashboard() {
           isMember
             ? supabase.from('attendance_records').select('id', { count: 'exact', head: true }).is('deleted_at', null)
             : Promise.resolve({ count: null }),
+          supabase.rpc('list_my_souls'),
+          canSeeChurchStats
+            ? supabase.rpc('list_church_evangelism')
+            : Promise.resolve({ data: null }),
         ]);
 
         // Bail out silently if a newer load has since started, or we've unmounted.
@@ -182,6 +187,7 @@ export default function Dashboard() {
           membersList: membersListRes, cellGroups: cellGroupsRes,
           recentVisitors: recentVisitorsRes, recentGiving: recentGivingRes, recentAnnouncements: recentAnnouncementsRes,
           myGiving: myGivingRes, myAttendanceCount: myAttendanceCountRes,
+          mySouls: mySoulsRes, churchEvangelism: churchEvangelismRes,
         };
         const failed = Object.entries(results).filter(([, r]) => r?.error);
         if (failed.length > 0) {
@@ -196,10 +202,18 @@ export default function Dashboard() {
           givingThisMonth: (givingRes.data || []).reduce((sum, g) => sum + Number(g.amount), 0),
         });
 
+        const mySoulRows = Array.isArray(mySoulsRes.data?.rows) ? mySoulsRes.data.rows : [];
         if (isMember) {
           setMyStats({
             totalGiving: (myGivingRes.data || []).reduce((sum, g) => sum + Number(g.amount), 0),
             servicesAttended: myAttendanceCountRes.count ?? 0,
+            soulsWon: mySoulRows.length,
+          });
+        }
+        if (canSeeChurchStats && churchEvangelismRes.data?.ok) {
+          setEvangelismStats({
+            total: Number(churchEvangelismRes.data.total || 0),
+            pending: Number(churchEvangelismRes.data.pending || 0),
           });
         }
 
@@ -416,6 +430,7 @@ export default function Dashboard() {
             {canSeeChurchStats && <QuickAction to="/visitors/check-in" label="Check in a visitor" />}
             {canSeeFinance && <QuickAction to="/giving/counting" label="Count the offering" />}
             {canSeeChurchStats && <QuickAction to="/follow-up" label="Who needs a call" />}
+            {canSeeChurchStats && <QuickAction to="/evangelism" label="Souls won / follow-up" />}
             {canSeeFinance && <QuickAction to="/giving/transfers" label="Verify bank transfers" />}
             {canSeeChurchStats && <QuickAction to="/members/new" label="Add a member" />}
           </div>
@@ -495,6 +510,7 @@ export default function Dashboard() {
               <StatCard icon={Users} label="Active Members" value={loading ? '—' : stats.members} to="/members" color="signal" />
               <StatCard icon={UserPlus} label="Visitors Logged" value={loading ? '—' : stats.visitors} to="/visitors" color="sage" />
               <StatCard icon={Sparkles} label="In Discipleship" value={loading ? '—' : stats.converts} to="/discipleship" color="amberflag" />
+              <StatCard icon={HeartHandshake} label="Souls Won" value={loading ? '—' : evangelismStats.total} to="/evangelism" color="sage" />
             </>
           )}
           {isCellLeader && cellStats && (
@@ -506,15 +522,22 @@ export default function Dashboard() {
                 icon={Wallet}
                 label="My Giving (All Time)"
                 value={loading ? '—' : `₦${(myStats.totalGiving ?? 0).toLocaleString()}`}
-                to="/dashboard"
+                to="/give/me"
                 color="signal"
               />
               <StatCard
                 icon={ClipboardCheck}
                 label="Services Attended"
                 value={loading ? '—' : myStats.servicesAttended ?? 0}
-                to="/dashboard"
+                to="/me/attendance"
                 color="sage"
+              />
+              <StatCard
+                icon={HeartHandshake}
+                label="Souls I have won"
+                value={loading ? '—' : myStats.soulsWon ?? 0}
+                to="/me/souls"
+                color="amberflag"
               />
             </>
           )}

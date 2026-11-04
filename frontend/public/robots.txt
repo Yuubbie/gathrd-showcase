@@ -23,6 +23,8 @@ Disallow: /cell-groups
 Disallow: /announcements
 Disallow: /milestones
 Disallow: /follow-up
+Disallow: /evangelism
+Disallow: /me/
 Disallow: /roster
 Disallow: /calendar
 Disallow: /admin

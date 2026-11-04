@@ -67,8 +67,8 @@ export default function MemberGivingPage() {
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
-    const { data } = await supabase.rpc('get_my_bank_transfers');
-    setHistory(Array.isArray(data) ? data : []);
+    const { data } = await supabase.rpc('get_my_giving_history');
+    setHistory(Array.isArray(data?.rows) ? data.rows : []);
     setLoadingHistory(false);
   }, []);
 
@@ -329,25 +329,22 @@ export default function MemberGivingPage() {
             {loadingHistory ? (
               <p className="text-ink/40 text-sm py-6 text-center">Loading…</p>
             ) : history.length === 0 ? (
-              <p className="text-ink/40 text-sm py-6 text-center">No transfers recorded on this login yet.</p>
+              <p className="text-ink/40 text-sm py-6 text-center">No giving recorded on this login yet.</p>
             ) : (
               <div className="divide-y">
                 {history.map((item) => (
-                  <div key={item.id} className="py-3 flex justify-between gap-3 flex-wrap">
+                  <div key={`${item.source}-${item.id}`} className="py-3 flex justify-between gap-3 flex-wrap">
                     <div>
                       <p className="font-medium text-sm">
-                        {FUNDS.find(([v]) => v === item.fund_type)?.[1] || item.fund_type} — {naira(item.amount)}
+                        {FUNDS.find(([v]) => v === item.category)?.[1] || item.category} — {naira(item.amount)}
                       </p>
                       <p className="text-xs text-ink/50">
-                        {new Date(item.created_at).toLocaleString('en-NG')}
-                        {item.account_label ? ` · ${item.account_label}` : ''}
+                        {item.given_at ? new Date(item.given_at).toLocaleString('en-NG') : ''}
+                        {item.source === 'transfer' ? ' · Bank transfer' : item.payment_method ? ` · ${item.payment_method}` : ''}
                       </p>
-                      {item.status === 'rejected' && item.rejection_reason && (
-                        <p className="text-xs text-rose mt-1">Reason: {item.rejection_reason}</p>
-                      )}
                     </div>
-                    <span className={`text-xs rounded-full px-2 py-1 font-medium h-fit ${statusChip(item.status)}`}>
-                      {statusLabel(item.status)}
+                    <span className={`text-xs rounded-full px-2 py-1 font-medium h-fit ${statusChip(item.status === 'success' ? 'verified' : item.status)}`}>
+                      {statusLabel(item.status === 'success' ? 'verified' : item.status)}
                     </span>
                   </div>
                 ))}

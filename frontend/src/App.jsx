@@ -43,6 +43,10 @@ import TransferLog from './pages/TransferLog';
 import Children from './pages/Children';
 import Seo from './components/Seo';
 import ChurchManagementNigeria from './pages/ChurchManagementNigeria';
+import MyAttendance from './pages/MyAttendance';
+import MemberAttendanceHistory from './pages/MemberAttendanceHistory';
+import MyEvangelism from './pages/MyEvangelism';
+import ChurchEvangelism from './pages/ChurchEvangelism';
 
 function CheckEmail() {
   return (
@@ -109,6 +113,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <ServiceAttendance />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/me/attendance"
+            element={
+              <ProtectedRoute>
+                <MyAttendance />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/me/souls"
+            element={
+              <ProtectedRoute>
+                <MyEvangelism />
               </ProtectedRoute>
             }
           />
@@ -237,6 +257,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'finance_admin']}>
                 <MemberGivingHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members/:id/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <MemberAttendanceHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/evangelism"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <ChurchEvangelism />
               </ProtectedRoute>
             }
           />
