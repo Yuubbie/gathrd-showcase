@@ -37,6 +37,7 @@ export function PeopleTabs() {
     { to: '/members', label: 'Members', prefixes: ['/members'], roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
     { to: '/visitors', label: 'Visitors', prefixes: ['/visitors'], roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
     { to: '/follow-up', label: 'Follow-up', roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
+    { to: '/evangelism', label: 'Souls won', roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
     { to: '/discipleship', label: 'Converts', roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
   ].filter((item) => !item.roles || item.roles.includes(role));
 

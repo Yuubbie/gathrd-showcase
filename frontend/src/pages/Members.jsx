@@ -264,6 +264,15 @@ export default function Members() {
                     <span className="text-xs text-ink/40">
                       {STATUS_LABELS[m.status] || m.status}
                     </span>
+                    {canMoveAge && (
+                      <Link
+                        to={`/members/${m.id}/attendance`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-signal font-semibold"
+                      >
+                        Attendance →
+                      </Link>
+                    )}
                     {['senior_pastor', 'assistant_pastor', 'finance_admin'].includes(profile?.role) && (
                       <Link
                         to={`/members/${m.id}/giving`}

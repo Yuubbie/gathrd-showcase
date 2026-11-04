@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, Settings as SettingsIcon, Menu, X, LogOut, Baby,
-  CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown,
+  CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown, HeartHandshake,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -13,9 +13,11 @@ import InstallPrompt from './InstallPrompt';
 const PRIMARY_NAV = [
   { to: '/dashboard', label: 'Today', icon: LayoutDashboard, roles: null },
   { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['senior_pastor', 'assistant_pastor', 'church_admin'] },
-  { to: '/members', label: 'People', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'], prefixes: ['/members', '/visitors', '/follow-up', '/discipleship'] },
+  { to: '/members', label: 'People', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'], prefixes: ['/members', '/visitors', '/follow-up', '/discipleship', '/evangelism'] },
   { to: '/children', label: 'Children', icon: Baby, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'] },
   { to: '/give/me', label: 'Giving', icon: Wallet, roles: null, prefixes: ['/give', '/giving'] },
+  { to: '/me/attendance', label: 'My Attendance', icon: ClipboardCheck, roles: ['member', 'department_head', 'finance_admin', 'cell_leader', 'childrens_teacher'] },
+  { to: '/me/souls', label: 'Souls', icon: HeartHandshake, roles: null },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
 ];
 
