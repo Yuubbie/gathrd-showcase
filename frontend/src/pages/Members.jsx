@@ -82,14 +82,11 @@ export default function Members() {
     loadSlug();
   }, [profile]);
 
-  const onboardingUrl = onboardingSlug
+  const joinUrl = onboardingSlug
     ? `${window.location.origin}/join/${onboardingSlug}`
     : '';
-  // FIX: claim-account uses the same church slug — a member who already
-  // registered (via this same QR or a manual add) uses this second link
-  // to set up a login and see their own giving/attendance on Dashboard.
-  const claimUrl = onboardingSlug
-    ? `${window.location.origin}/claim/${onboardingSlug}`
+  const rosterUrl = onboardingSlug
+    ? `${window.location.origin}/register/${onboardingSlug}`
     : '';
 
   function exportCsv() {
@@ -119,7 +116,7 @@ export default function Members() {
   const isCellScopedView = profile?.role === 'cell_leader';
   const emptyStateMessage = isCellScopedView
     ? 'No members in your cell group yet.'
-    : 'No members yet. Add one, or share the invite link above.';
+    : 'No members yet. Add one, or share the join link above.';
 
   return (
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
@@ -145,31 +142,16 @@ export default function Members() {
           </div>
         </div>
 
-        {showInvite && (
+        {showInvite && joinUrl && (
           <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
-            <p className="text-sm font-semibold text-ink">Give them a login (recommended)</p>
+            <p className="text-sm font-semibold text-ink">One join link (recommended)</p>
             <p className="text-sm text-ink/60">
-              Name + email. They get a link, set a password, and join this church as a member.
-            </p>
-            <Link
-              to="/team/invite?role=member"
-              className="inline-flex text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
-            >
-              Invite with email
-            </Link>
-          </div>
-        )}
-
-        {showInvite && onboardingUrl && (
-          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
-            <p className="text-sm font-semibold text-ink">Or share a QR (no login)</p>
-            <p className="text-sm text-ink/60">
-              Anyone who opens this can add themselves to the roster. They will not have a login until you invite them.
+              Share this with the whole church. They set a password and log in as members. Raise their role later from Church logins.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(onboardingUrl)}`}
-                alt="Onboarding QR code"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(joinUrl)}`}
+                alt="Church join QR code"
                 className="border rounded-lg"
                 width={160}
                 height={160}
@@ -177,25 +159,37 @@ export default function Members() {
               <div className="flex-1 min-w-[200px]">
                 <input
                   readOnly
-                  value={onboardingUrl}
+                  value={joinUrl}
                   onClick={(e) => e.target.select()}
                   className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment"
                 />
                 <button
-                  onClick={() => navigator.clipboard.writeText(onboardingUrl)}
+                  onClick={() => navigator.clipboard.writeText(joinUrl)}
                   className="mt-2 text-sm text-signal font-semibold hover:text-signal-deep"
                 >
                   Copy link
                 </button>
               </div>
             </div>
+            <Link to="/team" className="inline-flex text-sm text-signal font-semibold">
+              Raise roles →
+            </Link>
           </div>
         )}
 
-        {showInvite && claimUrl && (
-          <p className="text-xs text-ink/40">
-            Already on the roster with an email? They can also set a login at {claimUrl}
-          </p>
+        {showInvite && rosterUrl && (
+          <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
+            <p className="text-sm font-semibold text-ink">Roster only (no login)</p>
+            <p className="text-sm text-ink/60">
+              Anyone who opens this can add themselves to the list without a dashboard login.
+            </p>
+            <input
+              readOnly
+              value={rosterUrl}
+              onClick={(e) => e.target.select()}
+              className="w-full border border-ink/10 rounded-lg px-3.5 py-2 text-sm bg-parchment"
+            />
+          </div>
         )}
 
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">

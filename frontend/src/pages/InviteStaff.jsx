@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
@@ -109,8 +109,13 @@ export default function InviteStaff() {
         <div>
           <h1 className="text-xl font-semibold">Invite someone</h1>
           <p className="text-ink/50 text-sm mt-1">
-            Type their name and email. They get a link, set their own password, and join this church. One form for members, Admin, teachers, and pastors.
+            Prefer the church join link so everyone signs up as a member, then raise their role from Church logins. Use this only when you need to email one person a specific role.
           </p>
+          {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+            <Link to="/team" className="inline-block text-sm text-signal font-semibold mt-2">
+              Copy join link / raise roles →
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">

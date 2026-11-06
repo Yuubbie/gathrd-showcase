@@ -720,59 +720,21 @@ export default function Dashboard() {
       {canSeeChurchStats && (
         <Card className="p-5">
           <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
-          <h2 className="font-display font-bold text-ink text-sm mb-1">Invite someone to help</h2>
-          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. An Admin can start and end attendance. Invite Finance, Media, a Head of Department, or a Children's Teacher too.</p>
+          <h2 className="font-display font-bold text-ink text-sm mb-1">One link for the whole church</h2>
+          <p className="text-xs text-ink/50 mb-3">Share the join link. Everyone signs up as a member, then you raise Admin, Media, Finance, or pastor from Church logins.</p>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/team/invite?role=member"
+              to="/team"
               className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold"
             >
-              Invite Member
+              Copy join link / raise roles
             </Link>
             <Link
-              to="/team/invite?role=church_admin"
+              to="/team/invite"
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
-              Invite Admin
+              Invite by email
             </Link>
-            <Link
-              to="/team/invite?role=finance_admin"
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-            >
-              Invite Finance
-            </Link>
-            <Link
-              to="/team/invite?role=department_head"
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-            >
-              Invite Head of Department
-            </Link>
-            <Link
-              to="/team/invite?role=childrens_teacher"
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-            >
-              Invite Children's Teacher
-            </Link>
-            <Link
-              to="/team/invite?role=media_team"
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-            >
-              Invite Media Team
-            </Link>
-            <Link
-              to="/team/invite?role=assistant_pastor"
-              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-            >
-              Invite Assistant Pastor
-            </Link>
-            {profile?.role === 'senior_pastor' && (
-              <Link
-                to="/team/invite?role=senior_pastor"
-                className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
-              >
-                Invite Senior Pastor
-              </Link>
-            )}
           </div>
         </Card>
       )}

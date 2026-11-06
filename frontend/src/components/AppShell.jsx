@@ -144,8 +144,13 @@ export default function AppShell({ children }) {
                   <SettingsIcon size={14} /> Church Settings
                 </Link>
               )}
+              {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+                <Link to="/team" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                  <UserPlus size={14} /> Church logins
+                </Link>
+              )}
               <Link to="/team/invite" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                <UserPlus size={14} /> Invite someone
+                <UserPlus size={14} /> Invite by email
               </Link>
             </>
           )}
@@ -207,8 +212,13 @@ export default function AppShell({ children }) {
                       <SettingsIcon size={14} /> Church Settings
                     </Link>
                   )}
+                  {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
+                    <Link to="/team" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
+                      <UserPlus size={14} /> Church logins
+                    </Link>
+                  )}
                   <Link to="/team/invite" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
-                    <UserPlus size={14} /> Invite someone
+                    <UserPlus size={14} /> Invite by email
                   </Link>
                 </>
               )}

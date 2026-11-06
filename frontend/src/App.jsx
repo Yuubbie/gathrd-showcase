@@ -37,6 +37,8 @@ import ChurchCalendar from './pages/Calendar';
 import InviteStaff from './pages/InviteStaff';
 import SetPassword from './pages/SetPassword';
 import ClaimAccount from './pages/ClaimAccount';
+import ChurchJoin from './pages/ChurchJoin';
+import TeamRoles from './pages/TeamRoles';
 import AdminDashboard from './pages/AdminDashboard';
 import MemberGivingPage from './pages/MemberGivingPage';
 import TransferLog from './pages/TransferLog';
@@ -83,7 +85,8 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="/join/:slug" element={<PublicOnboard />} />
+          <Route path="/join/:slug" element={<ChurchJoin />} />
+          <Route path="/register/:slug" element={<PublicOnboard />} />
           <Route path="/checkin/:slug" element={<PublicAttendanceCheckin />} />
           <Route path="/set-password" element={<SetPassword />} />
           <Route path="/claim/:slug" element={<ClaimAccount />} />
@@ -330,6 +333,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <TeamRoles />
               </ProtectedRoute>
             }
           />

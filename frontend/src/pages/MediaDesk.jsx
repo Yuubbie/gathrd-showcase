@@ -49,7 +49,7 @@ export default function MediaDesk() {
 
   const today = todayISO();
   const yesterday = shiftISO(today, -1);
-  const canInvite = ['senior_pastor', 'assistant_pastor', 'church_admin', 'media_team'].includes(profile?.role);
+  const canInvite = ['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -124,10 +124,10 @@ export default function MediaDesk() {
           </div>
           {canInvite && (
             <Link
-              to="/team/invite?role=media_team"
+              to="/team"
               className="text-xs text-signal font-semibold shrink-0"
             >
-              Invite media
+              Raise roles
             </Link>
           )}
         </div>

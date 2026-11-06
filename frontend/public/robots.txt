@@ -11,9 +11,11 @@ Disallow: /attendance
 Disallow: /giving
 Disallow: /give/
 Disallow: /join/
+Disallow: /register/
 Disallow: /checkin/
 Disallow: /claim/
 Disallow: /set-password
+Disallow: /team
 Disallow: /team/
 Disallow: /settings
 Disallow: /billing

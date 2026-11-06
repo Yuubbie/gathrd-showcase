@@ -1,6 +1,6 @@
 // Login.jsx - NEW VERSION with Forgot password
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { Eye, EyeOff } from 'lucide-react';
@@ -8,6 +8,8 @@ import { Eye, EyeOff } from 'lucide-react';
 export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const justJoined = Boolean(location.state?.justJoined || location.state?.justClaimed);
   const [mode, setMode] = useState('login'); // 'login' or 'forgot'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,6 +103,12 @@ export default function Login() {
               <h2 className="font-display text-2xl font-bold text-ink">Welcome back</h2>
               <p className="text-ink/50 text-sm mt-1">Log in to your Gathrd account.</p>
             </div>
+
+            {justJoined && !error && (
+              <div className="text-sm text-sage bg-sage-50 rounded-lg p-3">
+                Your login is ready. Log in with the password you just set.
+              </div>
+            )}
 
             {error && (
               <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">

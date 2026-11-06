@@ -105,9 +105,9 @@ export default function PublicOnboard() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-parchment">
         <div className="max-w-sm bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-6 text-center space-y-2">
-          <h1 className="font-display text-lg font-bold text-ink">You're registered! 🎉</h1>
+          <h1 className="font-display text-lg font-bold text-ink">You're registered</h1>
           <p className="text-ink/60 text-sm">
-            Welcome to {churchName}. A member of the team will be in touch.
+            Welcome to {churchName}. To log in and see messages, roster, and your dashboard, ask for the church join link.
           </p>
         </div>
       </div>
