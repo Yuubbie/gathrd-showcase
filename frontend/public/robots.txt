@@ -25,6 +25,7 @@ Disallow: /milestones
 Disallow: /follow-up
 Disallow: /evangelism
 Disallow: /me/
+Disallow: /media
 Disallow: /roster
 Disallow: /calendar
 Disallow: /admin

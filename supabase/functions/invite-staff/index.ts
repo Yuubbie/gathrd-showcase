@@ -64,7 +64,7 @@ serve(async (req) => {
       );
     }
 
-    const allowedInviterRoles = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'];
+    const allowedInviterRoles = ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher', 'media_team'];
     if (!allowedInviterRoles.includes(callerProfile.role)) {
       return new Response(
         JSON.stringify({ error: 'You do not have permission to invite staff.' }),
@@ -79,9 +79,16 @@ serve(async (req) => {
       );
     }
 
+    if (callerProfile.role === 'media_team' && role !== 'media_team') {
+      return new Response(
+        JSON.stringify({ error: 'Media team can only invite other media team members.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const allowedRoles = [
       'senior_pastor', 'assistant_pastor', 'church_admin', 'finance_admin',
-      'department_head', 'cell_leader', 'childrens_teacher', 'member',
+      'department_head', 'cell_leader', 'childrens_teacher', 'media_team', 'member',
     ];
     if (!allowedRoles.includes(role)) {
       return new Response(

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2, CalendarDays, HeartHandshake } from 'lucide-react';
+import { Users, UserPlus, Wallet, Sparkles, ArrowUpRight, AlertCircle, AlertTriangle, Cake, UsersRound, ClipboardCheck, CheckCircle2, CalendarDays, HeartHandshake, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -10,7 +10,7 @@ const ROLE_LABELS = {
   senior_pastor: 'Senior Pastor', assistant_pastor: 'Assistant Pastor',
   church_admin: 'Admin', finance_admin: 'Finance',
   department_head: 'Head of Department', cell_leader: 'Cell Group Leader',
-  childrens_teacher: "Children's Ministry Teacher", member: 'Church Member',
+  childrens_teacher: "Children's Ministry Teacher", media_team: 'Media Team', member: 'Church Member',
 };
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -69,6 +69,7 @@ export default function Dashboard() {
   // since there's genuinely nothing to link yet.
   const [myStats, setMyStats] = useState({ totalGiving: null, servicesAttended: null, soulsWon: null });
   const [evangelismStats, setEvangelismStats] = useState({ total: 0, pending: 0 });
+  const [messageHighlights, setMessageHighlights] = useState({ today: null, yesterday: null, canPost: false });
   const [flags, setFlags] = useState([]);
   const [birthdaysThisWeek, setBirthdaysThisWeek] = useState([]);
   const [cellMeetingsThisWeek, setCellMeetingsThisWeek] = useState([]);
@@ -88,6 +89,8 @@ export default function Dashboard() {
   const canSeeChurchStats = CHURCH_WIDE_ROLES.includes(profile?.role);
   const isCellLeader = profile?.role === 'cell_leader';
   const isMember = profile?.role === 'member';
+  const isMediaTeam = profile?.role === 'media_team';
+  const canPostMedia = ['senior_pastor', 'assistant_pastor', 'church_admin', 'media_team'].includes(profile?.role);
 
   // FIX (High): race-condition / unmount guard. If profile changes mid-flight
   // (role switch, fast re-render, navigating away), a slower stale response
@@ -115,7 +118,7 @@ export default function Dashboard() {
           overdueTasksRes, discipleshipStallRes,
           membersListRes, cellGroupsRes,
           recentVisitorsRes, recentGivingRes, recentAnnouncementsRes,
-          myGivingRes, myAttendanceCountRes, mySoulsRes, churchEvangelismRes,
+          myGivingRes, myAttendanceCountRes, mySoulsRes, churchEvangelismRes, messageHighlightsRes,
         ] = await Promise.all([
           // FIX (Critical): church-wide counts now gated to the roles that
           // can actually see church-wide data. Ungated before, which meant
@@ -174,6 +177,7 @@ export default function Dashboard() {
           canSeeChurchStats
             ? supabase.rpc('list_church_evangelism')
             : Promise.resolve({ data: null }),
+          supabase.rpc('get_latest_message_highlights'),
         ]);
 
         // Bail out silently if a newer load has since started, or we've unmounted.
@@ -188,6 +192,7 @@ export default function Dashboard() {
           recentVisitors: recentVisitorsRes, recentGiving: recentGivingRes, recentAnnouncements: recentAnnouncementsRes,
           myGiving: myGivingRes, myAttendanceCount: myAttendanceCountRes,
           mySouls: mySoulsRes, churchEvangelism: churchEvangelismRes,
+          messageHighlights: messageHighlightsRes,
         };
         const failed = Object.entries(results).filter(([, r]) => r?.error);
         if (failed.length > 0) {
@@ -214,6 +219,13 @@ export default function Dashboard() {
           setEvangelismStats({
             total: Number(churchEvangelismRes.data.total || 0),
             pending: Number(churchEvangelismRes.data.pending || 0),
+          });
+        }
+        if (messageHighlightsRes.data?.ok) {
+          setMessageHighlights({
+            today: messageHighlightsRes.data.today || null,
+            yesterday: messageHighlightsRes.data.yesterday || null,
+            canPost: Boolean(messageHighlightsRes.data.can_post),
           });
         }
 
@@ -418,7 +430,7 @@ export default function Dashboard() {
 
       <OnboardingChecklist />
 
-      {!isMember && (
+      {!isMember && !isMediaTeam && (
         <Card className="p-6 md:p-8 bg-signal-gradient border-0 mb-6">
           <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Sunday desk</p>
           <h2 className="font-display text-xl font-bold text-white mb-4">What needs doing today?</h2>
@@ -431,8 +443,20 @@ export default function Dashboard() {
             {canSeeFinance && <QuickAction to="/giving/counting" label="Count the offering" />}
             {canSeeChurchStats && <QuickAction to="/follow-up" label="Who needs a call" />}
             {canSeeChurchStats && <QuickAction to="/evangelism" label="Souls won / follow-up" />}
+            {canPostMedia && <QuickAction to="/media" label="Post today's message highlight" />}
             {canSeeFinance && <QuickAction to="/giving/transfers" label="Verify bank transfers" />}
             {canSeeChurchStats && <QuickAction to="/members/new" label="Add a member" />}
+          </div>
+        </Card>
+      )}
+
+      {isMediaTeam && (
+        <Card className="p-6 md:p-8 bg-signal-gradient border-0 mb-6">
+          <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">Media desk</p>
+          <h2 className="font-display text-xl font-bold text-white mb-4">Summarise the pastor's message</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <QuickAction to="/media" label="Post today's highlight" />
+            <QuickAction to="/team/invite?role=media_team" label="Invite media team" />
           </div>
         </Card>
       )}
@@ -503,6 +527,52 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {!loading && (messageHighlights.today || messageHighlights.yesterday) && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <BookOpen size={18} className="text-signal" />
+              <h2 className="font-display font-bold text-ink text-sm">
+                {messageHighlights.today ? "Today's message" : "Yesterday's message"}
+              </h2>
+            </div>
+            <Link to="/media" className="text-xs text-signal font-semibold hover:text-signal-deep">
+              {messageHighlights.canPost ? 'Edit →' : 'Read more →'}
+            </Link>
+          </div>
+          {(() => {
+            const highlight = messageHighlights.today || messageHighlights.yesterday;
+            return (
+              <div>
+                <p className="text-sm font-semibold text-ink">{highlight.title}</p>
+                {highlight.scripture && <p className="text-xs text-ink/50 mt-0.5">{highlight.scripture}</p>}
+                {highlight.preacher_name && <p className="text-xs text-ink/50">{highlight.preacher_name}</p>}
+                <p className="text-sm text-ink/70 mt-2 whitespace-pre-wrap">{highlight.summary}</p>
+                {messageHighlights.today && messageHighlights.yesterday && (
+                  <div className="mt-4 pt-3 border-t border-ink/5">
+                    <p className="text-xs text-ink/40 mb-1">Yesterday</p>
+                    <p className="text-sm font-medium text-ink">{messageHighlights.yesterday.title}</p>
+                    <p className="text-sm text-ink/60 mt-1 line-clamp-3 whitespace-pre-wrap">{messageHighlights.yesterday.summary}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
+      {!loading && !messageHighlights.today && !messageHighlights.yesterday && canPostMedia && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-ink">No message highlight yet</p>
+              <p className="text-xs text-ink/50 mt-0.5">Post today's or yesterday's recap so the church can read it here.</p>
+            </div>
+            <Link to="/media" className="text-xs text-signal font-semibold shrink-0">Post →</Link>
+          </div>
+        </Card>
+      )}
+
       {!noStatsAvailable && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {canSeeChurchStats && (
@@ -553,7 +623,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {noStatsAvailable && !loading && (
+      {noStatsAvailable && !loading && !isMediaTeam && (
         <Card className="p-5 mb-6">
           <p className="text-sm text-ink/60">Your role doesn't have a church-wide overview here yet — use the menu to get to what you need.</p>
         </Card>
@@ -651,7 +721,7 @@ export default function Dashboard() {
         <Card className="p-5">
           <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
           <h2 className="font-display font-bold text-ink text-sm mb-1">Invite someone to help</h2>
-          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. An Admin can start and end attendance. Invite Finance, a Head of Department, or a Children's Teacher too.</p>
+          <p className="text-xs text-ink/50 mb-3">You do not have to run Sunday alone. An Admin can start and end attendance. Invite Finance, Media, a Head of Department, or a Children's Teacher too.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/team/invite?role=member"
@@ -682,6 +752,12 @@ export default function Dashboard() {
               className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
             >
               Invite Children's Teacher
+            </Link>
+            <Link
+              to="/team/invite?role=media_team"
+              className="text-sm border border-ink/15 text-ink/70 rounded-lg px-3.5 py-2 font-semibold hover:bg-parchment"
+            >
+              Invite Media Team
             </Link>
             <Link
               to="/team/invite?role=assistant_pastor"

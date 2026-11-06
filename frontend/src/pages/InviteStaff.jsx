@@ -9,6 +9,7 @@ const ROLE_OPTIONS = [
   ['finance_admin', 'Finance'],
   ['department_head', 'Head of Department'],
   ['childrens_teacher', "Children's Teacher"],
+  ['media_team', 'Media Team'],
   ['cell_leader', 'Cell Leader'],
   ['assistant_pastor', 'Assistant Pastor'],
   ['senior_pastor', 'Senior Pastor'],
@@ -22,6 +23,7 @@ const SHORTCUTS = [
   { role: 'finance_admin', label: 'Finance', hint: 'Count offering and verify transfers' },
   { role: 'department_head', label: 'Head of Department', hint: 'Lead one department' },
   { role: 'childrens_teacher', label: "Children's Teacher", hint: 'Children list and their attendance' },
+  { role: 'media_team', label: 'Media Team', hint: "Post today's and yesterday's message highlight" },
   { role: 'assistant_pastor', label: 'Assistant Pastor', hint: 'Same desk as you, one church' },
   { role: 'senior_pastor', label: 'Senior Pastor', hint: 'Full access, same as you' },
 ];
@@ -29,24 +31,33 @@ const SHORTCUTS = [
 export default function InviteStaff() {
   const { profile } = useAuth();
   const isTeacher = profile?.role === 'childrens_teacher';
+  const isMedia = profile?.role === 'media_team';
   const canInviteSenior = profile?.role === 'senior_pastor';
   const visibleRoles = isTeacher
     ? ROLE_OPTIONS.filter(([v]) => v === 'childrens_teacher')
-    : ROLE_OPTIONS.filter(([v]) => v !== 'senior_pastor' || canInviteSenior);
+    : isMedia
+      ? ROLE_OPTIONS.filter(([v]) => v === 'media_team')
+      : ROLE_OPTIONS.filter(([v]) => v !== 'senior_pastor' || canInviteSenior);
   const visibleShortcuts = isTeacher
     ? SHORTCUTS.filter((s) => s.role === 'childrens_teacher')
-    : SHORTCUTS.filter((s) => s.role !== 'senior_pastor' || canInviteSenior);
+    : isMedia
+      ? SHORTCUTS.filter((s) => s.role === 'media_team')
+      : SHORTCUTS.filter((s) => s.role !== 'senior_pastor' || canInviteSenior);
   const [searchParams, setSearchParams] = useSearchParams();
   const roleFromUrl = searchParams.get('role');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const defaultRole = isTeacher ? 'childrens_teacher' : (ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'member');
+  const defaultRole = isTeacher
+    ? 'childrens_teacher'
+    : isMedia
+      ? 'media_team'
+      : (ALLOWED_ROLES.includes(roleFromUrl) ? roleFromUrl : 'member');
   const [role, setRole] = useState(defaultRole);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
   function pickRole(nextRole) {
-    const next = isTeacher ? 'childrens_teacher' : nextRole;
+    const next = isTeacher ? 'childrens_teacher' : isMedia ? 'media_team' : nextRole;
     setRole(next);
     setSearchParams(next === 'member' ? {} : { role: next }, { replace: true });
   }
@@ -81,7 +92,7 @@ export default function InviteStaff() {
         });
         setEmail('');
         setFullName('');
-        pickRole(isTeacher ? 'childrens_teacher' : 'member');
+        pickRole(isTeacher ? 'childrens_teacher' : isMedia ? 'media_team' : 'member');
       }
     } catch {
       setMessage({ type: 'error', text: 'Could not reach the server. Check your connection and try again.' });

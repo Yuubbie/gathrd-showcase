@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, Wallet, ClipboardCheck,
   Megaphone, Cake, UsersRound, Settings as SettingsIcon, Menu, X, LogOut, Baby,
-  CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown, HeartHandshake,
+  CreditCard, Building2, BarChart3, CalendarDays, Calendar, ChevronDown, HeartHandshake, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -16,8 +16,9 @@ const PRIMARY_NAV = [
   { to: '/members', label: 'People', icon: Users, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'], prefixes: ['/members', '/visitors', '/follow-up', '/discipleship', '/evangelism'] },
   { to: '/children', label: 'Children', icon: Baby, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'] },
   { to: '/give/me', label: 'Giving', icon: Wallet, roles: null, prefixes: ['/give', '/giving'] },
-  { to: '/me/attendance', label: 'My Attendance', icon: ClipboardCheck, roles: ['member', 'department_head', 'finance_admin', 'cell_leader', 'childrens_teacher'] },
+  { to: '/me/attendance', label: 'My Attendance', icon: ClipboardCheck, roles: ['member', 'department_head', 'finance_admin', 'cell_leader', 'childrens_teacher', 'media_team'] },
   { to: '/me/souls', label: 'Souls', icon: HeartHandshake, roles: null },
+  { to: '/media', label: 'Message', icon: BookOpen, roles: null },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
 ];
 
@@ -39,6 +40,7 @@ const ROLE_LABELS = {
   department_head: 'Head of Department',
   cell_leader: 'Cell Leader',
   childrens_teacher: "Children's Teacher",
+  media_team: 'Media Team',
   member: 'Member',
 };
 
@@ -135,7 +137,7 @@ export default function AppShell({ children }) {
         </div>
         <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} />
         <div className="p-3 mt-auto space-y-2">
-          {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role) && (
+          {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher', 'media_team'].includes(profile?.role) && (
             <>
               {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
                 <Link to="/settings" className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">
@@ -198,7 +200,7 @@ export default function AppShell({ children }) {
             </div>
             <NavLinks profile={profile} hierarchyLevel={church?.hierarchy_level} currentPath={location.pathname} onNavigate={() => setDrawerOpen(false)} />
             <div className="p-3 mt-auto space-y-2">
-              {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher'].includes(profile?.role) && (
+              {['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher', 'media_team'].includes(profile?.role) && (
                 <>
                   {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
                     <Link to="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 text-xs text-white/50 hover:text-white px-1">

@@ -47,6 +47,7 @@ import MyAttendance from './pages/MyAttendance';
 import MemberAttendanceHistory from './pages/MemberAttendanceHistory';
 import MyEvangelism from './pages/MyEvangelism';
 import ChurchEvangelism from './pages/ChurchEvangelism';
+import MediaDesk from './pages/MediaDesk';
 
 function CheckEmail() {
   return (
@@ -129,6 +130,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyEvangelism />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/media"
+            element={
+              <ProtectedRoute>
+                <MediaDesk />
               </ProtectedRoute>
             }
           />
@@ -327,7 +336,7 @@ export default function App() {
           <Route
             path="/team/invite"
             element={
-              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher']}>
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'childrens_teacher', 'media_team']}>
                 <InviteStaff />
               </ProtectedRoute>
             }

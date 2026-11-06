@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     session,
-    profile,          // includes .role — one of the 8 church_role values
+    profile,          // includes .role — church_role value
     church,           // { id, name, brand_color, logo_url } — the logged-in user's church
     loading,
     authError,        // FIX: new — null when fine, a message when the session/profile genuinely failed

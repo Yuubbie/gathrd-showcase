@@ -47,11 +47,7 @@ export default function AdminDashboard() {
 
       setAuthorized(true);
 
-      // Query from admin_churches_overview view
-      const { data, error } = await supabase
-        .from('admin_churches_overview')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('list_platform_churches');
 
       if (error) throw error;
       setChurches(data || []);
