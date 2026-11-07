@@ -1,10 +1,9 @@
 // supabase/functions/create-paystack-plan/index.ts
 //
-// Creates a Paystack plan for a given tier (basic, advanced, premium).
-// Called once during setup to ensure plans exist in Paystack.
-//
-// Deploy with: supabase functions deploy create-paystack-plan
-// Requires secret: PAYSTACK_SECRET_KEY
+// Creates a Paystack plan for a given tier.
+// Login required. Pastors/admins only.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,10 +19,10 @@ function json(body: unknown, status = 200) {
 }
 
 const PLAN_PRICING: Record<string, { amount: number; name: string; interval: string }> = {
-  regular:       { amount: 10000 * 100, name: "Regular",       interval: "monthly" },  // ₦10,000 (kobo)
-  'multi-leader': { amount: 15000 * 100, name: "Multi-Leader",  interval: "monthly" },  // ₦15,000 (kobo)
-  district:      { amount: 20000 * 100, name: "District",      interval: "monthly" },  // ₦20,000 (kobo)
-  zone:          { amount: 50000 * 100, name: "Zone",          interval: "monthly" },  // ₦50,000 (kobo)
+  regular: { amount: 10000 * 100, name: "Regular", interval: "monthly" },
+  "multi-leader": { amount: 15000 * 100, name: "Multi-Leader", interval: "monthly" },
+  district: { amount: 20000 * 100, name: "District", interval: "monthly" },
+  zone: { amount: 50000 * 100, name: "Zone", interval: "monthly" },
 };
 
 Deno.serve(async (req) => {
@@ -36,15 +35,36 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Not authenticated." }, 401);
+
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await callerClient.auth.getUser();
+    if (authError || !user) return json({ error: "Not authenticated." }, 401);
+
+    const { data: profile } = await callerClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !["senior_pastor", "assistant_pastor", "church_admin"].includes(profile.role)) {
+      return json({ error: "Not authorized." }, 403);
+    }
+
     const { planId } = await req.json();
     if (!planId || !PLAN_PRICING[planId]) {
-      return json({ error: "Invalid plan. Must be: basic, advanced, or premium" }, 400);
+      return json({ error: "Invalid plan." }, 400);
     }
 
     const plan = PLAN_PRICING[planId];
-    const secretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+    const secretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
+    if (!secretKey) return json({ error: "Paystack is not configured." }, 500);
 
-    // Create or get existing plan
     const res = await fetch("https://api.paystack.co/plan", {
       method: "POST",
       headers: {

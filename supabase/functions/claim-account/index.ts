@@ -27,8 +27,11 @@ serve(async (req) => {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const cleanName = String(full_name || '').trim();
 
-    if (!slug || !cleanEmail || !password) {
-      return json({ error: 'A church link, email, and password are all required.' }, 400);
+    if (!slug || !cleanEmail || !password || !cleanName) {
+      return json({ error: 'A church link, full name, email, and password are all required.' }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || cleanEmail.length > 254) {
+      return json({ error: 'Enter a valid email address.' }, 400);
     }
     if (password.length < 8) {
       return json({ error: 'Password must be at least 8 characters.' }, 400);

@@ -1,36 +1,57 @@
 // supabase/functions/send-sms/index.ts
-// Sends SMS via Termii using the approved "Gathrd" Sender ID.
-// Deploy with: supabase functions deploy send-sms
+// Sends SMS via Termii. Login required. Pastors/admins only.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Not authenticated." }, 401);
+
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await callerClient.auth.getUser();
+    if (authError || !user) return json({ error: "Not authenticated." }, 401);
+
+    const { data: profile } = await callerClient
+      .from("profiles")
+      .select("role, church_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !["senior_pastor", "assistant_pastor", "church_admin"].includes(profile.role)) {
+      return json({ error: "Not authorized." }, 403);
+    }
+
     const { to, message } = await req.json();
 
     if (!to || !message) {
-      return new Response(
-        JSON.stringify({ error: "Missing 'to' or 'message' in request body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Missing 'to' or 'message' in request body" }, 400);
     }
 
     const apiKey = Deno.env.get("TERMII_API_KEY");
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "TERMII_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "TERMII_API_KEY not configured" }, 500);
     }
 
     const termiiRes = await fetch("https://api.ng.termii.com/api/sms/send", {
@@ -49,20 +70,11 @@ serve(async (req) => {
     const data = await termiiRes.json();
 
     if (!termiiRes.ok) {
-      return new Response(
-        JSON.stringify({ error: "Termii request failed", details: data }),
-        { status: termiiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Termii request failed", details: data }, termiiRes.status);
     }
 
-    return new Response(JSON.stringify({ success: true, data }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ success: true, data });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Unexpected error", details: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: "Unexpected error", details: String(err) }, 500);
   }
 });
