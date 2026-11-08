@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { MessageSquare, Phone } from 'lucide-react';
+import { Copy, MessageSquare, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { telHref, waHref } from '../lib/phone';
 import { fillSoulMessage, nextSoulStep, timesReachedLabel } from '../lib/soulFollowUp';
 
 export default function SoulFollowUpActions({ row, churchName, onRecorded }) {
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const times = Number(row.times_reached || 0);
   const step = nextSoulStep(times);
   const message = fillSoulMessage(step.template, {
@@ -57,6 +58,24 @@ export default function SoulFollowUpActions({ row, churchName, onRecorded }) {
             <Phone size={13} /> Call
           </a>
         )}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(message);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {
+              setCopied(false);
+            }
+            await record('sms');
+          }}
+          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-ink/15 hover:bg-ink/5 text-ink flex items-center gap-1 disabled:opacity-50"
+        >
+          <Copy size={13} />
+          {copied ? 'Copied' : 'Copy SMS'}
+        </button>
       </div>
     </div>
   );
