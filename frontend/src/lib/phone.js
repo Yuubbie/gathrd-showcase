@@ -19,3 +19,10 @@ export function waHref(raw, message = '') {
   if (!message) return `https://wa.me/${cleaned}`;
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
 }
+
+export function smsHref(raw, message = '') {
+  const cleaned = cleanPhone(raw);
+  if (!cleaned) return '';
+  if (!message) return `sms:+${cleaned}`;
+  return `sms:+${cleaned}?body=${encodeURIComponent(message)}`;
+}
