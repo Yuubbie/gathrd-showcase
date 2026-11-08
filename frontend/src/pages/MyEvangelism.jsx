@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HeartHandshake } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import ContactActions from '../components/ContactActions';
+import { useAuth } from '../context/AuthContext';
+import SoulFollowUpActions from '../components/SoulFollowUpActions';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -23,6 +24,7 @@ const CARD =
   'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
 
 export default function MyEvangelism() {
+  const { church } = useAuth();
   const [form, setForm] = useState({ full_name: '', phone: '', notes: '' });
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ export default function MyEvangelism() {
           <HeartHandshake size={20} className="text-signal" />
           <h1 className="font-display text-xl font-bold text-ink">Souls I have won</h1>
         </div>
-        <p className="text-ink/50 text-sm">Add people you led to Christ, then follow them up.</p>
+        <p className="text-ink/50 text-sm">Add people you led to Christ, then send the 4 follow-up messages.</p>
 
         <form onSubmit={handleSubmit} className={`${CARD} p-5 space-y-3`}>
           <h2 className="text-sm font-semibold text-ink">Add a soul</h2>
@@ -147,8 +149,12 @@ export default function MyEvangelism() {
                       {STATUS_LABELS[row.status] || row.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <ContactActions phone={row.phone} name={row.full_name} />
+                  <SoulFollowUpActions
+                    row={row}
+                    churchName={church?.name}
+                    onRecorded={load}
+                  />
+                  <div className="flex justify-end">
                     <select
                       value={row.status}
                       disabled={updatingId === row.id}

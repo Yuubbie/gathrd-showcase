@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HeartHandshake } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import ContactActions from '../components/ContactActions';
+import { useAuth } from '../context/AuthContext';
+import SoulFollowUpActions from '../components/SoulFollowUpActions';
 import { PeopleTabs } from '../components/SectionTabs';
+import { timesReachedLabel } from '../lib/soulFollowUp';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -21,6 +23,7 @@ const STATUS_COLORS = {
 };
 
 export default function ChurchEvangelism() {
+  const { church } = useAuth();
   const [rows, setRows] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, converted: 0 });
   const [loading, setLoading] = useState(true);
@@ -70,7 +73,7 @@ export default function ChurchEvangelism() {
           <HeartHandshake size={20} className="text-signal" />
           <h1 className="font-display text-xl font-bold text-ink">Souls won</h1>
         </div>
-        <p className="text-ink/50 text-sm">People members recorded from personal evangelism, and how follow-up is going.</p>
+        <p className="text-ink/50 text-sm">People members recorded from personal evangelism, who won them, and how many times they have been reached.</p>
 
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Total" value={stats.total} />
@@ -103,15 +106,19 @@ export default function ChurchEvangelism() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-ink">{row.full_name}</p>
-                      <p className="text-xs text-ink/50 mt-0.5">Won by {row.won_by_name}</p>
+                      <p className="text-xs text-ink/50 mt-0.5">Won by {row.won_by_name} · {timesReachedLabel(row.times_reached)}</p>
                       {row.notes && <p className="text-xs text-ink/50 mt-0.5">{row.notes}</p>}
                     </div>
                     <span className={`text-xs rounded-full px-2 py-1 font-medium h-fit ${STATUS_COLORS[row.status]}`}>
                       {STATUS_LABELS[row.status] || row.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <ContactActions phone={row.phone} name={row.full_name} />
+                  <SoulFollowUpActions
+                    row={row}
+                    churchName={church?.name}
+                    onRecorded={load}
+                  />
+                  <div className="flex justify-end">
                     <select
                       value={row.status}
                       disabled={updatingId === row.id}
