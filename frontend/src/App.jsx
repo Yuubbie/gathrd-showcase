@@ -50,6 +50,7 @@ import MemberAttendanceHistory from './pages/MemberAttendanceHistory';
 import MyEvangelism from './pages/MyEvangelism';
 import ChurchEvangelism from './pages/ChurchEvangelism';
 import MediaDesk from './pages/MediaDesk';
+import MonthlyReport from './pages/MonthlyReport';
 
 function CheckEmail() {
   return (
@@ -141,6 +142,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MediaDesk />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin', 'department_head']}>
+                <MonthlyReport />
               </ProtectedRoute>
             }
           />

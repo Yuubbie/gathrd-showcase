@@ -24,7 +24,7 @@ const STATUS_OPTIONS = [
 const emptyForm = {
   full_name: '', phone: '', email: '', date_of_birth: '', gender: '',
   marital_status: '', residential_address: '', state_of_origin: '', lga: '',
-  occupation: '', cell_group_id: '', status: 'active', date_joined: '',
+  occupation: '', cell_group_id: '', department_ids: [], status: 'active', date_joined: '',
   photo_url: '', wedding_anniversary: '', blood_group: '', genotype: '',
   born_again_date: '', next_of_kin_name: '', next_of_kin_phone: '',
   age_group: 'adult',
@@ -40,6 +40,7 @@ export default function MemberForm() {
 
   const [form, setForm] = useState({ ...emptyForm, age_group: fromChildren ? 'child' : 'adult' });
   const [cellGroups, setCellGroups] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [medicalEnabled, setMedicalEnabled] = useState(false);
   const [medicalConsent, setMedicalConsent] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -56,13 +57,15 @@ export default function MemberForm() {
         return;
       }
 
-      const [{ data: church }, { data: cells }] = await Promise.all([
+      const [{ data: church }, { data: cells }, { data: depts }] = await Promise.all([
         supabase.from('churches').select('medical_data_enabled').eq('id', profile.church_id).single(),
         supabase.from('cell_groups').select('id, name').eq('church_id', profile.church_id).is('deleted_at', null),
+        supabase.from('departments').select('id, name').eq('church_id', profile.church_id).is('deleted_at', null).order('name'),
       ]);
 
       if (church) setMedicalEnabled(church.medical_data_enabled);
       if (cells) setCellGroups(cells);
+      if (depts) setDepartments(depts);
 
       if (isEditing) {
         const { data: member, error } = await supabase
@@ -73,7 +76,16 @@ export default function MemberForm() {
         if (error) {
           setError('Could not load this member.');
         } else if (member) {
-          setForm({ ...emptyForm, ...member, cell_group_id: member.cell_group_id || '' });
+          const { data: memberDepts } = await supabase
+            .from('member_departments')
+            .select('department_id')
+            .eq('member_id', id);
+          setForm({
+            ...emptyForm,
+            ...member,
+            cell_group_id: member.cell_group_id || '',
+            department_ids: (memberDepts || []).map((row) => row.department_id),
+          });
         }
       }
       setLoading(false);
@@ -96,6 +108,7 @@ export default function MemberForm() {
     setError('');
     setSaving(true);
 
+    const departmentIds = Array.isArray(form.department_ids) ? form.department_ids : [];
     const payload = {
       ...form,
       church_id: profile.church_id,
@@ -112,16 +125,29 @@ export default function MemberForm() {
       genotype: medicalEnabled && medicalConsent ? form.genotype : null,
     };
     delete payload.id;
+    delete payload.department_ids;
 
-    const { error } = isEditing
-      ? await supabase.from('members').update(payload).eq('id', id)
-      : await supabase.from('members').insert({ ...payload, source: 'admin_added' });
+    const { data: saved, error } = isEditing
+      ? await supabase.from('members').update(payload).eq('id', id).select('id').single()
+      : await supabase.from('members').insert({ ...payload, source: 'admin_added' }).select('id').single();
 
-    setSaving(false);
     if (error) {
+      setSaving(false);
       setError(error.message);
       return;
     }
+
+    const memberId = saved?.id || id;
+    if (memberId) {
+      await supabase.from('member_departments').delete().eq('member_id', memberId);
+      if (departmentIds.length) {
+        await supabase.from('member_departments').insert(
+          departmentIds.map((department_id) => ({ member_id: memberId, department_id }))
+        );
+      }
+    }
+
+    setSaving(false);
     navigate(fromChildren || payload.age_group === 'child' ? '/children' : '/members');
   }
 
@@ -196,6 +222,33 @@ export default function MemberForm() {
               {STATUS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </Field>
+          {departments.length > 0 && (
+            <Field label="Departments">
+              <div className="space-y-1.5 border border-ink/10 rounded-lg px-3.5 py-2.5">
+                {departments.map((d) => {
+                  const checked = (form.department_ids || []).includes(d.id);
+                  return (
+                    <label key={d.id} className="flex items-center gap-2 text-sm text-ink/80">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const current = form.department_ids || [];
+                          update(
+                            'department_ids',
+                            e.target.checked
+                              ? [...current, d.id]
+                              : current.filter((deptId) => deptId !== d.id)
+                          );
+                        }}
+                      />
+                      {d.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
         </Section>
 
         {!isEditing && (

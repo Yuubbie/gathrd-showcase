@@ -20,6 +20,7 @@ const PRIMARY_NAV = [
   { to: '/me/souls', label: 'Souls', icon: HeartHandshake, roles: null },
   { to: '/media', label: 'Message', icon: BookOpen, roles: null },
   { to: '/cell-groups', label: 'Cell Groups', icon: UsersRound, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'cell_leader'] },
+  { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['senior_pastor', 'assistant_pastor', 'church_admin', 'department_head'] },
 ];
 
 const MORE_NAV = [

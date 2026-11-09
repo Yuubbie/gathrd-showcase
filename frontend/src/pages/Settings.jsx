@@ -9,6 +9,7 @@ export default function Settings() {
   const { profile } = useAuth();
   const [form, setForm] = useState({ logo_url: '', brand_color: '#1B3A5C' });
   const [departments, setDepartments] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [newDeptName, setNewDeptName] = useState('');
   const [addingDept, setAddingDept] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -18,13 +19,22 @@ export default function Settings() {
   const [success, setSuccess] = useState('');
 
   async function loadDepartments() {
-    const { data } = await supabase
-      .from('departments')
-      .select('id, name')
-      .eq('church_id', profile.church_id)
-      .is('deleted_at', null)
-      .order('name');
-    setDepartments(data || []);
+    const [{ data: deptRows }, { data: people }] = await Promise.all([
+      supabase
+        .from('departments')
+        .select('id, name, leader_profile_id')
+        .eq('church_id', profile.church_id)
+        .is('deleted_at', null)
+        .order('name'),
+      supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('church_id', profile.church_id)
+        .is('deleted_at', null)
+        .order('full_name'),
+    ]);
+    setDepartments(deptRows || []);
+    setLeaders(people || []);
   }
 
   useEffect(() => {
@@ -128,6 +138,18 @@ export default function Settings() {
     loadDepartments();
   }
 
+  async function assignHead(departmentId, leaderId) {
+    const { data } = await supabase.rpc('set_department_head', {
+      p_department_id: departmentId,
+      p_leader_id: leaderId || null,
+    });
+    if (!data?.ok) {
+      setError('Could not assign this head.');
+      return;
+    }
+    loadDepartments();
+  }
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-parchment text-ink/40">Loading…</div>;
 
   return (
@@ -203,6 +225,11 @@ export default function Settings() {
         {/* Departments */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
           <h2 className="text-sm font-semibold text-ink/80">Departments</h2>
+          <p className="text-xs text-ink/50">
+            Assign a head, then raise their role to Head of Department on{' '}
+            <Link to="/team" className="text-signal font-semibold hover:text-signal-deep">Team</Link>
+            {' '}so they can open Reports.
+          </p>
           <form onSubmit={addDepartment} className="flex gap-2">
             <input
               value={newDeptName}
@@ -220,9 +247,23 @@ export default function Settings() {
           ) : (
             <div className="divide-y">
               {departments.map((d) => (
-                <div key={d.id} className="flex items-center justify-between py-2">
-                  <span className="text-sm text-ink/70">{d.name}</span>
-                  <button onClick={() => removeDepartment(d.id)} className="text-xs text-rose hover:text-rose/80">Remove</button>
+                <div key={d.id} className="py-2 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm text-ink/70">{d.name}</span>
+                    <button onClick={() => removeDepartment(d.id)} className="text-xs text-rose hover:text-rose/80">Remove</button>
+                  </div>
+                  <select
+                    value={d.leader_profile_id || ''}
+                    onChange={(e) => assignHead(d.id, e.target.value)}
+                    className="w-full border border-ink/10 rounded-lg px-3 py-1.5 text-xs bg-white"
+                  >
+                    <option value="">No head assigned</option>
+                    {leaders.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name}{p.role === 'department_head' ? ' (head)' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ))}
             </div>
