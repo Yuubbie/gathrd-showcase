@@ -42,7 +42,7 @@ export default function TeamRoles() {
     setLoading(true);
     const { data, error } = await supabase.rpc('list_church_logins');
     if (error || !data?.ok) {
-      setMessage({ type: 'error', text: 'Could not load church logins.' });
+      setMessage({ type: 'error', text: 'Could not load the team.' });
       setRows([]);
     } else {
       setRows(Array.isArray(data.rows) ? data.rows : []);
@@ -109,7 +109,7 @@ export default function TeamRoles() {
     <div className="min-h-screen bg-parchment px-4 py-6 md:px-10 md:py-8">
       <div className="max-w-2xl mx-auto space-y-4">
         <div>
-          <h1 className="text-xl font-semibold">Church logins</h1>
+          <h1 className="text-xl font-semibold">Team</h1>
           <p className="text-ink/50 text-sm mt-1">
             Share one join link. Everyone signs up as a member. Then raise their role here.
           </p>
