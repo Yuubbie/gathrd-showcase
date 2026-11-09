@@ -109,7 +109,7 @@ export default function InviteStaff() {
         <div>
           <h1 className="text-xl font-semibold">Invite someone</h1>
           <p className="text-ink/50 text-sm mt-1">
-            Prefer the church join link so everyone signs up as a member, then raise their role from Church logins. Use this only when you need to email one person a specific role.
+            Prefer the church join link so everyone signs up as a member, then raise their role from Team. Use this only when you need to email one person a specific role.
           </p>
           {['senior_pastor', 'assistant_pastor', 'church_admin'].includes(profile?.role) && (
             <Link to="/team" className="inline-block text-sm text-signal font-semibold mt-2">

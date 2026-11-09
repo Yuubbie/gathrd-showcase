@@ -721,7 +721,7 @@ export default function Dashboard() {
         <Card className="p-5">
           <p className="text-ink/50 text-xs font-medium uppercase tracking-wide mb-2">Share the work</p>
           <h2 className="font-display font-bold text-ink text-sm mb-1">One link for the whole church</h2>
-          <p className="text-xs text-ink/50 mb-3">Share the join link. Everyone signs up as a member, then you raise Admin, Media, Finance, or pastor from Church logins.</p>
+          <p className="text-xs text-ink/50 mb-3">Share the join link. Everyone signs up as a member, then you raise Admin, Media, Finance, or pastor from Team.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/team"

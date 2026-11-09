@@ -104,7 +104,10 @@ export default function MonthlyReport() {
         <div className="flex items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-2">
             <FileBarChart size={20} className="text-signal" />
-            <h1 className="font-display text-xl font-bold text-ink">Monthly report</h1>
+            <div>
+              <h1 className="font-display text-xl font-bold text-ink">Monthly report</h1>
+              <p className="text-xs text-ink/50">Gathrd fills the numbers. Admins add the rest for the pastor.</p>
+            </div>
           </div>
           <button
             type="button"
@@ -154,10 +157,19 @@ export default function MonthlyReport() {
           <p className="text-rose text-sm py-10 text-center">{error}</p>
         ) : !report ? (
           <p className="text-ink/40 text-sm py-10 text-center">No report yet.</p>
-        ) : report.kind === 'department' ? (
-          <DepartmentView report={report} monthLabel={`${MONTHS[month - 1]} ${year}`} />
         ) : (
-          <ChurchView report={report} monthLabel={`${MONTHS[month - 1]} ${year}`} />
+          <>
+            {report.kind === 'department' ? (
+              <DepartmentView report={report} monthLabel={`${MONTHS[month - 1]} ${year}`} />
+            ) : (
+              <ChurchView report={report} monthLabel={`${MONTHS[month - 1]} ${year}`} />
+            )}
+            <ReportAdditions
+              year={year}
+              month={month}
+              departmentId={scope === 'church' ? null : scope}
+            />
+          </>
         )}
 
         {profile?.role === 'department_head' && departments.length === 0 && !loading && (
@@ -347,5 +359,186 @@ function Section({ title, children }) {
       <h3 className="text-sm font-semibold text-ink">{title}</h3>
       {children}
     </div>
+  );
+}
+
+function emptyExtra() {
+  return { title: '', body: '' };
+}
+
+function ReportAdditions({ year, month, departmentId }) {
+  const [notes, setNotes] = useState('');
+  const [extras, setExtras] = useState([emptyExtra()]);
+  const [canEdit, setCanEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    const { data } = await supabase.rpc('get_monthly_report_additions', {
+      p_year: year,
+      p_month: month,
+      p_department_id: departmentId,
+    });
+    if (!data?.ok) {
+      setError('Could not load extra notes.');
+      setNotes('');
+      setExtras([emptyExtra()]);
+      setCanEdit(false);
+    } else {
+      const rows = Array.isArray(data.extras) ? data.extras : [];
+      setNotes(data.notes || '');
+      setExtras(rows.length ? rows.map((row) => ({
+        title: row.title || '',
+        body: row.body || '',
+      })) : [emptyExtra()]);
+      setCanEdit(Boolean(data.can_edit));
+    }
+    setLoading(false);
+  }, [year, month, departmentId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function updateExtra(index, field, value) {
+    setExtras((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  }
+
+  function addExtra() {
+    setExtras((rows) => (rows.length >= 20 ? rows : [...rows, emptyExtra()]));
+  }
+
+  function removeExtra(index) {
+    setExtras((rows) => {
+      const next = rows.filter((_, i) => i !== index);
+      return next.length ? next : [emptyExtra()];
+    });
+  }
+
+  async function save() {
+    setSaving(true);
+    setError('');
+    setMessage('');
+    const cleaned = extras
+      .map((row) => ({ title: (row.title || '').trim(), body: (row.body || '').trim() }))
+      .filter((row) => row.title || row.body);
+    const { data } = await supabase.rpc('save_monthly_report_additions', {
+      p_year: year,
+      p_month: month,
+      p_department_id: departmentId,
+      p_notes: notes,
+      p_extras: cleaned,
+    });
+    setSaving(false);
+    if (!data?.ok) {
+      setError('Could not save extra notes.');
+      return;
+    }
+    setNotes(data.notes || '');
+    const rows = Array.isArray(data.extras) ? data.extras : [];
+    setExtras(rows.length ? rows : [emptyExtra()]);
+    setMessage('Saved. Pastors will see this with the numbers.');
+  }
+
+  const filled = extras.filter((row) => (row.title || '').trim() || (row.body || '').trim());
+  const hasContent = notes.trim() || filled.length;
+
+  if (loading) {
+    return <p className="text-ink/40 text-sm">Loading extra notes…</p>;
+  }
+
+  if (!canEdit && !hasContent) {
+    return null;
+  }
+
+  return (
+    <Section title="Extra notes for the pastor">
+      <p className="text-xs text-ink/50 print:hidden">
+        Add testimony, events, welfare, building, or anything Gathrd does not count. Pastors see this with the numbers.
+      </p>
+      {error && <p className="text-sm text-rose">{error}</p>}
+      {message && <p className="text-sm text-sage print:hidden">{message}</p>}
+
+      {canEdit ? (
+        <div className="space-y-3 print:hidden">
+          <label className="block">
+            <span className="text-xs font-medium text-ink/70">Notes for the pastor</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              maxLength={8000}
+              placeholder="Testimony, prayer points, events, needs…"
+              className="mt-1 w-full border border-ink/10 rounded-lg px-3 py-2 text-sm bg-white"
+            />
+          </label>
+          {extras.map((row, index) => (
+            <div key={index} className="border border-ink/10 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  value={row.title}
+                  onChange={(e) => updateExtra(index, 'title', e.target.value)}
+                  placeholder="Heading (e.g. Welfare, Building, Outreach)"
+                  maxLength={120}
+                  className="flex-1 border border-ink/10 rounded-lg px-3 py-2 text-sm bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeExtra(index)}
+                  className="text-xs text-rose shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+              <textarea
+                value={row.body}
+                onChange={(e) => updateExtra(index, 'body', e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="What happened, numbers not in Gathrd, next steps…"
+                className="w-full border border-ink/10 rounded-lg px-3 py-2 text-sm bg-white"
+              />
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={addExtra}
+              className="text-sm text-signal font-semibold hover:text-signal-deep"
+            >
+              Add another item
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-3.5 py-2 font-semibold disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save additions'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={canEdit ? 'hidden print:block space-y-3' : 'space-y-3'}>
+        {notes.trim() ? (
+          <p className="text-sm text-ink/80 whitespace-pre-wrap">{notes}</p>
+        ) : null}
+        {filled.map((row, index) => (
+          <div key={`${row.title}-${index}`}>
+            {row.title ? <p className="text-sm font-semibold text-ink">{row.title}</p> : null}
+            {row.body ? <p className="text-sm text-ink/70 whitespace-pre-wrap">{row.body}</p> : null}
+          </div>
+        ))}
+        {!hasContent && canEdit ? (
+          <p className="text-sm text-ink/40 print:hidden">Nothing added yet.</p>
+        ) : null}
+      </div>
+    </Section>
   );
 }

@@ -146,7 +146,7 @@ export default function Members() {
           <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-3">
             <p className="text-sm font-semibold text-ink">One join link (recommended)</p>
             <p className="text-sm text-ink/60">
-              Share this with the whole church. They set a password and log in as members. Raise their role later from Church logins.
+              Share this with the whole church. They set a password and log in as members. Raise their role later from Team.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               <img
