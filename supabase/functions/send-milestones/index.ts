@@ -126,13 +126,28 @@ Deno.serve(async (req) => {
         }
 
         let status = "no_phone";
+        const message = templateMap[milestone]
+          .replace("{{name}}", m.full_name)
+          .replace("{{church_name}}", church?.name || "your church");
         if (m.phone) {
-          const message = templateMap[milestone]
-            .replace("{{name}}", m.full_name)
-            .replace("{{church_name}}", church?.name || "your church");
           status = await sendWhatsApp(m.phone, message);
           if (status === "sent") totalSent++;
         }
+        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            church_id: profile.church_id,
+            title: "Gathrd",
+            body: message.replace(/🎉|🎊|🙏/g, "").trim(),
+            url: "/dashboard",
+            tag: `milestone-${m.member_id}`,
+            member_ids: [m.member_id],
+          }),
+        }).catch(() => {});
 
         await supabaseAdmin.from("milestone_messages_log").insert({
           church_id: profile.church_id,

@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { sendChurchPush } from '../lib/push';
 
 export default function VisitorCheckIn() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     full_name: '', phone: '', address: '', how_heard: '', assigned_to: '',
@@ -51,6 +52,15 @@ export default function VisitorCheckIn() {
       return;
     }
     setSuccess(`${form.full_name} checked in! Follow-up assigned.`);
+    if (form.assigned_to) {
+      sendChurchPush(session, {
+        title: 'Follow-up assigned',
+        body: `${form.full_name} needs follow-up. Open Gathrd.`,
+        url: '/follow-up',
+        tag: 'follow-up',
+        profile_ids: [form.assigned_to],
+      });
+    }
     setForm({ full_name: '', phone: '', address: '', how_heard: '', assigned_to: '' });
   }
 

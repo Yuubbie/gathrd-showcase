@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import WhatsAppButton from './WhatsAppButton';
 import InstallPrompt from './InstallPrompt';
+import PushPrompt from './PushPrompt';
 
 const PRIMARY_NAV = [
   { to: '/dashboard', label: 'Today', icon: LayoutDashboard, roles: null },
@@ -243,6 +244,7 @@ export default function AppShell({ children }) {
         message={`Hello Gathrd, I'm ${profile?.full_name || 'a user'} from ${church?.name || 'my church'}. I need help with: `}
       />
       <InstallPrompt offsetForSidebar />
+      <PushPrompt />
     </div>
   );
 }

@@ -114,10 +114,27 @@ Deno.serve(async (req) => {
 
       const leaderPhone = cg.profiles?.phone;
       let status = "no_phone";
+      const message = `Hi ${cg.profiles?.full_name || ''}, reminder: today is your ${cg.name} cell meeting day. Please submit your weekly report on Gathrd after the meeting.`;
       if (leaderPhone) {
-        const message = `Hi ${cg.profiles?.full_name || ''}, reminder: today is your ${cg.name} cell meeting day. Please submit your weekly report on Gathrd after the meeting.`;
         status = await sendWhatsApp(leaderPhone, message);
         if (status === "sent") sentCount++;
+      }
+      if (cg.leader_profile_id) {
+        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            church_id: profile.church_id,
+            title: "Cell meeting today",
+            body: `Today is ${cg.name}. Submit your report on Gathrd after the meeting.`,
+            url: "/cell-groups",
+            tag: `cell-${cg.id}`,
+            profile_ids: [cg.leader_profile_id],
+          }),
+        }).catch(() => {});
       }
       results.push({ cell_group: cg.name, status });
     }

@@ -145,6 +145,25 @@ Deno.serve(async (req) => {
       .update({ sent_at: new Date().toISOString() })
       .eq("id", announcement_id);
 
+    const pushBody: Record<string, unknown> = {
+      church_id: profile.church_id,
+      title: announcement.is_emergency ? `Urgent: ${announcement.title}` : announcement.title,
+      body: announcement.body,
+      url: "/dashboard",
+      tag: `announcement-${announcement_id}`,
+    };
+    if (announcement.target_type !== "all") {
+      pushBody.member_ids = members.map((m) => m.id);
+    }
+    fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify(pushBody),
+    }).catch(() => {});
+
     return json({
       success: true,
       total_recipients: members.length,

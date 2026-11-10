@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Megaphone } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { sendChurchPush } from '../lib/push';
 
 const CARD =
   'bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)]';
@@ -38,7 +39,7 @@ const emptyForm = {
 };
 
 export default function MediaDesk() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [rows, setRows] = useState([]);
   const [canPost, setCanPost] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,12 @@ export default function MediaDesk() {
       return;
     }
     setMessage('Saved. Everyone in the church can see this on Today.');
+    sendChurchPush(session, {
+      title: "Today's message",
+      body: form.title || 'A new message highlight is ready in Gathrd.',
+      url: '/media',
+      tag: 'message-highlight',
+    });
     load();
   }
 
