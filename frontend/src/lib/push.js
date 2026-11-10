@@ -22,38 +22,59 @@ export function pushSupported() {
   );
 }
 
-export async function syncPushSubscription() {
-  if (!pushSupported() || Notification.permission !== 'granted') return false;
+export async function ensureServiceWorker() {
+  if (!('serviceWorker' in navigator)) return null;
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  if (existing) {
+    existing.update().catch(() => {});
+    return existing;
+  }
+  return navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+}
+
+export async function syncPushSubscription(force = false) {
+  if (!pushSupported()) return { ok: false, error: 'unsupported' };
+  if (Notification.permission !== 'granted') return { ok: false, error: 'permission' };
+  await ensureServiceWorker();
   const registration = await navigator.serviceWorker.ready;
+  const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
   let subscription = await registration.pushManager.getSubscription();
+  if (force && subscription) {
+    await subscription.unsubscribe().catch(() => {});
+    subscription = null;
+  }
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey,
     });
   }
   const json = subscription.toJSON();
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
-  const { data } = await supabase.rpc('save_push_subscription', {
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+    return { ok: false, error: 'bad_subscription' };
+  }
+  const { data, error } = await supabase.rpc('save_push_subscription', {
     p_endpoint: json.endpoint,
     p_p256dh: json.keys.p256dh,
     p_auth: json.keys.auth,
     p_user_agent: navigator.userAgent,
   });
-  return Boolean(data?.ok);
+  if (error || !data?.ok) return { ok: false, error: data?.error || error?.message || 'save_failed' };
+  return { ok: true };
 }
 
 export async function requestPushPermission() {
-  if (!pushSupported()) return 'unsupported';
+  if (!pushSupported()) return { permission: 'unsupported', ok: false };
   const permission = await Notification.requestPermission();
-  if (permission === 'granted') await syncPushSubscription();
-  return permission;
+  if (permission !== 'granted') return { permission, ok: false };
+  const saved = await syncPushSubscription(true);
+  return { permission, ok: saved.ok, error: saved.error };
 }
 
 export async function sendChurchPush(session, payload) {
-  if (!session?.access_token) return;
+  if (!session?.access_token) return { ok: false, error: 'no_session' };
   try {
-    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +82,20 @@ export async function sendChurchPush(session, payload) {
       },
       body: JSON.stringify(payload),
     });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error || `http_${res.status}`, ...data };
+    return data;
   } catch {
-    /* delivery is best-effort */
+    return { ok: false, error: 'network' };
   }
+}
+
+export async function sendSelfTestPush(session) {
+  return sendChurchPush(session, {
+    self_test: true,
+    title: 'Gathrd',
+    body: 'Phone alerts are on. You will see church notices on the lock screen.',
+    url: '/dashboard',
+    tag: 'gathrd-test',
+  });
 }
