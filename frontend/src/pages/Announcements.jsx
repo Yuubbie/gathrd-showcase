@@ -110,7 +110,7 @@ export default function Announcements() {
         setNotice(
           data.not_configured > 0
             ? `Sent to ${data.total_recipients} recipient(s). WhatsApp isn't connected yet, so messages are logged but not delivered — connect Termii to activate real sending.`
-            : `Sent to ${data.sent} of ${data.total_recipients} recipient(s).`
+            : `Sent to ${data.sent} of ${data.total_recipients} recipient(s). Installed phones also get a Gathrd alert.`
         );
       }
     } catch {

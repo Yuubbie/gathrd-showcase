@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import ContactActions from '../components/ContactActions';
+import { sendChurchPush } from '../lib/push';
 
 const SERVICE_TYPES = [
   { id: 'sunday', label: 'Sunday', defaultName: 'Sunday Service' },
@@ -59,7 +60,7 @@ function AttendanceRow({ person, record, onCheckIn, onUndo }) {
 }
 
 export default function ServiceAttendance() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [service, setService] = useState(null); // the open service, or null
   const [members, setMembers] = useState([]);
   const [children, setChildren] = useState([]);
@@ -259,6 +260,12 @@ export default function ServiceAttendance() {
       setMessage('Only a pastor or church admin can start a service.');
       return;
     }
+    sendChurchPush(session, {
+      title: 'Service has started',
+      body: `${serviceName} is open. Open Gathrd to check in.`,
+      url: '/me/attendance',
+      tag: 'service-start',
+    });
     await load();
   }
 

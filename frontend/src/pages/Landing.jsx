@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Sparkles, Wallet, ClipboardCheck,
   Megaphone, UsersRound, ListChecks, Check, ArrowRight, Play,
-  Bell, CalendarDays, Baby, Building2, HeartHandshake, BookOpen, FileBarChart,
+  Bell, CalendarDays, Baby, Building2, HeartHandshake, BookOpen, FileBarChart, Smartphone,
 } from 'lucide-react';
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
@@ -25,6 +25,7 @@ const FEATURES = [
   { icon: Baby, title: 'Child Check-In', desc: 'Keep children on a dedicated Children page with teacher access, separate from adult Sunday attendance.' },
   { icon: Building2, title: 'Multi-Branch Operations', desc: 'Invite branches, run a district dashboard, and bill districts or zones on one invoice.' },
   { icon: Bell, title: 'Duty Roster', desc: 'An order of service for every Sunday, with duties and reminders for your workers.' },
+  { icon: Smartphone, title: 'Phone alerts', desc: 'Install Gathrd on the phone. Allow alerts. Members get a lock-screen notice when service starts, an announcement goes out, or a follow-up is assigned. Tap opens the app.' },
 ];
 
 export default function Landing() {

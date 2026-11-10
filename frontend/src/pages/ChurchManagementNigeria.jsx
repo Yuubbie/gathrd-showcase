@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   Check, ArrowRight, Users, Wallet, UserPlus, Building2, Baby, ClipboardCheck,
-  MessageSquare, MapPin, HeartHandshake, BookOpen, FileBarChart,
+  MessageSquare, MapPin, HeartHandshake, BookOpen, FileBarChart, Smartphone,
 } from 'lucide-react';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { TRIAL_DAYS, formatNaira, PLANS } from '../lib/plans';
@@ -18,6 +18,7 @@ const CAPABILITIES = [
   { icon: ClipboardCheck, title: 'Sunday attendance', text: 'QR code, 6-digit code, or usher entry for every service. Track adults and children separately.' },
   { icon: MessageSquare, title: 'Church communication', text: 'In-app announcements, duty roster reminders, and birthday or anniversary alerts.' },
   { icon: MapPin, title: 'Built for Nigeria', text: 'Priced in Naira. Bank-transfer giving. Works on Android phones over mobile data.' },
+  { icon: Smartphone, title: 'Phone alerts', text: 'Install Gathrd. Allow alerts. Members get a lock-screen notice when service starts, an announcement goes out, or a follow-up is assigned. Tap opens the app.' },
 ];
 
 const FAQS = [
