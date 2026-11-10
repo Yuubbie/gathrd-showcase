@@ -15,12 +15,14 @@ self.addEventListener('push', (event) => {
   }
   const title = data.title || 'Gathrd';
   const options = {
-    body: data.body || '',
+    body: data.body || 'Open Gathrd',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: data.tag || 'gathrd',
     data: { url: data.url || '/dashboard' },
     renotify: true,
+    vibrate: [200, 100, 200],
+    silent: false,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

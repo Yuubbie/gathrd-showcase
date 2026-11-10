@@ -1,5 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,177 @@ function json(body: unknown, status = 200) {
 function asString(value: unknown, max = 200) {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, max);
+}
+
+function b64urlToBytes(s: string): Uint8Array {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64url(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const p of parts) {
+    out.set(p, offset);
+    offset += p.length;
+  }
+  return out;
+}
+
+function normalizePrivate(bytes: Uint8Array): Uint8Array {
+  if (bytes.length === 32) return bytes;
+  if (bytes.length === 33 && bytes[0] === 0) return bytes.slice(1);
+  if (bytes.length > 32) return bytes.slice(bytes.length - 32);
+  throw new Error("bad vapid private");
+}
+
+async function hkdf(
+  ikm: BufferSource,
+  salt: Uint8Array,
+  info: Uint8Array,
+  length: number,
+): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt, info },
+    key,
+    length * 8,
+  );
+  return new Uint8Array(bits);
+}
+
+async function importEcdhPublic(uncompressed: Uint8Array): Promise<CryptoKey> {
+  if (uncompressed.length !== 65 || uncompressed[0] !== 4) throw new Error("bad p256 key");
+  return crypto.subtle.importKey(
+    "jwk",
+    {
+      kty: "EC",
+      crv: "P-256",
+      x: bytesToB64url(uncompressed.slice(1, 33)),
+      y: bytesToB64url(uncompressed.slice(33, 65)),
+      ext: true,
+    },
+    { name: "ECDH", namedCurve: "P-256" },
+    true,
+    [],
+  );
+}
+
+async function importVapidSignKey(publicB64: string, privateB64: string): Promise<CryptoKey> {
+  const pub = b64urlToBytes(publicB64);
+  const priv = normalizePrivate(b64urlToBytes(privateB64));
+  if (pub.length !== 65 || pub[0] !== 4) throw new Error("bad vapid public");
+  return crypto.subtle.importKey(
+    "jwk",
+    {
+      kty: "EC",
+      crv: "P-256",
+      x: bytesToB64url(pub.slice(1, 33)),
+      y: bytesToB64url(pub.slice(33, 65)),
+      d: bytesToB64url(priv),
+      ext: true,
+    },
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
+  );
+}
+
+async function vapidJwt(audience: string, sub: string, signKey: CryptoKey): Promise<string> {
+  const header = bytesToB64url(new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+  const now = Math.floor(Date.now() / 1000);
+  const payload = bytesToB64url(new TextEncoder().encode(JSON.stringify({
+    aud: audience,
+    exp: now + 12 * 3600,
+    sub,
+  })));
+  const data = new TextEncoder().encode(`${header}.${payload}`);
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, signKey, data));
+  return `${header}.${payload}.${bytesToB64url(sig)}`;
+}
+
+async function encryptPayload(
+  payload: string,
+  p256dh: string,
+  auth: string,
+): Promise<Uint8Array> {
+  const uaPublicBytes = b64urlToBytes(p256dh);
+  const authSecret = b64urlToBytes(auth);
+  const uaPublic = await importEcdhPublic(uaPublicBytes);
+
+  const local = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const asPublic = new Uint8Array(await crypto.subtle.exportKey("raw", local.publicKey));
+  const shared = await crypto.subtle.deriveBits({ name: "ECDH", public: uaPublic }, local.privateKey, 256);
+
+  const info = concatBytes(
+    new TextEncoder().encode("WebPush: info\0"),
+    uaPublicBytes,
+    asPublic,
+  );
+  const ikm = await hkdf(shared, authSecret, info, 32);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const cek = await hkdf(ikm, salt, new TextEncoder().encode("Content-Encoding: aes128gcm\0"), 16);
+  const nonce = await hkdf(ikm, salt, new TextEncoder().encode("Content-Encoding: nonce\0"), 12);
+
+  const plain = new TextEncoder().encode(payload);
+  const padded = new Uint8Array(plain.length + 1);
+  padded.set(plain);
+  padded[plain.length] = 2;
+
+  const cekKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["encrypt"]);
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: nonce, tagLength: 128 },
+    cekKey,
+    padded,
+  ));
+
+  const rs = 4096;
+  const header = new Uint8Array(16 + 4 + 1 + asPublic.length);
+  header.set(salt, 0);
+  header[16] = (rs >> 24) & 0xff;
+  header[17] = (rs >> 16) & 0xff;
+  header[18] = (rs >> 8) & 0xff;
+  header[19] = rs & 0xff;
+  header[20] = asPublic.length;
+  header.set(asPublic, 21);
+  return concatBytes(header, encrypted);
+}
+
+async function sendOne(
+  endpoint: string,
+  p256dh: string,
+  auth: string,
+  payload: string,
+  vapidPublic: string,
+  signKey: CryptoKey,
+): Promise<number> {
+  const body = await encryptPayload(payload, p256dh, auth);
+  const audience = new URL(endpoint).origin;
+  const jwt = await vapidJwt(audience, "mailto:yubbiepen.pixel@gmail.com", signKey);
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `vapid t=${jwt}, k=${vapidPublic.replace(/=+$/, "")}`,
+      "Crypto-Key": `p256ecdsa=${vapidPublic.replace(/=+$/, "")}`,
+      TTL: "43200",
+      Urgency: "high",
+      "Content-Encoding": "aes128gcm",
+      "Content-Type": "application/octet-stream",
+    },
+    body,
+  });
+  return res.status;
 }
 
 Deno.serve(async (req) => {
@@ -46,8 +216,13 @@ Deno.serve(async (req) => {
     const text = asString(body.body, 240);
     const url = asString(body.url, 200) || "/dashboard";
     const tag = asString(body.tag, 80);
-    const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids.filter((id: unknown) => typeof id === "string") : [];
-    const memberIds = Array.isArray(body.member_ids) ? body.member_ids.filter((id: unknown) => typeof id === "string") : [];
+    const selfTest = body.self_test === true;
+    let profileIds = Array.isArray(body.profile_ids)
+      ? body.profile_ids.filter((id: unknown) => typeof id === "string")
+      : [];
+    const memberIds = Array.isArray(body.member_ids)
+      ? body.member_ids.filter((id: unknown) => typeof id === "string")
+      : [];
 
     let churchId = typeof body.church_id === "string" ? body.church_id : "";
 
@@ -67,16 +242,24 @@ Deno.serve(async (req) => {
         .single();
 
       if (!profile?.church_id) return json({ error: "Not authorized" }, 403);
-      const allowed = ["senior_pastor", "assistant_pastor", "church_admin", "media_team"];
-      if (!allowed.includes(profile.role)) return json({ error: "Not authorized" }, 403);
-      churchId = profile.church_id;
+
+      if (selfTest) {
+        churchId = profile.church_id;
+        profileIds = [user.id];
+      } else {
+        const allowed = ["senior_pastor", "assistant_pastor", "church_admin", "media_team"];
+        if (!allowed.includes(profile.role)) return json({ error: "Not authorized" }, 403);
+        churchId = profile.church_id;
+      }
+    } else if (selfTest) {
+      return json({ error: "self_test requires a user session" }, 400);
     }
 
     if (!churchId) return json({ error: "Missing church_id" }, 400);
 
     let targetProfiles = profileIds;
 
-    if (memberIds.length) {
+    if (!selfTest && memberIds.length) {
       const { data: members } = await supabaseAdmin
         .from("members")
         .select("profile_id")
@@ -102,10 +285,9 @@ Deno.serve(async (req) => {
 
     const { data: rows, error: subErr } = await query;
     if (subErr) return json({ error: "Could not load subscriptions" }, 500);
-    if (!rows?.length) return json({ ok: true, sent: 0, total: 0 });
+    if (!rows?.length) return json({ ok: true, sent: 0, total: 0, reason: "no_subscriptions" });
 
-    webpush.setVapidDetails("mailto:yubbiepen.pixel@gmail.com", vapidPublic, vapidPrivate);
-
+    const signKey = await importVapidSignKey(vapidPublic, vapidPrivate);
     const payload = JSON.stringify({
       title,
       body: text,
@@ -114,26 +296,32 @@ Deno.serve(async (req) => {
     });
 
     let sent = 0;
-    for (const row of rows) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
-          payload,
-          { TTL: 60 * 60 * 12 },
-        );
-        sent += 1;
-      } catch (err: any) {
-        const status = err?.statusCode || err?.status;
-        if (status === 404 || status === 410) {
+    let lastStatus = 0;
+    const BATCH = 8;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const chunk = rows.slice(i, i + BATCH);
+      const results = await Promise.all(chunk.map(async (row) => {
+        try {
+          const status = await sendOne(row.endpoint, row.p256dh, row.auth, payload, vapidPublic, signKey);
+          return { id: row.id, status };
+        } catch {
+          return { id: row.id, status: 0 };
+        }
+      }));
+      for (const r of results) {
+        lastStatus = r.status;
+        if (r.status >= 200 && r.status < 300) {
+          sent += 1;
+        } else if (r.status === 404 || r.status === 410) {
           await supabaseAdmin
             .from("push_subscriptions")
             .update({ deleted_at: new Date().toISOString() })
-            .eq("id", row.id);
+            .eq("id", r.id);
         }
       }
     }
 
-    return json({ ok: true, sent, total: rows.length });
+    return json({ ok: true, sent, total: rows.length, last_status: lastStatus });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
