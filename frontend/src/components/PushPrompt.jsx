@@ -24,7 +24,7 @@ export default function PushPrompt() {
       return undefined;
     }
     if (Notification.permission === 'granted') {
-      syncPushSubscription().catch(() => {});
+      syncPushSubscription(false).catch(() => {});
       if (!sessionStorage.getItem('gathrd_push_hide_on')) setMode('on');
       return undefined;
     }
@@ -46,12 +46,13 @@ export default function PushPrompt() {
       }
       if (result.ok) {
         setMode('on');
-        setNote('Alerts are on. Tap Test, then lock this phone.');
+        setNote('Saved. Tap Test alert, then lock this phone.');
         return;
       }
-      setNote('Could not save this phone. Open Gathrd again and try Turn on.');
-    } catch {
-      setNote('Could not save this phone. Open Gathrd again and try Turn on.');
+      setMode('on');
+      setNote(`Could not save this phone${result.error ? ` (${result.error})` : ''}. Tap Turn on again.`);
+    } catch (err) {
+      setNote(err?.message || 'Could not save this phone. Tap Turn on again.');
     } finally {
       setBusy(false);
     }
@@ -61,23 +62,22 @@ export default function PushPrompt() {
     setBusy(true);
     setNote('');
     try {
-      const saved = await syncPushSubscription(true);
+      const saved = await syncPushSubscription(false);
       if (!saved.ok) {
-        setNote('This phone is not subscribed yet. Tap Turn on, then Test again.');
-        return;
+        setNote(`Could not save this phone${saved.error ? ` (${saved.error})` : ''}. Tap Turn on, then Test.`);
       }
       const result = await sendSelfTestPush(session);
       if (result?.sent > 0) {
         setNote('Sent. Lock the phone — you should see Gathrd in a few seconds.');
         return;
       }
-      if (result?.reason === 'no_subscriptions') {
-        setNote('This phone is not saved yet. Tap Turn on, then Test again.');
+      if (result?.reason === 'no_subscriptions' || !saved.ok) {
+        setNote(`This phone is not saved yet${saved.error ? ` (${saved.error})` : ''}. Tap Turn on, then Test.`);
         return;
       }
-      setNote('Could not send. Stay on this page, tap Turn on, then Test.');
-    } catch {
-      setNote('Could not send. Stay on this page, tap Turn on, then Test.');
+      setNote(`Could not send${result?.error ? ` (${result.error})` : ''}. Tap Turn on, then Test.`);
+    } catch (err) {
+      setNote(err?.message || 'Could not send. Tap Turn on, then Test.');
     } finally {
       setBusy(false);
     }
@@ -100,11 +100,12 @@ export default function PushPrompt() {
   } else if (mode === 'denied') {
     body = 'Alerts are blocked. In phone settings, allow notifications for Gathrd (or Chrome), then open the app again.';
   } else if (mode === 'on') {
-    body = 'Alerts are on for this phone. Tap Test, lock the screen, and you should see a Gathrd popup.';
+    body = 'Tap Turn on if needed, then Test alert, then lock the screen.';
   }
 
-  const showTurnOn = mode === 'prompt' || (mode === 'on' && typeof Notification !== 'undefined' && Notification.permission !== 'granted');
-  const showTest = mode === 'on' && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  const granted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  const showTurnOn = mode === 'prompt' || mode === 'on';
+  const showTest = mode === 'on' && granted;
 
   return (
     <div
@@ -126,7 +127,7 @@ export default function PushPrompt() {
               disabled={busy}
               className="flex items-center gap-1.5 text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
             >
-              <Bell size={12} /> {busy ? 'Turning on…' : 'Turn on'}
+              <Bell size={12} /> {busy ? 'Saving…' : 'Turn on'}
             </button>
           )}
           {showTest && (
@@ -134,9 +135,9 @@ export default function PushPrompt() {
               type="button"
               onClick={testAlert}
               disabled={busy || !session}
-              className="flex items-center gap-1.5 text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs border border-signal text-signal rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
             >
-              <Bell size={12} /> {busy ? 'Sending…' : 'Test alert'}
+              {busy ? 'Sending…' : 'Test alert'}
             </button>
           )}
           <button type="button" onClick={later} className="text-xs text-ink/50">

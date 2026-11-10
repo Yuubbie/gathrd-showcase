@@ -13,6 +13,22 @@ function urlBase64ToUint8Array(base64String) {
   return output;
 }
 
+function vapidKey() {
+  const bytes = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+function parseRpc(data) {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data;
+}
+
 export function pushSupported() {
   return (
     typeof window !== 'undefined' &&
@@ -24,42 +40,57 @@ export function pushSupported() {
 
 export async function ensureServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
-  const existing = await navigator.serviceWorker.getRegistration('/');
-  if (existing) {
-    existing.update().catch(() => {});
-    return existing;
+  let registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) {
+    registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+  } else {
+    registration.update().catch(() => {});
   }
-  return navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+  await navigator.serviceWorker.ready;
+  return registration;
 }
 
 export async function syncPushSubscription(force = false) {
   if (!pushSupported()) return { ok: false, error: 'unsupported' };
   if (Notification.permission !== 'granted') return { ok: false, error: 'permission' };
-  await ensureServiceWorker();
-  const registration = await navigator.serviceWorker.ready;
-  const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+  const registration = await ensureServiceWorker();
+  if (!registration) return { ok: false, error: 'no_service_worker' };
+
+  const applicationServerKey = vapidKey();
   let subscription = await registration.pushManager.getSubscription();
   if (force && subscription) {
     await subscription.unsubscribe().catch(() => {});
     subscription = null;
   }
   if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey,
-    });
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+    } catch (err) {
+      subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        return { ok: false, error: err?.message || 'subscribe_failed' };
+      }
+    }
   }
+
   const json = subscription.toJSON();
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
     return { ok: false, error: 'bad_subscription' };
   }
+
   const { data, error } = await supabase.rpc('save_push_subscription', {
     p_endpoint: json.endpoint,
     p_p256dh: json.keys.p256dh,
     p_auth: json.keys.auth,
     p_user_agent: navigator.userAgent,
   });
-  if (error || !data?.ok) return { ok: false, error: data?.error || error?.message || 'save_failed' };
+  const parsed = parseRpc(data);
+  if (error || !parsed?.ok) {
+    return { ok: false, error: parsed?.error || error?.message || 'save_failed' };
+  }
   return { ok: true };
 }
 
@@ -67,7 +98,7 @@ export async function requestPushPermission() {
   if (!pushSupported()) return { permission: 'unsupported', ok: false };
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return { permission, ok: false };
-  const saved = await syncPushSubscription(true);
+  const saved = await syncPushSubscription(false);
   return { permission, ok: saved.ok, error: saved.error };
 }
 
@@ -79,6 +110,7 @@ export async function sendChurchPush(session, payload) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       body: JSON.stringify(payload),
     });
