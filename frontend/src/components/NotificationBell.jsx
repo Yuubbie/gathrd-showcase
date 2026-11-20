@@ -26,8 +26,12 @@ function loadReadIds() {
   }
 }
 
-function saveReadIds(ids) {
-  localStorage.setItem(READ_KEY, JSON.stringify(ids));
+function clearLegacyReadIds() {
+  try {
+    localStorage.removeItem(READ_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export default function NotificationBell() {
@@ -41,23 +45,35 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    const readIds = loadReadIds();
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('id, title, body, sent_at, is_emergency')
-      .not('sent_at', 'is', null)
-      .is('deleted_at', null)
-      .order('sent_at', { ascending: false })
-      .limit(20);
-    if (!error && data) {
+    const [annRes, readRes] = await Promise.all([
+      supabase
+        .from('announcements')
+        .select('id, title, body, sent_at, is_emergency')
+        .not('sent_at', 'is', null)
+        .is('deleted_at', null)
+        .order('sent_at', { ascending: false })
+        .limit(20),
+      supabase.from('announcement_reads').select('announcement_id'),
+    ]);
+    if (!annRes.error && annRes.data) {
+      const readIds = new Set((readRes.data || []).map((r) => r.announcement_id));
+      // One-time import of read marks that older versions kept in this browser.
+      const legacy = loadReadIds();
+      if (legacy.length) {
+        const toImport = legacy.filter((id) => !readIds.has(id));
+        if (toImport.length) {
+          await supabase.rpc('mark_announcements_read', { p_ids: toImport });
+          toImport.forEach((id) => readIds.add(id));
+        }
+        clearLegacyReadIds();
+      }
       setNotifications(
-        data.map((a) => ({
+        annRes.data.map((a) => ({
           id: a.id,
           title: a.is_emergency ? `Urgent: ${a.title}` : a.title,
           body: a.body,
           created_at: a.sent_at,
-          is_read: readIds.includes(a.id),
+          is_read: readIds.has(a.id),
         }))
       );
     }
@@ -66,6 +82,8 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
+    const timer = setInterval(fetchNotifications, 120000);
+    return () => clearInterval(timer);
   }, [fetchNotifications]);
 
   useEffect(() => {
@@ -119,14 +137,13 @@ export default function NotificationBell() {
 
   function markAsRead(id) {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    const next = Array.from(new Set([...loadReadIds(), id]));
-    saveReadIds(next);
+    supabase.rpc('mark_announcements_read', { p_ids: [id] }).then(() => {}, () => {});
   }
 
   function markAllRead() {
     const ids = notifications.map((n) => n.id);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    saveReadIds(Array.from(new Set([...loadReadIds(), ...ids])));
+    supabase.rpc('mark_announcements_read', { p_ids: ids }).then(() => {}, () => {});
   }
 
   return (
