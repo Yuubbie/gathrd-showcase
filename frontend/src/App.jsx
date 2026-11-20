@@ -25,6 +25,7 @@ import CellGroupDetail from './pages/CellGroupDetail';
 import FollowUpDashboard from './pages/FollowUpDashboard';
 import Settings from './pages/Settings';
 import AlertSettings from './pages/AlertSettings';
+import CheckEmail from './pages/CheckEmail';
 import Billing from './pages/Billing';
 import Landing from './pages/Landing';
 import Demo from './pages/Demo';
@@ -52,16 +53,6 @@ import MyEvangelism from './pages/MyEvangelism';
 import ChurchEvangelism from './pages/ChurchEvangelism';
 import MediaDesk from './pages/MediaDesk';
 import MonthlyReport from './pages/MonthlyReport';
-
-function CheckEmail() {
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 text-center bg-gray-50">
-      <p className="text-gray-700">
-        Account created. Check your email to confirm before logging in.
-      </p>
-    </div>
-  );
-}
 
 function Unauthorized() {
   return (

@@ -1,8 +1,27 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+
+// Turns Supabase's raw messages into plain language, and spots the case where the
+// account was created a moment ago (a repeat request inside Supabase's short cooldown).
+function explainSignupError(error) {
+  const text = String(error?.message || '');
+  if (/after\s+\d+\s+seconds?/i.test(text)) {
+    return { alreadySent: true };
+  }
+  if (/rate limit|too many/i.test(text)) {
+    return { text: 'Too many sign-up attempts right now. Please wait a few minutes and try again.' };
+  }
+  if (/already (been )?registered/i.test(text)) {
+    return { text: 'This email already has an account. Please log in, or use "Forgot password" on the login page.' };
+  }
+  if (/password/i.test(text)) {
+    return { text: 'Please choose a stronger password of at least 8 characters.' };
+  }
+  return { text: 'We could not create your account right now. Please check your details and try again.' };
+}
 
 export default function Signup() {
   const { signUp } = useAuth();
@@ -14,6 +33,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false); // blocks a second submit before the screen has re-rendered
 
   // The server builds the welcome email itself from a fixed template and sends it
   // only to the logged-in user's own address. The browser only asks for it.
@@ -50,6 +70,7 @@ export default function Signup() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError('');
 
     if (password.length < 8) {
@@ -57,19 +78,30 @@ export default function Signup() {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
-    const { error } = await signUp({ email, password, fullName, churchName, role: 'senior_pastor' });
-    setSubmitting(false);
+    try {
+      const { error: signUpError } = await signUp({ email, password, fullName, churchName, role: 'senior_pastor' });
 
-    if (error) {
-      setError(error.message);
-      return;
+      if (signUpError) {
+        const outcome = explainSignupError(signUpError);
+        if (outcome.alreadySent) {
+          // The account was created moments ago and its email is on the way.
+          navigate('/check-email', { state: { email, alreadySent: true } });
+          return;
+        }
+        setError(outcome.text);
+        return;
+      }
+
+      // Ask the server to send the welcome email (never blocks signup if it fails)
+      await sendWelcomeEmail();
+
+      navigate('/check-email', { state: { email } });
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-
-    // Ask the server to send the welcome email (never blocks signup if it fails)
-    await sendWelcomeEmail();
-
-    navigate('/check-email');
   }
 
   return (
