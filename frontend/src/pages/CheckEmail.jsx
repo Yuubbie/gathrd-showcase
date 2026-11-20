@@ -9,6 +9,7 @@ const COOLDOWN_SECONDS = 60;
 // email once the short cooldown has passed (instead of an unexplained error).
 export default function CheckEmail() {
   const { state } = useLocation();
+  const expired = state?.reason === 'expired'; // arrived from a confirmation link that did not work
   const [email, setEmail] = useState(state?.email || '');
   const [seconds, setSeconds] = useState(state?.email ? COOLDOWN_SECONDS : 0);
   const [busy, setBusy] = useState(false);
@@ -56,17 +57,35 @@ export default function CheckEmail() {
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-signal/10 text-signal">
           <MailCheck size={24} />
         </span>
-        <h1 className="font-display text-xl font-bold text-ink">Check your email</h1>
-        <p className="text-sm text-ink/70">
-          {state?.email ? (
-            <>
-              Your account is created. We sent a confirmation link to <strong>{state.email}</strong>. Open it to finish and log in.
-            </>
-          ) : (
-            'Your account is created. Open the confirmation link we emailed you to finish and log in.'
-          )}
-        </p>
-        <p className="text-xs text-ink/50">It can take a minute or two. Please also look in your spam or promotions folder.</p>
+        <h1 className="font-display text-xl font-bold text-ink">{expired ? "That link didn't work" : 'Check your email'}</h1>
+        {expired ? (
+          <>
+            <p className="text-sm text-ink/70">
+              A confirmation link works only once, and it expires after a while. If you have already confirmed your email,
+              you can simply log in.
+            </p>
+            <Link
+              to="/login"
+              className="block w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-2.5 text-sm font-semibold transition-colors"
+            >
+              Log in
+            </Link>
+            <p className="text-xs text-ink/50 pt-1">Not confirmed yet? Enter your email and we will send a new link.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-ink/70">
+              {state?.email ? (
+                <>
+                  Your account is created. We sent a confirmation link to <strong>{state.email}</strong>. Open it to finish and log in.
+                </>
+              ) : (
+                'Your account is created. Open the confirmation link we emailed you to finish and log in.'
+              )}
+            </p>
+            <p className="text-xs text-ink/50">It can take a minute or two. Please also look in your spam or promotions folder.</p>
+          </>
+        )}
 
         {error && <div className="text-sm text-rose bg-rose-50 rounded-lg p-3">{error}</div>}
         {note && <div className="text-sm text-sage bg-sage-50 rounded-lg p-3">{note}</div>}
@@ -92,10 +111,12 @@ export default function CheckEmail() {
           </button>
         </form>
 
-        <p className="text-sm text-ink/50">
-          Confirmed already?{' '}
-          <Link to="/login" className="text-signal font-semibold hover:text-signal-deep">Log in</Link>
-        </p>
+        {!expired && (
+          <p className="text-sm text-ink/50">
+            Confirmed already?{' '}
+            <Link to="/login" className="text-signal font-semibold hover:text-signal-deep">Log in</Link>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿import './lib/authHash'; // must run first: remembers the result of an email link before Supabase clears it
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';

@@ -26,6 +26,8 @@ import FollowUpDashboard from './pages/FollowUpDashboard';
 import Settings from './pages/Settings';
 import AlertSettings from './pages/AlertSettings';
 import CheckEmail from './pages/CheckEmail';
+import EmailConfirmed from './pages/EmailConfirmed';
+import AuthRedirectHandler from './components/AuthRedirectHandler';
 import Billing from './pages/Billing';
 import Landing from './pages/Landing';
 import Demo from './pages/Demo';
@@ -67,6 +69,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Seo />
+        <AuthRedirectHandler />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/church-management-platform-nigeria" element={<ChurchManagementNigeria />} />
@@ -77,6 +80,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/check-email" element={<CheckEmail />} />
+          <Route path="/email-confirmed" element={<EmailConfirmed />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/join/:slug" element={<ChurchJoin />} />
           <Route path="/register/:slug" element={<PublicOnboard />} />
