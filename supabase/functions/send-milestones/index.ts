@@ -61,9 +61,122 @@ async function sendWhatsApp(phone: string, message: string): Promise<string> {
   }
 }
 
+async function processChurch(
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  churchId: string,
+  actorId: string | null,
+  pushJobs: Promise<unknown>[],
+) {
+  const { data: church } = await supabaseAdmin
+    .from("churches")
+    .select("name")
+    .eq("id", churchId)
+    .single();
+
+  const { data: templates } = await supabaseAdmin
+    .from("message_templates")
+    .select("template_type, body_text")
+    .eq("church_id", churchId);
+
+  const templateMap: Record<string, string> = { ...DEFAULT_TEMPLATES };
+  for (const t of templates || []) {
+    templateMap[t.template_type] = t.body_text;
+  }
+
+  const milestoneTypes = ["birthday", "wedding_anniversary", "born_again_anniversary"];
+  let totalSent = 0;
+  let totalSkippedAlreadySent = 0;
+
+  for (const milestone of milestoneTypes) {
+    const { data: matches } = await supabaseAdmin.rpc("get_members_with_milestone_today", {
+      p_church_id: churchId,
+      p_milestone: milestone,
+    });
+
+    for (const m of matches || []) {
+      // Check if already sent today (belt-and-suspenders on top of the unique constraint)
+      const { data: existing } = await supabaseAdmin
+        .from("milestone_messages_log")
+        .select("id")
+        .eq("member_id", m.member_id)
+        .eq("milestone_type", milestone)
+        .eq("sent_on", new Date().toISOString().slice(0, 10))
+        .maybeSingle();
+
+      if (existing) {
+        totalSkippedAlreadySent++;
+        continue;
+      }
+
+      let status = "no_phone";
+      const message = templateMap[milestone]
+        .replace("{{name}}", m.full_name)
+        .replace("{{church_name}}", church?.name || "your church");
+      if (m.phone) {
+        status = await sendWhatsApp(m.phone, message);
+        if (status === "sent") totalSent++;
+      }
+      pushJobs.push(fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          church_id: churchId,
+          title: "Gathrd",
+          body: message.replace(/🎉|🎊|🙏/g, "").trim(),
+          url: "/dashboard",
+          tag: `milestone-${m.member_id}`,
+          member_ids: [m.member_id],
+        }),
+      }).catch((e) => console.error("send-push failed", String(e))));
+
+      await supabaseAdmin.from("milestone_messages_log").insert({
+        church_id: churchId,
+        member_id: m.member_id,
+        milestone_type: milestone,
+        whatsapp_status: status,
+        sent_by: actorId,
+      });
+    }
+  }
+
+  return { sent: totalSent, skipped_already_sent: totalSkippedAlreadySent };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  // Scheduled run (pg_cron): every active church, no user session.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (cronSecret && req.headers.get("x-cron-secret") === cronSecret) {
+    try {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: churches } = await admin.from("churches").select("id").is("deleted_at", null);
+      const pushJobs: Promise<unknown>[] = [];
+      let churchesRun = 0;
+      let sent = 0;
+      for (const c of churches || []) {
+        try {
+          const out = await processChurch(admin, c.id, null, pushJobs);
+          churchesRun++;
+          sent += out.sent;
+        } catch (e) {
+          console.error("milestones failed for church", c.id, String(e));
+        }
+      }
+      keepAlive(Promise.allSettled(pushJobs));
+      return json({ success: true, scheduled: true, churches: churchesRun, sent });
+    } catch (err) {
+      return json({ error: String(err) }, 500);
+    }
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -92,84 +205,10 @@ Deno.serve(async (req) => {
       return json({ error: "Not authorized" }, 403);
     }
 
-    const { data: church } = await supabaseAdmin
-      .from("churches")
-      .select("name")
-      .eq("id", profile.church_id)
-      .single();
-
-    const { data: templates } = await supabaseAdmin
-      .from("message_templates")
-      .select("template_type, body_text")
-      .eq("church_id", profile.church_id);
-
-    const templateMap: Record<string, string> = { ...DEFAULT_TEMPLATES };
-    for (const t of templates || []) {
-      templateMap[t.template_type] = t.body_text;
-    }
-
-    const milestoneTypes = ["birthday", "wedding_anniversary", "born_again_anniversary"];
-    let totalSent = 0;
     const pushJobs: Promise<unknown>[] = [];
-    let totalSkippedAlreadySent = 0;
-
-    for (const milestone of milestoneTypes) {
-      const { data: matches } = await supabaseAdmin.rpc("get_members_with_milestone_today", {
-        p_church_id: profile.church_id,
-        p_milestone: milestone,
-      });
-
-      for (const m of matches || []) {
-        // Check if already sent today (belt-and-suspenders on top of the unique constraint)
-        const { data: existing } = await supabaseAdmin
-          .from("milestone_messages_log")
-          .select("id")
-          .eq("member_id", m.member_id)
-          .eq("milestone_type", milestone)
-          .eq("sent_on", new Date().toISOString().slice(0, 10))
-          .maybeSingle();
-
-        if (existing) {
-          totalSkippedAlreadySent++;
-          continue;
-        }
-
-        let status = "no_phone";
-        const message = templateMap[milestone]
-          .replace("{{name}}", m.full_name)
-          .replace("{{church_name}}", church?.name || "your church");
-        if (m.phone) {
-          status = await sendWhatsApp(m.phone, message);
-          if (status === "sent") totalSent++;
-        }
-        pushJobs.push(fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({
-            church_id: profile.church_id,
-            title: "Gathrd",
-            body: message.replace(/🎉|🎊|🙏/g, "").trim(),
-            url: "/dashboard",
-            tag: `milestone-${m.member_id}`,
-            member_ids: [m.member_id],
-          }),
-        }).catch((e) => console.error("send-push failed", String(e))));
-
-        await supabaseAdmin.from("milestone_messages_log").insert({
-          church_id: profile.church_id,
-          member_id: m.member_id,
-          milestone_type: milestone,
-          whatsapp_status: status,
-          sent_by: user.id,
-        });
-      }
-    }
-
+    const out = await processChurch(supabaseAdmin, profile.church_id, user.id, pushJobs);
     keepAlive(Promise.allSettled(pushJobs));
-    return json({ success: true, sent: totalSent, skipped_already_sent: totalSkippedAlreadySent });
+    return json({ success: true, ...out });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
