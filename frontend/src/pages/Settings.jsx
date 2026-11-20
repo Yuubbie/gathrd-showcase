@@ -273,6 +273,7 @@ export default function Settings() {
         {/* More settings */}
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
           <p className="text-sm font-semibold text-ink/80">More settings</p>
+          <Link to="/settings/alerts" className="block text-sm text-signal font-semibold hover:text-signal-deep">Alerts & Reminders →</Link>
           <Link to="/giving/settings" className="block text-sm text-signal font-semibold hover:text-signal-deep">Giving & Bank Account →</Link>
           <Link to="/billing" className="block text-sm text-signal font-semibold hover:text-signal-deep">Billing & Plan →</Link>
         </div>

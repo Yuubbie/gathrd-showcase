@@ -24,6 +24,7 @@ import CellGroups from './pages/CellGroups';
 import CellGroupDetail from './pages/CellGroupDetail';
 import FollowUpDashboard from './pages/FollowUpDashboard';
 import Settings from './pages/Settings';
+import AlertSettings from './pages/AlertSettings';
 import Billing from './pages/Billing';
 import Landing from './pages/Landing';
 import Demo from './pages/Demo';
@@ -342,6 +343,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/alerts"
+            element={
+              <ProtectedRoute allowedRoles={['senior_pastor', 'assistant_pastor', 'church_admin']}>
+                <AlertSettings />
               </ProtectedRoute>
             }
           />

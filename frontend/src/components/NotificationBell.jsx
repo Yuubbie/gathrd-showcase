@@ -4,6 +4,7 @@ import { Bell } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 const READ_KEY = 'gathrd_announcement_reads';
+const RECENT_DAYS = 14;
 
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -45,7 +46,8 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const fetchNotifications = useCallback(async () => {
-    const [annRes, readRes] = await Promise.all([
+    const since = new Date(Date.now() - RECENT_DAYS * 86400000).toISOString();
+    const [annRes, annReads, memRes, churchRes, churchReads] = await Promise.all([
       supabase
         .from('announcements')
         .select('id, title, body, sent_at, is_emergency')
@@ -54,29 +56,72 @@ export default function NotificationBell() {
         .order('sent_at', { ascending: false })
         .limit(20),
       supabase.from('announcement_reads').select('announcement_id'),
+      // Duty and event reminders created for this member by the database jobs.
+      supabase
+        .from('notifications')
+        .select('id, title, body, is_read, created_at')
+        .neq('source_type', 'announcement')
+        .is('deleted_at', null)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      // Church-wide alerts (service reminders, birthday celebrants).
+      supabase
+        .from('church_notifications')
+        .select('id, title, body, created_at')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase.from('church_notification_reads').select('notification_id'),
     ]);
-    if (!annRes.error && annRes.data) {
-      const readIds = new Set((readRes.data || []).map((r) => r.announcement_id));
-      // One-time import of read marks that older versions kept in this browser.
-      const legacy = loadReadIds();
-      if (legacy.length) {
-        const toImport = legacy.filter((id) => !readIds.has(id));
-        if (toImport.length) {
-          await supabase.rpc('mark_announcements_read', { p_ids: toImport });
-          toImport.forEach((id) => readIds.add(id));
-        }
-        clearLegacyReadIds();
+
+    // A source that fails to load is skipped; the others still show.
+    const readAnn = new Set((annReads.data || []).map((r) => r.announcement_id));
+    // One-time import of read marks that older versions kept in this browser.
+    const legacy = loadReadIds();
+    if (legacy.length) {
+      const toImport = legacy.filter((id) => !readAnn.has(id));
+      if (toImport.length) {
+        await supabase.rpc('mark_announcements_read', { p_ids: toImport });
+        toImport.forEach((id) => readAnn.add(id));
       }
-      setNotifications(
-        annRes.data.map((a) => ({
-          id: a.id,
-          title: a.is_emergency ? `Urgent: ${a.title}` : a.title,
-          body: a.body,
-          created_at: a.sent_at,
-          is_read: readIds.has(a.id),
-        }))
-      );
+      clearLegacyReadIds();
     }
+    const readChurch = new Set((churchReads.data || []).map((r) => r.notification_id));
+
+    const items = [
+      ...(annRes.data || []).map((a) => ({
+        key: `announcement:${a.id}`,
+        source: 'announcement',
+        id: a.id,
+        title: a.is_emergency ? `Urgent: ${a.title}` : a.title,
+        body: a.body,
+        created_at: a.sent_at,
+        is_read: readAnn.has(a.id),
+      })),
+      ...(memRes.data || []).map((n) => ({
+        key: `member:${n.id}`,
+        source: 'member',
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        created_at: n.created_at,
+        is_read: n.is_read,
+      })),
+      ...(churchRes.data || []).map((n) => ({
+        key: `church:${n.id}`,
+        source: 'church',
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        created_at: n.created_at,
+        is_read: readChurch.has(n.id),
+      })),
+    ]
+      .sort((x, y) => new Date(y.created_at) - new Date(x.created_at))
+      .slice(0, 30);
+
+    setNotifications(items);
     setLoading(false);
   }, []);
 
@@ -135,15 +180,31 @@ export default function NotificationBell() {
     setOpen((v) => !v);
   }
 
-  function markAsRead(id) {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    supabase.rpc('mark_announcements_read', { p_ids: [id] }).then(() => {}, () => {});
+  function persistRead(items) {
+    const ids = (source) => items.filter((n) => n.source === source).map((n) => n.id);
+    const done = () => {};
+    if (ids('announcement').length) {
+      supabase.rpc('mark_announcements_read', { p_ids: ids('announcement') }).then(done, done);
+    }
+    if (ids('church').length) {
+      supabase.rpc('mark_church_notifications_read', { p_ids: ids('church') }).then(done, done);
+    }
+    if (ids('member').length) {
+      supabase.from('notifications').update({ is_read: true }).in('id', ids('member')).then(done, done);
+    }
+  }
+
+  function markAsRead(key) {
+    const target = notifications.find((n) => n.key === key);
+    if (!target || target.is_read) return;
+    setNotifications((prev) => prev.map((n) => (n.key === key ? { ...n, is_read: true } : n)));
+    persistRead([target]);
   }
 
   function markAllRead() {
-    const ids = notifications.map((n) => n.id);
+    const unread = notifications.filter((n) => !n.is_read);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    supabase.rpc('mark_announcements_read', { p_ids: ids }).then(() => {}, () => {});
+    persistRead(unread);
   }
 
   return (
@@ -186,13 +247,13 @@ export default function NotificationBell() {
               <div className="px-6 py-8 text-center text-sm text-void/50">Loading…</div>
             ) : notifications.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-void/50">
-                Nothing here yet. When your church sends an announcement, it will show up here.
+                Nothing here yet. Announcements, reminders and church alerts will show up here.
               </div>
             ) : (
               notifications.map((n) => (
                 <button
-                  key={n.id}
-                  onClick={() => markAsRead(n.id)}
+                  key={n.key}
+                  onClick={() => markAsRead(n.key)}
                   className={`block w-full text-left px-4 py-3 border-b border-void/5 ${n.is_read ? '' : 'bg-gold/10'}`}
                 >
                   <div className="flex items-start gap-2">
