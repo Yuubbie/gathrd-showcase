@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 
 const VAPID_PUBLIC_KEY =
   import.meta.env.VITE_VAPID_PUBLIC_KEY ||
-  'BNNfV6nlZHpuui3DY5A-q32NdtIHK1ooTwU7XplzJo7PYj4U0ePwqGKzQdUbE53Y0hebMTZWYf0Rcr-maO4ENk0';
+  'BIKr0m0c19YlfPcM2T0mSNmaQtt9kUdwLrWUxSKnxiuNHYSs5EX9mFjpP6yxEwLsbZBy4ppRJZVxAS8FxobH0Zc';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
