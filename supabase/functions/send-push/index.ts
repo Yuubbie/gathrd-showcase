@@ -224,6 +224,10 @@ Deno.serve(async (req) => {
       ? body.member_ids.filter((id: unknown) => typeof id === "string")
       : [];
 
+    // A request that names recipients (even an empty list) is targeted and must
+    // never fall back to a church-wide broadcast.
+    const targeted = Array.isArray(body.profile_ids) || Array.isArray(body.member_ids) || selfTest;
+
     let churchId = typeof body.church_id === "string" ? body.church_id : "";
 
     if (!isService) {
@@ -257,35 +261,63 @@ Deno.serve(async (req) => {
 
     if (!churchId) return json({ error: "Missing church_id" }, 400);
 
-    let targetProfiles = profileIds;
+    const PAGE = 1000;
+    const IN_CHUNK = 100;
+    let targetProfiles: string[] = profileIds;
 
     if (!selfTest && memberIds.length) {
-      const { data: members } = await supabaseAdmin
-        .from("members")
-        .select("profile_id")
-        .eq("church_id", churchId)
-        .in("id", memberIds.slice(0, 2000))
-        .not("profile_id", "is", null);
-      targetProfiles = [
-        ...targetProfiles,
-        ...(members || []).map((m: { profile_id: string }) => m.profile_id),
-      ];
+      for (let i = 0; i < memberIds.length; i += IN_CHUNK) {
+        const { data: members, error: memErr } = await supabaseAdmin
+          .from("members")
+          .select("profile_id")
+          .eq("church_id", churchId)
+          .in("id", memberIds.slice(i, i + IN_CHUNK))
+          .not("profile_id", "is", null);
+        if (memErr) return json({ error: "Could not load recipients" }, 500);
+        targetProfiles = [
+          ...targetProfiles,
+          ...(members || []).map((m: { profile_id: string }) => m.profile_id),
+        ];
+      }
     }
-
-    let query = supabaseAdmin
-      .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth, profile_id")
-      .eq("church_id", churchId)
-      .is("deleted_at", null);
 
     const uniqueProfiles = [...new Set(targetProfiles)];
-    if (uniqueProfiles.length) {
-      query = query.in("profile_id", uniqueProfiles.slice(0, 2000));
+
+    // Targeted but nobody to notify (e.g. members without a login): send nothing.
+    if (targeted && uniqueProfiles.length === 0) {
+      return json({ ok: true, sent: 0, total: 0, reason: "no_recipients" });
     }
 
-    const { data: rows, error: subErr } = await query;
-    if (subErr) return json({ error: "Could not load subscriptions" }, 500);
-    if (!rows?.length) return json({ ok: true, sent: 0, total: 0, reason: "no_subscriptions" });
+    const selectCols = "id, endpoint, p256dh, auth, profile_id";
+    const rows: { id: string; endpoint: string; p256dh: string; auth: string; profile_id: string }[] = [];
+
+    if (targeted) {
+      for (let i = 0; i < uniqueProfiles.length; i += IN_CHUNK) {
+        const { data, error: subErr } = await supabaseAdmin
+          .from("push_subscriptions")
+          .select(selectCols)
+          .eq("church_id", churchId)
+          .is("deleted_at", null)
+          .in("profile_id", uniqueProfiles.slice(i, i + IN_CHUNK));
+        if (subErr) return json({ error: "Could not load subscriptions" }, 500);
+        rows.push(...(data || []));
+      }
+    } else {
+      for (let from = 0; ; from += PAGE) {
+        const { data, error: subErr } = await supabaseAdmin
+          .from("push_subscriptions")
+          .select(selectCols)
+          .eq("church_id", churchId)
+          .is("deleted_at", null)
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (subErr) return json({ error: "Could not load subscriptions" }, 500);
+        rows.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+      }
+    }
+
+    if (!rows.length) return json({ ok: true, sent: 0, total: 0, reason: "no_subscriptions" });
 
     const signKey = await importVapidSignKey(vapidPublic, vapidPrivate);
     const payload = JSON.stringify({
