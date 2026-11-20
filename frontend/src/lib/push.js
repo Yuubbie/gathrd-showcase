@@ -58,6 +58,16 @@ export async function syncPushSubscription(force = false) {
 
   const applicationServerKey = vapidKey();
   let subscription = await registration.pushManager.getSubscription();
+  // A subscription made with a different VAPID key can never receive our pushes.
+  if (subscription && !force) {
+    const current = subscription.options?.applicationServerKey;
+    if (current) {
+      const a = new Uint8Array(current);
+      const b = new Uint8Array(applicationServerKey);
+      const same = a.length === b.length && a.every((v, i) => v === b[i]);
+      if (!same) force = true;
+    }
+  }
   if (force && subscription) {
     await subscription.unsubscribe().catch(() => {});
     subscription = null;

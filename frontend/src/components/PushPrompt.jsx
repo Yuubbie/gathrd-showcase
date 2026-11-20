@@ -75,7 +75,8 @@ export default function PushPrompt() {
         setNote(`This phone is not saved yet${saved.error ? ` (${saved.error})` : ''}. Tap Turn on, then Test.`);
         return;
       }
-      setNote(`Could not send${result?.error ? ` (${result.error})` : ''}. Tap Turn on, then Test.`);
+      const code = result?.error || (result?.last_status ? `push service status ${result.last_status}` : '');
+      setNote(`Could not send${code ? ` (${code})` : ''}. Tap Turn on, then Test.`);
     } catch (err) {
       setNote(err?.message || 'Could not send. Tap Turn on, then Test.');
     } finally {
