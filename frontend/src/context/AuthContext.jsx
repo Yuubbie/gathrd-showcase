@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { removePushSubscription } from '../lib/push';
 
 const AuthContext = createContext(null);
 
@@ -124,6 +125,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    await removePushSubscription(); // needs the session, so run before sign-out
     return supabase.auth.signOut();
   }
 

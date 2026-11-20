@@ -16,6 +16,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Run a push call without blocking the response, but keep the edge runtime
+// alive until it finishes so the alert is not dropped.
+function keepAlive(promise: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(promise);
+  return promise;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -155,14 +163,14 @@ Deno.serve(async (req) => {
     if (announcement.target_type !== "all") {
       pushBody.member_ids = members.map((m) => m.id);
     }
-    fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+    keepAlive(fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
       },
       body: JSON.stringify(pushBody),
-    }).catch(() => {});
+    }).catch((e) => console.error("send-push failed", String(e))));
 
     return json({
       success: true,

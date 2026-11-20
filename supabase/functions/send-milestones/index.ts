@@ -16,6 +16,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Run a push call without blocking the response, but keep the edge runtime
+// alive until it finishes so the alert is not dropped.
+function keepAlive(promise: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(promise);
+  return promise;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -102,6 +110,7 @@ Deno.serve(async (req) => {
 
     const milestoneTypes = ["birthday", "wedding_anniversary", "born_again_anniversary"];
     let totalSent = 0;
+    const pushJobs: Promise<unknown>[] = [];
     let totalSkippedAlreadySent = 0;
 
     for (const milestone of milestoneTypes) {
@@ -133,7 +142,7 @@ Deno.serve(async (req) => {
           status = await sendWhatsApp(m.phone, message);
           if (status === "sent") totalSent++;
         }
-        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+        pushJobs.push(fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -147,7 +156,7 @@ Deno.serve(async (req) => {
             tag: `milestone-${m.member_id}`,
             member_ids: [m.member_id],
           }),
-        }).catch(() => {});
+        }).catch((e) => console.error("send-push failed", String(e))));
 
         await supabaseAdmin.from("milestone_messages_log").insert({
           church_id: profile.church_id,
@@ -159,6 +168,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    keepAlive(Promise.allSettled(pushJobs));
     return json({ success: true, sent: totalSent, skipped_already_sent: totalSkippedAlreadySent });
   } catch (err) {
     return json({ error: String(err) }, 500);

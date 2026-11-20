@@ -16,6 +16,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Run a push call without blocking the response, but keep the edge runtime
+// alive until it finishes so the alert is not dropped.
+function keepAlive(promise: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(promise);
+  return promise;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -98,6 +106,7 @@ Deno.serve(async (req) => {
     let sentCount = 0;
     let skippedAlreadyReported = 0;
     const results = [];
+    const pushJobs: Promise<unknown>[] = [];
 
     for (const cg of cellGroups || []) {
       const { data: existingReport } = await supabaseAdmin
@@ -120,7 +129,7 @@ Deno.serve(async (req) => {
         if (status === "sent") sentCount++;
       }
       if (cg.leader_profile_id) {
-        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
+        pushJobs.push(fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -134,10 +143,12 @@ Deno.serve(async (req) => {
             tag: `cell-${cg.id}`,
             profile_ids: [cg.leader_profile_id],
           }),
-        }).catch(() => {});
+        }).catch((e) => console.error("send-push failed", String(e))));
       }
       results.push({ cell_group: cg.name, status });
     }
+
+    keepAlive(Promise.allSettled(pushJobs));
 
     return json({
       success: true,

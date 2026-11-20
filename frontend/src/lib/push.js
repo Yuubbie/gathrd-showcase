@@ -141,3 +141,21 @@ export async function sendSelfTestPush(session) {
     tag: 'gathrd-test',
   });
 }
+
+// Called on sign-out so this phone stops receiving the previous user's alerts.
+export async function removePushSubscription() {
+  try {
+    if (!pushSupported()) return;
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    const subscription = await registration?.pushManager.getSubscription();
+    if (!subscription) return;
+    const endpoint = subscription.endpoint;
+    await Promise.race([
+      supabase.rpc('delete_push_subscription', { p_endpoint: endpoint }),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
+    await subscription.unsubscribe().catch(() => {});
+  } catch {
+    // Never block sign-out on cleanup.
+  }
+}
