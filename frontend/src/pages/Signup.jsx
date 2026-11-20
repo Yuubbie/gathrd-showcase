@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
 
 // Turns Supabase's raw messages into plain language, and spots the case where the
 // account was created a moment ago (a repeat request inside Supabase's short cooldown).
@@ -35,38 +34,8 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false); // blocks a second submit before the screen has re-rendered
 
-  // The server builds the welcome email itself from a fixed template and sends it
-  // only to the logged-in user's own address. The browser only asks for it.
-  async function sendWelcomeEmail() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('Welcome email skipped: no active session after signup (email confirmation may be required).');
-        return false;
-      }
-
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ type: 'welcome' }),
-      });
-
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (parseErr) {
-        console.warn('send-email returned a non-JSON response');
-      }
-      console.log('Welcome email send result:', response.status, data);
-      return response.ok && !(data && data.error);
-    } catch (err) {
-      console.error('Welcome email send failed:', err);
-      return false;
-    }
-  }
+  // The welcome email is sent by the server the moment the account is created
+  // (a database trigger calls the send-welcome-email function), so nothing to do here.
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -93,9 +62,6 @@ export default function Signup() {
         setError(outcome.text);
         return;
       }
-
-      // Ask the server to send the welcome email (never blocks signup if it fails)
-      await sendWelcomeEmail();
 
       navigate('/check-email', { state: { email } });
     } finally {
