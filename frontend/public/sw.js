@@ -29,7 +29,10 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/dashboard';
+  const raw = (event.notification.data && event.notification.data.url) || '/dashboard';
+  // Same-site paths only: reject "//host" and "/\host" (47 is "/", 92 is a backslash).
+  const second = String(raw).charCodeAt(1);
+  const target = String(raw).charCodeAt(0) === 47 && second !== 47 && second !== 92 ? raw : '/dashboard';
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of allClients) {

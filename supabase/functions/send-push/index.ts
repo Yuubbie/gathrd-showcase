@@ -13,6 +13,12 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Only same-site paths: "/x" is fine, "//evil.com" and "/\evil.com" are not.
+function safePath(value: string): string {
+  const second = value.charCodeAt(1); // 47 is "/", 92 is a backslash
+  return value.charCodeAt(0) === 47 && second !== 47 && second !== 92 ? value : "/dashboard";
+}
+
 function asString(value: unknown, max = 200) {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, max);
@@ -173,7 +179,8 @@ async function sendOne(
 ): Promise<number> {
   const body = await encryptPayload(payload, p256dh, auth);
   const audience = new URL(endpoint).origin;
-  const jwt = await vapidJwt(audience, "mailto:yubbiepen.pixel@gmail.com", signKey);
+  const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:yubbiepen.pixel@gmail.com";
+  const jwt = await vapidJwt(audience, subject, signKey);
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -323,7 +330,7 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title,
       body: text,
-      url: url.startsWith("/") ? url : "/dashboard",
+      url: safePath(url),
       tag,
     });
 
