@@ -2,6 +2,14 @@
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import {
+  isIOSDevice,
+  pushState,
+  requestPushPermission,
+  sendSelfTestPush,
+  syncPushSubscription,
+} from '../lib/push';
 
 const READ_KEY = 'gathrd_announcement_reads';
 const RECENT_DAYS = 14;
@@ -33,6 +41,89 @@ function clearLegacyReadIds() {
   } catch {
     // ignore
   }
+}
+
+// Phone alerts status and the Test alert button live here, not in a floating card.
+function PhoneAlertsRow() {
+  const { session } = useAuth();
+  const [state, setState] = useState(pushState);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+
+  async function turnOn() {
+    setBusy(true);
+    setNote('');
+    const result = await requestPushPermission().catch(() => ({ ok: false }));
+    setState(pushState());
+    if (!result.ok && result.permission !== 'denied') {
+      setNote(`Could not turn on${result.error ? ` (${result.error})` : ''}. Try again.`);
+    }
+    setBusy(false);
+  }
+
+  async function sendTest() {
+    setBusy(true);
+    setNote('');
+    try {
+      const saved = await syncPushSubscription(false);
+      if (!saved.ok) {
+        setNote(`This phone could not be registered${saved.error ? ` (${saved.error})` : ''}.`);
+        return;
+      }
+      const result = await sendSelfTestPush(session);
+      if (result?.sent > 0) {
+        setNote('Sent. Lock your phone and look for it.');
+      } else {
+        const code = result?.error || (result?.last_status ? `status ${result.last_status}` : '');
+        setNote(`Could not send${code ? ` (${code})` : ''}.`);
+      }
+    } catch (err) {
+      setNote(err?.message || 'Could not send.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  let status;
+  let action = null;
+  if (state === 'granted') {
+    status = 'Phone alerts: On';
+    action = (
+      <button type="button" onClick={sendTest} disabled={busy || !session} className="text-xs font-semibold text-gold hover:text-gold-light disabled:opacity-50">
+        {busy ? 'Sending…' : 'Send test'}
+      </button>
+    );
+  } else if (state === 'default') {
+    status = 'Phone alerts: Off';
+    action = (
+      <button type="button" onClick={turnOn} disabled={busy} className="text-xs font-semibold text-gold hover:text-gold-light disabled:opacity-50">
+        {busy ? 'Turning on…' : 'Turn on'}
+      </button>
+    );
+  } else if (state === 'denied') {
+    status = 'Phone alerts: Blocked';
+  } else {
+    status = 'Phone alerts: Not available here';
+  }
+
+  const hint =
+    state === 'denied'
+      ? 'Allow notifications for Gathrd (or your browser) in your phone settings, then reopen the app.'
+      : state === 'unsupported'
+      ? isIOSDevice()
+        ? 'On iPhone: tap Share, choose Add to Home Screen, then open Gathrd from your home screen.'
+        : 'Use Chrome or Edge on Android, or install Gathrd, to get lock-screen alerts.'
+      : '';
+
+  return (
+    <div className="sticky bottom-0 border-t border-void/10 bg-parchment px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-void/60">{status}</span>
+        {action}
+      </div>
+      {(note || hint) && <p className="text-[11px] text-void/50 mt-1">{note || hint}</p>}
+    </div>
+  );
 }
 
 export default function NotificationBell() {
@@ -267,6 +358,7 @@ export default function NotificationBell() {
                 </button>
               ))
             )}
+            <PhoneAlertsRow />
           </div>,
           document.body
         )}

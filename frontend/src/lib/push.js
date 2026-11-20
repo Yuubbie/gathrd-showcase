@@ -38,6 +38,34 @@ export function pushSupported() {
   );
 }
 
+// 'unsupported' | 'default' (not asked yet) | 'granted' | 'denied'
+export function pushState() {
+  if (!pushSupported()) return 'unsupported';
+  return Notification.permission;
+}
+
+const SNOOZE_KEY = 'gathrd_push_snooze_until';
+
+export function pushPromptSnoozed() {
+  try {
+    return Number(localStorage.getItem(SNOOZE_KEY) || 0) > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+export function snoozePushPrompt(days = 14) {
+  try {
+    localStorage.setItem(SNOOZE_KEY, String(Date.now() + days * 86400000));
+  } catch {
+    // Storage blocked: the prompt may come back next visit.
+  }
+}
+
+export function isIOSDevice() {
+  return typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
 export async function ensureServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
   let registration = await navigator.serviceWorker.getRegistration('/');

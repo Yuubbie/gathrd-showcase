@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
 // Gathrd support WhatsApp number, in international format with no + or spaces.
 const WHATSAPP_NUMBER = '2348128821338';
-const TIP_KEY = 'gathrd_help_tip_dismissed';
+const TIP_KEY = 'gathrd_help_tip_seen';
 
 function readDismissed() {
   try {
-    return sessionStorage.getItem(TIP_KEY) === '1';
+    return localStorage.getItem(TIP_KEY) === '1';
   } catch (err) {
     return false;
   }
@@ -19,11 +19,18 @@ export default function WhatsAppButton({ message = 'Hello Gathrd, I need some he
   function dismissTip() {
     setShowTip(false);
     try {
-      sessionStorage.setItem(TIP_KEY, '1');
+      localStorage.setItem(TIP_KEY, '1');
     } catch (err) {
-      // Storage can be blocked (private mode). The tip simply comes back next time.
+      // Storage can be blocked (private mode). The tip simply comes back next visit.
     }
   }
+
+  // Show the tip once per phone, then let it fade away on its own.
+  useEffect(() => {
+    if (!showTip) return undefined;
+    const timer = setTimeout(dismissTip, 8000);
+    return () => clearTimeout(timer);
+  }, [showTip]);
 
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 

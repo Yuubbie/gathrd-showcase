@@ -1,39 +1,38 @@
 import { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Bell, X } from 'lucide-react';
 import {
-  pushSupported,
+  pushPromptSnoozed,
+  pushState,
   requestPushPermission,
-  sendSelfTestPush,
+  snoozePushPrompt,
   syncPushSubscription,
 } from '../lib/push';
 
+// Asks once, politely, then stays out of the way:
+//  - alerts already on  -> nothing shown (the phone is kept registered quietly)
+//  - blocked / unsupported -> nothing shown (help lives in the bell panel)
+//  - "Not now" -> not asked again for 14 days
 export default function PushPrompt() {
-  const { session } = useAuth();
-  const [mode, setMode] = useState('hidden');
+  const [mode, setMode] = useState('hidden'); // hidden | prompt | done
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    if (!pushSupported()) {
-      if (!sessionStorage.getItem('gathrd_push_later')) setMode('unsupported');
-      return undefined;
-    }
-    if (Notification.permission === 'denied') {
-      if (!sessionStorage.getItem('gathrd_push_hide_denied')) setMode('denied');
-      return undefined;
-    }
-    if (Notification.permission === 'granted') {
+    const state = pushState();
+    if (state === 'granted') {
       syncPushSubscription(false).catch(() => {});
-      if (!sessionStorage.getItem('gathrd_push_hide_on')) setMode('on');
       return undefined;
     }
-    if (sessionStorage.getItem('gathrd_push_later')) return undefined;
-    const timer = setTimeout(() => setMode('prompt'), 800);
+    if (state !== 'default' || pushPromptSnoozed()) return undefined;
+    const timer = setTimeout(() => setMode('prompt'), 2500);
     return () => clearTimeout(timer);
   }, []);
 
-  if (mode === 'hidden') return null;
+  useEffect(() => {
+    if (mode !== 'done') return undefined;
+    const timer = setTimeout(() => setMode('hidden'), 3000);
+    return () => clearTimeout(timer);
+  }, [mode]);
 
   async function enable() {
     setBusy(true);
@@ -41,111 +40,69 @@ export default function PushPrompt() {
     try {
       const result = await requestPushPermission();
       if (result.permission === 'denied') {
-        setMode('denied');
+        snoozePushPrompt(365);
+        setMode('hidden');
         return;
       }
       if (result.ok) {
-        setMode('on');
-        setNote('Saved. Tap Test alert, then lock this phone.');
+        setMode('done');
         return;
       }
-      setMode('on');
-      setNote(`Could not save this phone${result.error ? ` (${result.error})` : ''}. Tap Turn on again.`);
+      setNote(`Could not turn on alerts${result.error ? ` (${result.error})` : ''}. Please try again.`);
     } catch (err) {
-      setNote(err?.message || 'Could not save this phone. Tap Turn on again.');
+      setNote(err?.message || 'Could not turn on alerts. Please try again.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function testAlert() {
-    setBusy(true);
-    setNote('');
-    try {
-      const saved = await syncPushSubscription(false);
-      if (!saved.ok) {
-        setNote(`Could not save this phone${saved.error ? ` (${saved.error})` : ''}. Tap Turn on, then Test.`);
-      }
-      const result = await sendSelfTestPush(session);
-      if (result?.sent > 0) {
-        setNote('Sent. Lock the phone — you should see Gathrd in a few seconds.');
-        return;
-      }
-      if (result?.reason === 'no_subscriptions' || !saved.ok) {
-        setNote(`This phone is not saved yet${saved.error ? ` (${saved.error})` : ''}. Tap Turn on, then Test.`);
-        return;
-      }
-      const code = result?.error || (result?.last_status ? `push service status ${result.last_status}` : '');
-      setNote(`Could not send${code ? ` (${code})` : ''}. Tap Turn on, then Test.`);
-    } catch (err) {
-      setNote(err?.message || 'Could not send. Tap Turn on, then Test.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function later() {
-    if (mode === 'denied') sessionStorage.setItem('gathrd_push_hide_denied', '1');
-    else if (mode === 'on') sessionStorage.setItem('gathrd_push_hide_on', '1');
-    else sessionStorage.setItem('gathrd_push_later', '1');
+  function notNow() {
+    snoozePushPrompt(14);
     setMode('hidden');
   }
 
-  const isiOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-  let body = 'Allow Gathrd to notify you when service starts, an announcement goes out, or a follow-up is assigned.';
-  if (mode === 'unsupported') {
-    body = isiOS
-      ? 'On iPhone: Add to Home Screen, then open Gathrd from the home screen and allow alerts.'
-      : 'Use Chrome or Edge on Android, or install Gathrd, to get lock-screen alerts.';
-  } else if (mode === 'denied') {
-    body = 'Alerts are blocked. In phone settings, allow notifications for Gathrd (or Chrome), then open the app again.';
-  } else if (mode === 'on') {
-    body = 'Tap Turn on if needed, then Test alert, then lock the screen.';
-  }
-
-  const granted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-  const showTurnOn = mode === 'prompt' || mode === 'on';
-  const showTest = mode === 'on' && granted;
+  if (mode === 'hidden') return null;
 
   return (
     <div
-      className="fixed z-40 print:hidden"
-      style={{
-        right: 'max(0.75rem, env(safe-area-inset-right))',
-        bottom: 'max(4.5rem, env(safe-area-inset-bottom))',
-      }}
+      className="fixed z-40 print:hidden left-3 right-3 md:left-auto md:right-4 md:w-80"
+      style={{ bottom: 'max(5rem, calc(env(safe-area-inset-bottom) + 4.5rem))' }}
+      role="status"
     >
-      <div className="max-w-xs rounded-2xl border border-ink/10 bg-white p-3 shadow-lg">
-        <p className="text-sm font-semibold text-ink">Phone alerts</p>
-        <p className="text-xs text-ink/60 mt-1">{body}</p>
-        {note && <p className="text-xs text-signal mt-1.5">{note}</p>}
-        <div className="flex items-center gap-2 mt-3">
-          {showTurnOn && (
-            <button
-              type="button"
-              onClick={enable}
-              disabled={busy}
-              className="flex items-center gap-1.5 text-xs bg-signal hover:bg-signal-deep text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
-            >
-              <Bell size={12} /> {busy ? 'Saving…' : 'Turn on'}
-            </button>
-          )}
-          {showTest && (
-            <button
-              type="button"
-              onClick={testAlert}
-              disabled={busy || !session}
-              className="flex items-center gap-1.5 text-xs border border-signal text-signal rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
-            >
-              {busy ? 'Sending…' : 'Test alert'}
-            </button>
-          )}
-          <button type="button" onClick={later} className="text-xs text-ink/50">
-            Later
-          </button>
+      {mode === 'done' ? (
+        <div className="rounded-xl bg-ink text-white px-4 py-3 shadow-lg text-sm font-semibold flex items-center gap-2">
+          <Bell size={15} className="text-gold" /> Alerts are on
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-ink/10 bg-white p-3 shadow-lg">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+              <Bell size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">Get church alerts on your phone</p>
+              <p className="text-xs text-ink/60 mt-0.5">Service reminders and announcements, even when the app is closed.</p>
+              {note && <p className="text-xs text-rose mt-1.5">{note}</p>}
+              <div className="flex items-center gap-3 mt-2.5">
+                <button
+                  type="button"
+                  onClick={enable}
+                  disabled={busy}
+                  className="text-sm bg-signal hover:bg-signal-deep text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-50"
+                >
+                  {busy ? 'Turning on…' : 'Turn on'}
+                </button>
+                <button type="button" onClick={notNow} disabled={busy} className="text-sm text-ink/60 px-1 py-2">
+                  Not now
+                </button>
+              </div>
+            </div>
+            <button type="button" onClick={notNow} aria-label="Dismiss" className="p-1 -mr-1 -mt-1 text-ink/30 hover:text-ink/60">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
