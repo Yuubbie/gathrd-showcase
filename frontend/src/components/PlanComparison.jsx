@@ -24,7 +24,9 @@ function Cell({ value }) {
 export default function PlanComparison() {
   return (
     <div className="bg-white rounded-2xl border border-ink/5 overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* "relative" keeps the hidden screen-reader labels inside this scroll box; without it
+          they stick out past the right edge and make the whole page scroll sideways on phones. */}
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[720px] text-left border-collapse">
           <thead>
             <tr className="border-b border-ink/10">
