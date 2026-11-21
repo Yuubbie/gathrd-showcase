@@ -4,7 +4,7 @@
 
 - **Live app:** [gathrd.com.ng](https://gathrd.com.ng)
 - **Watch the 9-minute guide:** [youtu.be/1Yg3MzRHuko](https://youtu.be/1Yg3MzRHuko)
-- **Contact:** yubbiepen.pixel@gmail.com
+- **Contact:** gathrdng@gmail.com
 
 ## Why it exists
 
@@ -107,8 +107,8 @@ Edge Functions read these secrets (set them with `supabase secrets set`): `SUPAB
 
 ## Built with Claude
 
-Gathrd is built by one person working with [Claude](https://claude.com) from Anthropic, mainly through [Claude Code](https://claude.com/claude-code). The builder decides what to build, reviews the changes and runs the product; Claude helps write, test and document the code.
+Built mainly with Claude: Claude.ai chat for product planning, database design, debugging and a full security review (row-level security, role escalation, cross-church isolation); Claude Code for working directly in the repository; and Claude for the launch marketing videos and the 9-minute product guide. A few other tools for research and brainstorming.
 
 ## License
 
-Not yet chosen. Until a license is added, all rights are reserved.
+All rights reserved. The code is published for review only. See LICENSE.
