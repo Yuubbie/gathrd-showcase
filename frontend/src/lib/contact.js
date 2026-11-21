@@ -4,4 +4,4 @@
 export const SUPPORT_WHATSAPP = '2348128821338';
 
 // The address people write to for privacy and legal questions.
-export const CONTACT_EMAIL = 'yubbiepen.pixel@gmail.com';
+export const CONTACT_EMAIL = 'gathrdng@gmail.com';

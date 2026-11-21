@@ -179,7 +179,7 @@ async function sendOne(
 ): Promise<number> {
   const body = await encryptPayload(payload, p256dh, auth);
   const audience = new URL(endpoint).origin;
-  const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:yubbiepen.pixel@gmail.com";
+  const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:gathrdng@gmail.com";
   const jwt = await vapidJwt(audience, subject, signKey);
   const res = await fetch(endpoint, {
     method: "POST",
