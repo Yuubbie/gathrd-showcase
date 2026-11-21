@@ -16,7 +16,7 @@ All names, phone numbers and amounts are fictional (phones are `08000xxxxxx`, em
 3. **Browser:** Chrome, 1920x1080, zoom 110%, bookmarks bar hidden, notifications off, dark-mode off.
 4. **Phone scenes:** record on a real phone (or Chrome device mode 390x844). Install Gathrd to the home screen and allow phone alerts first.
 5. **Go live for the QR scene:** on **Attendance**, press **Start service** shortly before filming so the QR code and 6-digit code are live. End it afterwards.
-6. **Never show:** the Supabase dashboard, real church names (for example Your church), the Billing page unless you want the plans, or anyone's real number.
+6. **Never show:** the Supabase dashboard, real church names, the Billing page unless you want the plans, or anyone's real number.
 7. **Numbers to quote (approximate, the seed changes slightly with the date):** about 140 people, 8 cell groups, 8 departments, Sunday attendance in the 80s and midweek around 40, 36 visitors in 12 weeks, about ₦10 million in recorded giving over 12 weeks.
 
 > **Do not claim in the video:** WhatsApp message sending (not switched on yet), card payments on the public giving page (bank transfer only), or any AI feature.

@@ -127,6 +127,9 @@ security definer
 set search_path = public
 as $$
 begin
+  -- The platform owner's address has been removed from this file. Migration 0044 replaces this
+  -- check with a lookup in the platform_admins table, so this placeholder is only ever seen
+  -- briefly when the migrations are replayed from the start.
   if lower(coalesce((select auth.jwt() ->> 'email'), '')) <> 'owner@example.invalid' then
     raise exception 'not allowed';
   end if;

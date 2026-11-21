@@ -122,8 +122,10 @@ export default function Milestones() {
 
         <div className="bg-white rounded-2xl border border-ink/5 shadow-[0_1px_2px_rgba(21,17,31,0.04),0_8px_24px_-8px_rgba(21,17,31,0.08)] p-5 space-y-2">
           <p className="text-sm text-ink/60">
-            Automatically sends birthday and anniversary WhatsApp messages for anyone whose milestone is today.
-            Safe to click more than once — nobody gets a duplicate message.
+            Press the button to send today&apos;s birthday and anniversary messages. Nothing is sent automatically.
+            People who use the app and have phone alerts on get an alert. WhatsApp delivery is not switched on yet.
+            To tell the whole church about birthdays each morning, turn on the daily notice in Settings, then Alerts &amp; Reminders.
+            Safe to press more than once — nobody gets a duplicate message.
           </p>
           <button onClick={sendTodaysMilestones} disabled={sending} className="w-full bg-signal hover:bg-signal-deep text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-50">
             {sending ? 'Checking…' : "Check & Send Today's Milestones"}

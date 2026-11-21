@@ -8,10 +8,6 @@ import {
   Trash2, Edit2, Check, X
 } from 'lucide-react';
 
-const SUPERADMIN_EMAILS = [
-  'owner@example.invalid',
-];
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -38,8 +34,9 @@ export default function AdminDashboard() {
         return;
       }
 
-      const userEmail = (user.email || '').toLowerCase().trim();
-      if (!SUPERADMIN_EMAILS.includes(userEmail)) {
+      // The database decides who is a platform admin; nothing is checked or stored in the browser.
+      const { data: isAdmin } = await supabase.rpc('is_platform_admin');
+      if (!isAdmin) {
         setAuthorized(false);
         setLoading(false);
         return;

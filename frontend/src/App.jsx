@@ -27,6 +27,8 @@ import Settings from './pages/Settings';
 import AlertSettings from './pages/AlertSettings';
 import CheckEmail from './pages/CheckEmail';
 import EmailConfirmed from './pages/EmailConfirmed';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import AuthRedirectHandler from './components/AuthRedirectHandler';
 import Billing from './pages/Billing';
 import Landing from './pages/Landing';
@@ -79,6 +81,8 @@ export default function App() {
           <Route path="/district-dashboard" element={<DistrictDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/check-email" element={<CheckEmail />} />
           <Route path="/email-confirmed" element={<EmailConfirmed />} />
           <Route path="/unauthorized" element={<Unauthorized />} />

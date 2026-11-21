@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import LegalAgreement from '../components/LegalAgreement';
 
 export default function ChurchJoin() {
   const { slug } = useParams();
@@ -202,6 +203,8 @@ export default function ChurchJoin() {
           >
             {submitting ? 'Creating login…' : 'Create my login'}
           </button>
+
+          <LegalAgreement />
 
           <p className="text-sm text-center text-ink/50">
             Already have a login?{' '}

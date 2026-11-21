@@ -225,7 +225,7 @@ Walk through the menu. What people see depends on their role (chapter 5):
 **Who:** pastors, admins. **Where:** **Follow-Up & Care Dashboard**, `/follow-up` (also from **Cell Groups**).
 
 **Steps**
-1. **First-Timer Love-Bombing Dispatch Queue** lists every first-time visitor with the next message due. The four touchpoints are **Day 1** (Sunday welcome), **Day 3** (Tuesday fellowship invite), **Day 7** (Saturday service warm-up) and **Day 30** (Believers' class and membership).
+1. **First-Timer Welcome Queue** lists every first-time visitor with the next message due. The four touchpoints are **Day 1** (Sunday welcome), **Day 3** (Tuesday fellowship invite), **Day 7** (Saturday service warm-up) and **Day 30** (Believers' class and membership).
 2. Tap **WhatsApp**, **SMS** or **Call**. The message opens on **your phone**, already typed. Send it, and it is marked **Sent**.
 3. If a visitor's number cannot receive WhatsApp, the button says **No WhatsApp**; use SMS or call.
 4. To change the wording, click **Edit Seasonal Message Templates**, edit each of the four messages (use the placeholders for the guest's name and the church name), then **Save Seasonal Templates**. **Reset to Defaults** restores the originals.

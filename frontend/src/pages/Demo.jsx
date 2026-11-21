@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import { SUPPORT_WHATSAPP } from '../lib/contact';
 import {
   Church, QrCode, Users, ListChecks, Wallet, CalendarDays,
   ArrowRight, Phone, ShieldCheck, Check, Smartphone, Clock,
@@ -33,7 +34,7 @@ export default function Demo() {
 
           <div className="flex items-center gap-3">
             <a 
-              href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20am%20reviewing%20the%20Grace%20Chapel%20demo%20and%20want%20to%20set%20up%20our%20church."
+              href={`https://wa.me/${SUPPORT_WHATSAPP}?text=Hello%20Gathrd%2C%20I%20am%20reviewing%20the%20Grace%20Chapel%20demo%20and%20want%20to%20set%20up%20our%20church.`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gold hover:bg-gold-light text-ink text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
@@ -595,7 +596,7 @@ export default function Demo() {
               Start 30-Day Free Trial
             </Link>
             <a
-              href="https://wa.me/2348128821338?text=Hello%20Gathrd%2C%20I%20would%20like%20a%20guided%20onboarding%20session%20for%20our%20church."
+              href={`https://wa.me/${SUPPORT_WHATSAPP}?text=Hello%20Gathrd%2C%20I%20would%20like%20a%20guided%20onboarding%20session%20for%20our%20church.`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white/10 hover:bg-white/20 text-white text-center text-xs md:text-sm font-semibold px-4 py-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-white/20"

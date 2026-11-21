@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { SUPPORT_WHATSAPP } from '../lib/contact';
 
-// Gathrd support WhatsApp number, in international format with no + or spaces.
-const WHATSAPP_NUMBER = '2348128821338';
 const TIP_KEY = 'gathrd_help_tip_seen';
 
 function readDismissed() {
@@ -32,7 +31,7 @@ export default function WhatsAppButton({ message = 'Hello Gathrd, I need some he
     return () => clearTimeout(timer);
   }, [showTip]);
 
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const href = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(message)}`;
 
   return (
     <div

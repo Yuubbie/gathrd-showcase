@@ -42,6 +42,19 @@ export const PAGE_SEO = {
     path: '/signup',
     keywords: PRIMARY_KEYWORDS,
   },
+  '/privacy': {
+    title: 'Privacy Policy | Gathrd',
+    description:
+      'How Gathrd keeps church and member information safe under the Nigeria Data Protection Act 2023.',
+    path: '/privacy',
+    keywords: PRIMARY_KEYWORDS,
+  },
+  '/terms': {
+    title: 'Terms of Service | Gathrd',
+    description: 'The simple rules for using Gathrd, the church management system for Nigerian churches.',
+    path: '/terms',
+    keywords: PRIMARY_KEYWORDS,
+  },
   '/church-management-platform-nigeria': {
     title: 'Church Management System in Nigeria | Gathrd',
     description:

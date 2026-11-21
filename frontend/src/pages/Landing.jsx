@@ -300,6 +300,8 @@ export default function Landing() {
             <Link to="/demo" className="text-white/50 hover:text-white text-sm">Demo</Link>
             <Link to="/login" className="text-white/50 hover:text-white text-sm">Sign In</Link>
             <Link to="/signup" className="text-white/50 hover:text-white text-sm">Sign Up</Link>
+            <Link to="/terms" className="text-white/50 hover:text-white text-sm">Terms</Link>
+            <Link to="/privacy" className="text-white/50 hover:text-white text-sm">Privacy</Link>
           </div>
           <p className="text-white/50 text-sm">© 2026 Gathrd. All rights reserved.</p>
         </div>

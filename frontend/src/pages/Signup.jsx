@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import LegalAgreement from '../components/LegalAgreement';
 
 // Turns Supabase's raw messages into plain language, and spots the case where the
 // account was created a moment ago (a repeat request inside Supabase's short cooldown).
@@ -22,6 +23,10 @@ function explainSignupError(error) {
   return { text: 'We could not create your account right now. Please check your details and try again.' };
 }
 
+// Gentle nudges when the two name boxes look swapped. They never block sign-up.
+const CHURCH_WORDS = /\b(church|churches|ministry|ministries|chapel|assembly|tabernacle|cathedral|parish|mission|fellowship|baptist|redeemed|gospel|temple|sanctuary|cell)\b/i;
+const TITLES = /^\s*(pastor|pst\.?|rev\.?|reverend|bishop|apostle|evangelist|prophet|elder|deacon|brother|sister|mr\.?|mrs\.?|dr\.?)\b/i;
+
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +38,8 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false); // blocks a second submit before the screen has re-rendered
+  const nameLooksLikeChurch = CHURCH_WORDS.test(fullName);
+  const churchLooksLikePerson = TITLES.test(churchName) && !CHURCH_WORDS.test(churchName);
 
   // The welcome email is sent by the server the moment the account is created
   // (a database trigger calls the send-welcome-email function), so nothing to do here.
@@ -106,20 +113,32 @@ export default function Signup() {
             <label className="block text-sm font-medium text-ink/80 mb-1.5">Church name</label>
             <input
               required
+              name="organization"
+              autoComplete="organization"
+              placeholder="e.g. Grace Chapel"
               value={churchName}
               onChange={(e) => setChurchName(e.target.value)}
               className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             />
+            {churchLooksLikePerson && (
+              <p className="text-xs text-amber-700 mt-1.5">That looks like a person&apos;s name. Please put your church&apos;s name here.</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-ink/80 mb-1.5">Your full name</label>
             <input
               required
+              name="name"
+              autoComplete="name"
+              placeholder="e.g. Pastor John Adeyemi"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full border border-ink/10 rounded-lg px-3.5 py-2.5 text-base focus:border-signal focus:ring-1 focus:ring-signal outline-none transition-colors"
             />
+            {nameLooksLikeChurch && (
+              <p className="text-xs text-amber-700 mt-1.5">That looks like a church name. Please put your own name here.</p>
+            )}
           </div>
 
           <div>
@@ -164,6 +183,8 @@ export default function Signup() {
           >
             {submitting ? 'Creating account…' : 'Create Account'}
           </button>
+
+          <LegalAgreement />
 
           <p className="text-sm text-center text-ink/50">
             Already have an account?{' '}

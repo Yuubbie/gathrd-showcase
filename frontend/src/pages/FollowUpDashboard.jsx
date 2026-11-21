@@ -180,7 +180,7 @@ export default function FollowUpDashboard() {
             <div className="bg-white rounded-2xl border border-ink/5 shadow-sm p-5 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-display font-bold text-ink text-base">First-Timer Love-Bombing Dispatch Queue</h2>
+                  <h2 className="font-display font-bold text-ink text-base">First-Timer Welcome Queue</h2>
                   <p className="text-xs text-ink/60">
                     Tap WhatsApp or SMS to send pre-filled messages directly from your device with zero API charges.
                   </p>

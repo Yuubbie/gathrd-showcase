@@ -324,8 +324,8 @@ export default function BranchSignup() {
 
             <p className="text-sm text-center text-ink/50">
               By continuing, you agree to our{' '}
-              <a href="#" className="text-signal hover:text-signal-deep">Terms of Service</a> and{' '}
-              <a href="#" className="text-signal hover:text-signal-deep">Privacy Policy</a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-signal hover:text-signal-deep">Terms of Service</a> and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-signal hover:text-signal-deep">Privacy Policy</a>
             </p>
           </form>
         </div>

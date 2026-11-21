@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import LegalAgreement from '../components/LegalAgreement';
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
@@ -254,6 +255,7 @@ export default function PublicOnboard() {
         >
           {submitting ? 'Submitting…' : 'Register'}
         </button>
+        <LegalAgreement className="mt-3" />
       </form>
     </div>
   );
