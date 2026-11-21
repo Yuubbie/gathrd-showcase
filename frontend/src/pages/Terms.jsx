@@ -18,8 +18,9 @@ export default function Terms() {
         <List
           items={[
             'Every new church gets a 30-day free trial.',
-            'After that, a church pays a monthly plan through Paystack. Plan prices and member limits are shown on the Billing page and our website.',
-            'If a trial or a payment ends, you get 7 days to subscribe. After that your church becomes read-only: you can still view and export everything, but you cannot add or change records.',
+            'After the trial, a church continues on a monthly plan paid through Paystack. Plan prices and member limits are shown on the Billing page and our website.',
+            'If online payment is not yet available for your church when your trial ends, your access continues until it is. We will give church leaders at least 14 days\' notice by email and in the app before payment is required.',
+            'If a payment ends, you get 7 days to subscribe. After that your church becomes read-only: you can still view and export everything, but you cannot add or change records.',
             'We do not delete your information because a payment is missed. Subscribing again restores full access.',
             'You can cancel at any time and keep access until the end of the period you have already paid for.',
           ]}
