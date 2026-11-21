@@ -47,7 +47,7 @@ export default function OnboardingChecklist() {
     { label: 'Create your first cell group', done: steps.cellGroup, to: '/cell-groups' },
     { label: 'Add your first member', done: steps.member, to: '/members/new' },
     { label: 'Add your church bank account', done: steps.giving, to: '/giving/bank-accounts' },
-    { label: 'Watch the 3-minute walkthrough', done: videoWatched, to: null },
+    { label: 'Watch the Gathrd guide (9 min)', done: videoWatched, to: null, href: 'https://youtu.be/1Yg3MzRHuko' },
   ];
 
   const completedCount = items.filter((i) => i.done).length;
@@ -71,18 +71,23 @@ export default function OnboardingChecklist() {
 
       <div className="space-y-2">
         {items.map((item) => (
-          item.to ? (
+          item.href ? (
+            <a
+              key={item.label}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setVideoWatched(true)}
+              className="flex items-center gap-2 text-sm hover:text-signal transition-colors"
+            >
+              {item.done ? <CheckCircle2 size={18} className="text-sage shrink-0" /> : <Circle size={18} className="text-ink/20 shrink-0" />}
+              <span className={item.done ? 'text-ink/40 line-through' : 'text-ink/80'}>{item.label}</span>
+            </a>
+          ) : (
             <Link key={item.label} to={item.to} className="flex items-center gap-2 text-sm hover:text-signal transition-colors">
               {item.done ? <CheckCircle2 size={18} className="text-sage shrink-0" /> : <Circle size={18} className="text-ink/20 shrink-0" />}
               <span className={item.done ? 'text-ink/40 line-through' : 'text-ink/80'}>{item.label}</span>
             </Link>
-          ) : (
-            <button key={item.label} onClick={() => setVideoWatched(true)} className="flex items-center gap-2 text-sm text-left hover:text-signal transition-colors">
-              {item.done ? <CheckCircle2 size={18} className="text-sage shrink-0" /> : <Circle size={18} className="text-ink/20 shrink-0" />}
-              <span className={item.done ? 'text-ink/40 line-through' : 'text-ink/80'}>
-                {item.label} <span className="text-ink/30">(coming soon — mark done to skip)</span>
-              </span>
-            </button>
           )
         ))}
       </div>

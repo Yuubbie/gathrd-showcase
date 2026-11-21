@@ -7,6 +7,7 @@ import {
 import PlanComparison from '../components/PlanComparison';
 import WhatsAppButton from '../components/WhatsAppButton';
 import InstallPrompt from '../components/InstallPrompt';
+import LiteYouTube from '../components/LiteYouTube';
 import { PLANS, TRIAL_DAYS, formatNaira } from '../lib/plans';
 
 const FEATURES = [
@@ -123,6 +124,27 @@ export default function Landing() {
             </div>
             <p className="text-white/60 text-xs text-center mt-3">Sample data</p>
           </div>
+        </div>
+      </section>
+
+      {/* Watch the guide */}
+      <section id="guide" aria-labelledby="guide-heading" className="px-4 pb-16 md:pb-24 md:px-10">
+        <div className="max-w-[900px] mx-auto text-center">
+          <h2 id="guide-heading" className="font-display text-3xl md:text-4xl font-bold text-ink">
+            See everything Gathrd does in 9 minutes
+          </h2>
+          <p className="text-ink/60 text-lg mt-3 max-w-2xl mx-auto">
+            Set up your church, build your team, take attendance, manage giving and follow up first-timers, step by step.
+          </p>
+          <div className="mt-8 text-left">
+            <LiteYouTube videoId="1Yg3MzRHuko" title="How to use Gathrd – complete guide" />
+          </div>
+          <Link
+            to="/signup"
+            className="inline-block mt-8 bg-signal hover:bg-signal-deep text-white font-semibold px-6 py-3 rounded-lg text-center transition-colors"
+          >
+            Start {TRIAL_DAYS}-Day Free Trial
+          </Link>
         </div>
       </section>
 
